@@ -6,9 +6,9 @@ end
 function DiffusionTerm(g::Function)
     DiffusionTerm{1,1,typeof(g)}(g)
 end
-function DiffusionTerm(g::Vector,k)
-    N = length(g)
-    DiffusionTerm{N,k,typeof(g)}(g)
+function DiffusionTerm(N, g::Vector)
+    Nk = length(g)
+    DiffusionTerm{N,N-Nk+1,typeof(g)}(g)
 end
 function DiffusionTerm(g::Vector)
     DiffusionTerm(g,1)
