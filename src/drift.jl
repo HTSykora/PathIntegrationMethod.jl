@@ -3,6 +3,17 @@ struct DriftTerm{N,k,fT}
     f::fT
 end
 
+function DriftTerm(f::Function)
+    DriftTerm{1,1,typeof(f)}(f)
+end
+function DriftTerm(f::Vector,k)
+    N = length(f)
+    DriftTerm{N,k,typeof(f)}(f)
+end
+function DriftTerm(f::Vector)
+    DriftTerm(f,1)
+end
+
 function (F::DriftTerm{1,1,fT})(u,p,t) where fT<:Function
     return F.f(u,p,t)
 end

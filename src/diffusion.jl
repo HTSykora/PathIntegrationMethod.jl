@@ -3,6 +3,17 @@ struct DiffusionTerm{N,k,gT}
     g::gT
 end
 
+function DiffusionTerm(g::Function)
+    DiffusionTerm{1,1,typeof(g)}(g)
+end
+function DiffusionTerm(g::Vector,k)
+    N = length(g)
+    DiffusionTerm{N,k,typeof(g)}(g)
+end
+function DiffusionTerm(g::Vector)
+    DiffusionTerm(g,1)
+end
+
 function (D::DiffusionTerm{1,1,gT})(u,p,t) where gT<:Function
     return D.g(u,p,t)
 end
@@ -26,7 +37,7 @@ function (D::DiffusionTerm{N,k,gT})(n::Integer,u,p,t) where {N,k,gT<:Vector}
         return D.g[n-k+1](u,p,t)
     end
 end
-function (D::DiffusionTerm{N,k,gT})(du::T,u::T,t) where {N,k,gT<:Vector} where T
+function (D::DiffusionTerm{N,k,gT})(du::T,u::T,p,t) where {N,k,gT<:Vector} where T
     for i in 1:N
         du[i] = D(i,u,p,t)
     end
