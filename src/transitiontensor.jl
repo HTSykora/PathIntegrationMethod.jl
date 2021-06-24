@@ -1,22 +1,23 @@
-struct TransitionTensor{N,k,NN,T,probT,pdT,tpdMX_type,dtT} <: AbstractArray{T,NN}
+struct TransitionTensor{N,k,NN,T,probT,pdT,tpdMX_type,dtT,methodT} <: AbstractArray{T,NN}
     sde::probT
     pdgrid::pdT
     tpdMX::tpdMX_type
     Δt::dtT
+    method::methodT
 end
 
 function TransitionTensor(sde::AbstractSDE{N,k},xs::AbstractVector,Δt::Real; kwargs...)  where {N,k}
     TransitionTensor(sde, PDGrid(sde, xs;  kwargs...), Δt; kwargs...)
 end
 
-function TransitionTensor(sde::AbstractSDE{N,k},pdgrid::PDGrid{N,k,T,xeT,xT,pT},Δt::Real) where {N,k,T,xeT,xT,pT}
+function TransitionTensor(sde::AbstractSDE{N,k},pdgrid::PDGrid{N,k,T,xeT,xT,pT},Δt::Real; method = EulerMaruyama()) where {N,k,T,xeT,xT,pT}
     TransitionTensor{N,k,2N,eltype(pT),typeof(sde),typeof(pdgrid),Nothing,typeof(Δt)}(sde,pdgrid,nothing,Δt)
 end
 
 function TransitionTensor(sde::SDE_Oscillator1D,xs::Vector{xT},Δt::Real; kwargs...)  where {N,k,xT<:AbstractVector}
     TransitionTensor(sde, PDGrid(sde, xs;  kwargs...), Δt; kwargs...)
 end
-function TransitionTensor(sde::SDE_Oscillator1D,pdgrid::PDGrid{2,2,T,xeT,xT,pT},Δt::Real) where {T,xeT,xT,pT}
+function TransitionTensor(sde::SDE_Oscillator1D,pdgrid::PDGrid{2,2,T,xeT,xT,pT},Δt::Real; method = EulerMaruyama()) where {T,xeT,xT,pT}
     TransitionTensor{2,2,2,eltype(pT),typeof(sde),typeof(pdgrid),Nothing,typeof(Δt)}(sde,pdgrid,nothing,Δt)
 end
 
@@ -45,5 +46,16 @@ end
 function advance!(tt::TransitionTensor{1,1,2,T,probT,pdT,tpdMX_tpye}) where {N,k,T,probT,pdT,tpdMX_tpye<:Matrix{T}}
     mul!(tt.pdgrid.p_temp, tt.tpdMX, tt.pdgrid.p)
     tt.pdgrid.p .= sum(tt.pdgrid.p_temp)
+    tt
+end
+
+function advance!(tt::TransitionTensor{2,2,2,T,probT,pdT,tpdMX_tpye}) where {N,k,T,probT,pdT,tpdMX_tpye<:Matrix{T}}
+    for (j,v) in enumerate(tt.pdgrid.xs[2])
+        for (i,x) in enumerate(tt.pdgrid.xs[1])
+            tt.pdgrid.p_temp[i,j] = tt.pdgrid(tt.pdrid.ξ_temp[i,j],v)
+        end
+    end
+    mul!(vec(tt.pdgrid), tt.tpdMX, vec(tt.pdgrid.p_temp))
+    # tt.pdgrid.p .= sum(tt.pdgrid.p_temp)
     tt
 end

@@ -1,9 +1,10 @@
-struct PDGrid{N,k,T,xeT,xT,pT} <: AbstractArray{T,N}
+struct PDGrid{N,k,T,xeT,xT,pT,itpT,ξT} <: AbstractArray{T,N}
     Δx::xeT
     xs::xT
     p::pT
     p_temp::pT
     itp::itpT # Chebyshev or equidistant linear grid
+    ξ_temp::ξT
 end
 
 Base.getindex(pdg::PDGrid, idx...) = pdg.p[idx...]
@@ -20,7 +21,10 @@ function PDGrid(sde::SDE{N,k},xs::xsT; Q_equidistant = true, Q_initialize = true
     if Q_initialize
         initialize!(p)
     end
-    PDGrid{N,k,eltype(p),typeof(Δx),xsT,typeof(p)}(Δx,xs,p,similar(p))
+    if N == k
+        ξ_temp = similar(p)
+    end
+    PDGrid{N,k,eltype(p),typeof(Δx),xsT,typeof(p)}(Δx,xs,p,similar(p), ξ_temp)
 end
 
 function PDGrid(sde::SDE{1,1},xs::xsT; kwargs...) where xsT<:AbstractVector{xT} where xT<:Number
@@ -36,3 +40,22 @@ end
     p
 end
 
+function (p::PDGrid{1,1})(x)
+    p.itp(p.p,p.xs,x)
+end
+function (p::PDGrid{N,N})(x,y...)
+    idxs = [getidx(p.xs[i+1],_y) for (j,_y) in enumerate(y)]
+    p.itp(view(p.p,:,idxs...),p.xs[1],x)
+end
+function getidxs(xs,x)
+    if x isa Union{Rational,Integer}
+        @inbounds i = searchsortedlast(xs, x)  
+    else
+        @inbounds i = searchsortedlast(xs, x - 10eps(xT))
+    end
+    if i>=length(xs)  # it can happen if t ≈ t0
+        return length(xs)
+    else
+        return i+1
+    end
+end

@@ -19,15 +19,15 @@ function _tp(sde::SDE{1,1},par,x,t,x0,t0; method = EulerMaruyama()) # transition
     μ = x0 + μ₀*(t-t0)
     normal1D(μ,σ²,x)
 end
-function _tp(sde::SDE{1,1},x,t,x0,t0; kwargs...) # transition probability for scalar problem
+function _tp(sde::AbstractSDE{N,k},x,t,x0,t0; kwargs...) where {N,k} # transition probability for scalar problem
     _tp(sde,sde.par,x,t,x0,t0; kwargs...)
 end
 
 
 # Second order system
 # TODO: inverse function for f2!!!!
-function get_ξ(e::EulerMaruyama,sde::SDE_Oscillator1D,x,t,x0,t0)
-    x[1] - x0[2]*(t-t0)
+function get_ξ(e::EulerMaruyama,sde::SDE_Oscillator1D,t,t0,x,v) # x - f₁(ξ) = 0
+    x - v*(t-t0)
 end
 function (e::EulerMaruyama)(sde::SDE_Oscillator1D,par,x,v,t,x0,v0,t0)
     f2 = sde.f([ξ,v0],par,t0)
