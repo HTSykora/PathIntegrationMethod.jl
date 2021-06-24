@@ -10,7 +10,8 @@ end
 Base.getindex(pdg::PDGrid, idx...) = pdg.p[idx...]
 Base.size(pdg::PDGrid) = size(pdg.p)
 
-function PDGrid(sde::SDE{N,k},xs::xsT; Q_equidistant = true, Q_initialize = true, kwargs...) where xsT<:AbstractVector{xT} where xT<:AbstractVector where {N,k}
+# TODO: Integrate interpolation into the PDGRid!!!
+function PDGrid(sde::SDE{N,k},xs::xsT; Q_equidistant = true, Q_initialize = true, interpolation_method = EquidistantLinearInterpolation(length(xs[1]),N-k+1), kwargs...) where xsT<:AbstractVector{xT} where xT<:AbstractVector where {N,k}
     if Q_equidistant
         Δx = [x[2]-x[1] for x in xs]
     else
@@ -24,7 +25,7 @@ function PDGrid(sde::SDE{N,k},xs::xsT; Q_equidistant = true, Q_initialize = true
     if N == k
         ξ_temp = similar(p)
     end
-    PDGrid{N,k,eltype(p),typeof(Δx),xsT,typeof(p)}(Δx,xs,p,similar(p), ξ_temp)
+    PDGrid{N,k,eltype(p),typeof(Δx),xsT,typeof(p)}(Δx,xs,p,similar(p),interpolation_method, ξ_temp)
 end
 
 function PDGrid(sde::SDE{1,1},xs::xsT; kwargs...) where xsT<:AbstractVector{xT} where xT<:Number
@@ -43,7 +44,7 @@ end
 function (p::PDGrid{1,1})(x)
     p.itp(p.p,p.xs,x)
 end
-function (p::PDGrid{N,N})(x,y...)
+function (p::PDGrid{N,N})(x,y...) where N
     idxs = [getidx(p.xs[i+1],_y) for (j,_y) in enumerate(y)]
     p.itp(view(p.p,:,idxs...),p.xs[1],x)
 end
