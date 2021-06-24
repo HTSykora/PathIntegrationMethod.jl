@@ -26,18 +26,19 @@ end
 
 # Second order system
 # TODO: inverse function for f2!!!!
-function (e::EulerMaruyama)(sde::SDE{2,2},par,x0,t0,t1)
-    f1dt = x0[2]*(t1-t0)
-    _x0 = copy(x0); _x0[1] = x0[1] - f1dt
-    f2 = sde.f(2,_x0,par,t0)
-    g2 = sde.g(2,_x0,par,t0)^2
+function get_ξ(e::EulerMaruyama,sde::SDE_Oscillator1D,x,t,x0,t0)
+    x[1] - x0[2]*(t-t0)
+end
+function (e::EulerMaruyama)(sde::SDE_Oscillator1D,par,x,v,t,x0,v0,t0)
+    f2 = sde.f([ξ,v0],par,t0)
+    g2 = sde.g([ξ,v0],par,t0)^2
     f2, g2
 end
 
-function _tp(sde::SDE{2,2},par,x,t,x0,t0; method = EulerMaruyama()) # transition probability for scalar problem
-    f2, g2 = method(sde,par,x0,t0,t1)
+function _tp(sde::SDE_Oscillator1D,par,x,t,x0,t0; method = EulerMaruyama()) # transition probability for scalar problem
+    f2, g2 = method(sde,par,x...,t,x0...,t0)
     σ² = g2*(t-t0)
-    μ = x0[2] + f2
+    μ = x0[2] + f2*(t-t0)
     normal1D(μ,σ²,x[2])
 end
 

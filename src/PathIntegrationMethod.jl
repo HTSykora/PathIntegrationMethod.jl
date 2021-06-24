@@ -1,6 +1,9 @@
 module PathIntegrationMethod
 
-# Write your package code here.
+using Reexport
+@reexport using LinearAlgebra
+
+export DriftTerm, DiffusionTerm, TransitionTensor, SDE, PDGrid, advance!
 
 include("drift.jl")
 include("diffusion.jl")
@@ -9,6 +12,8 @@ include("pdgrid.jl")
 include("transitiontensor.jl")
 include("transitionprobabilities.jl")
 include("filltransitiontensor.jl")
+include("interpolation/interpolations.jl")
+include("interpolation/chebyshev.jl")
 
-export DriftTerm, DiffusionTerm, TransitionTensor, SDE, PDGrid, advance!
+
 end

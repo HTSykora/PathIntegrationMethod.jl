@@ -2,7 +2,8 @@ struct PDGrid{N,k,T,xeT,xT,pT} <: AbstractArray{T,N}
     Δx::xeT
     xs::xT
     p::pT
-    # itp::itpT # Chebyshev or equidistant linear grid
+    p_temp::pT
+    itp::itpT # Chebyshev or equidistant linear grid
 end
 
 Base.getindex(pdg::PDGrid, idx...) = pdg.p[idx...]
@@ -19,7 +20,7 @@ function PDGrid(sde::SDE{N,k},xs::xsT; Q_equidistant = true, Q_initialize = true
     if Q_initialize
         initialize!(p)
     end
-    PDGrid{N,k,eltype(p),typeof(Δx),xsT,typeof(p)}(Δx,xs,p)
+    PDGrid{N,k,eltype(p),typeof(Δx),xsT,typeof(p)}(Δx,xs,p,similar(p))
 end
 
 function PDGrid(sde::SDE{1,1},xs::xsT; kwargs...) where xsT<:AbstractVector{xT} where xT<:Number

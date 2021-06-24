@@ -3,6 +3,10 @@ uuid = "17af75c3-1154-45e8-8bf1-89127e64a962"
 authors = ["Henrik T Sykora <henrik.sykora@gmail.com> and contributors"]
 version = "0.1.0"
 
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
+
 [compat]
 julia = "1"
 
