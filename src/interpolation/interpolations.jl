@@ -39,7 +39,7 @@ function  find_idx(p::Vp,xs::Vx,x::xT) where {N,Vp<:AbstractVector{Tp},Vx<:Abstr
         elseif abs2(xs[i+1] - x) < eps()
             return false, i+1, p[i+1]
         else
-            return true, i+1, zero(Tp)
+            return true, i, zero(Tp)
         end
     else
         return true, 0, zero(Tp)

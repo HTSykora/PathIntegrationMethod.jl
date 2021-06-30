@@ -1,10 +1,10 @@
-function fillup!(tpdMX, TT::TransitionTensor{1,1,2,T,probT,pdT}) where {T,probT,pdT<:PDGrid{1,1,T2,Vector{xT}}} where {T2,xT<:Axis{itpT}} where {itpT<:LinearInterpolation{true}}
+function fillup!(tpdMX, TT::TransitionTensor{1,1,2,T,probT,pdT}) where {T,probT,pdT<:PDGrid{1,1,T2,NTuple{M,xT}}} where {T2,xT<:Axis{itpT}} where {M,itpT<:LinearInterpolation{true}}
     zΔt = zero(TT.Δt)
     for (idx₀,x₀) in enumerate(TT.pdgrid.xs[1])
         for (idx₁,x₁) in enumerate(TT.pdgrid.xs[1])
             # TODO: intruduce numerical integration scheme
             # tpdMX[idx₁,idx₀] = _tp(TT.sde,x₁,TT.Δt, x₀,zΔt, method = TT.method)
-            weight = getweight(TT,i,j)
+            weight = getweight(TT,1,idx₁)
             tpdMX[idx₁,idx₀] = weight*_tp(TT.sde,x₁,TT.Δt, x₀,zΔt, method = TT.method)
         end
     end

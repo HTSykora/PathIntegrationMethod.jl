@@ -32,7 +32,7 @@ function integrate_p(p::Vp,xs::Vector{xsT}) where {Vp<:AbstractArray{Tp},xsT<:Ax
     *(sum(p[i] for i in 2:(length(p)-1)) + 0.5*(p[1]+p[end]))
 end
 
-function getweight(TT::TransitionTensor{N,k,2,T,probT,pdT},i,j) where {T,probT,pdT<:PDGrid{N,k,T2,Vector{xT}}} where {T2,xT<:Axis{itpT}} where {itpT<:LinearInterpolation{true}} where {N,k}
+function getweight(TT::TransitionTensor{N,k,2,T,probT,pdT},i,j) where {T,probT,pdT<:PDGrid{N,k,T2,NTuple{M,xT}}} where {T2,M,xT<:Axis{itpT}} where {itpT<:LinearInterpolation{true}} where {N,k}
     return (j == 1 || j == length(TT.pdgrid.xs[i])) ? 0.5 : 1.0
 end
 function getarea(TT::TransitionTensor{N,k,2,T,probT,pdT}) where {T,probT,pdT<:PDGrid{N,k,T2,Vector{xT}}} where {T2,xT<:Axis{itpT}} where {itpT<:LinearInterpolation{true}} where {N,k}

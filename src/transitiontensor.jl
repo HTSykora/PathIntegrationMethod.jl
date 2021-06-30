@@ -6,16 +6,16 @@ struct TransitionTensor{N,k,NN,T,probT,pdT,tpdMX_type,dtT,methodT} <: AbstractAr
     method::methodT
 end
 
-function TransitionTensor(sde::AbstractSDE{N,k},xs::AbstractVector,Δt::Real; kwargs...)  where {N,k}
-    TransitionTensor(sde, PDGrid(sde, xs;  kwargs...), Δt; kwargs...)
+function TransitionTensor(sde::AbstractSDE{N,k},Δt::Real,xs...; kwargs...)  where {N,k}
+    TransitionTensor(sde, PDGrid(sde, xs...;  kwargs...), Δt; kwargs...)
 end
 
 function TransitionTensor(sde::AbstractSDE{N,k},pdgrid::PDGrid{N,k,T,xeT,xT,pT},Δt::Real; method = EulerMaruyama()) where {N,k,T,xeT,xT,pT}
     TransitionTensor{N,k,2N,eltype(pT),typeof(sde),typeof(pdgrid),Nothing,typeof(Δt),typeof(method)}(sde,pdgrid,nothing,Δt, method)
 end
 
-function TransitionTensor(sde::SDE_Oscillator1D,xs::Vector{xT},Δt::Real; kwargs...)  where {N,k,xT<:AbstractVector}
-    TransitionTensor(sde, PDGrid(sde, xs;  kwargs...), Δt; kwargs...)
+function TransitionTensor(sde::SDE_Oscillator1D,Δt::Real,xs...; kwargs...)  where {N,k}
+    TransitionTensor(sde, PDGrid(sde, xs...;  kwargs...), Δt; kwargs...)
 end
 function TransitionTensor(sde::SDE_Oscillator1D,pdgrid::PDGrid{2,2,T,xeT,xT,pT},Δt::Real; method = EulerMaruyama()) where {T,xeT,xT,pT}
     TransitionTensor{2,2,2,eltype(pT),typeof(sde),typeof(pdgrid),Nothing,typeof(Δt),typeof(method)}(sde,pdgrid,nothing,Δt, method)
