@@ -1,4 +1,3 @@
-
 struct DriftTerm{N,k,fT}
     f::fT
 end

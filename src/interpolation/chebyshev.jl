@@ -19,29 +19,16 @@ function chebygrid(xa, xb, n::Integer)
     ξ2x.(chebygrid(n), xa, xb)
 end
 
-function (itp::ChebyshevInterpolation{N,1})(p::Vp,xs::Vx,x::xT) where {N,Vp<:AbstractVector{Tp},Vx<:AbstractVector{Tx},xT<:Number} where Tp<:Number where Tx<:Number
-    if !(x<xs[1] || x>xs[end])
-        if x isa Union{Rational,Integer}
-            @inbounds i = searchsortedlast(xs, x)  
-        else
-            @inbounds i = searchsortedlast(xs, x - 10eps(xT))
-        end
-        if i==0  # it can happen if t ≈ t0
-            return p[1]
-        elseif abs2(xs[i+1] - x) < eps()
-            return p[i+1]
-        end
-    else
-        _1 = iseven(N) ? 1 : -1
-        s1 = 0.5*(p[1]/(x-xs[1]) +  _1 * p[N+1]/(x-xs[N+1]))
-        s2 = 0.5*(1/(x-xs[1]) +  _1 /(x-xs[N+1]))
-        _1 = 1
-        for j in 2:N
-            _1 *= -1
-            _1px = 1/(x-xs[j])
-            s1 += _1*p[j]*_1px
-            s2 += _1*_1px
-        end
-        return s1/s2
+function (itp::ChebyshevInterpolation{N})(p::Vp,xs::Vx,x::xT, i::Integer) where {N,Vp<:AbstractVector{Tp},Vx<:AbstractVector{Tx},xT<:Number} where Tp<:Number where Tx<:Number
+    _1 = iseven(N) ? 1 : -1
+    s1 = 0.5*(p[1]/(x-xs[1]) +  _1 * p[N+1]/(x-xs[N+1]))
+    s2 = 0.5*(1/(x-xs[1]) +  _1 /(x-xs[N+1]))
+    _1 = 1
+    for j in 2:N
+        _1 *= -1
+        _1px = 1/(x-xs[j])
+        s1 += _1*p[j]*_1px
+        s2 += _1*_1px
     end
+    return s1/s2
 end

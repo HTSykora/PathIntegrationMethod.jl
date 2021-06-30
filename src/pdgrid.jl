@@ -1,9 +1,7 @@
-struct PDGrid{N,k,T,xeT,xT,pT,itpT,ξT} <: AbstractArray{T,N}
-    Δx::xeT
+struct PDGrid{N,k,T,xT,pT,ξT} <: AbstractArray{T,N}
     xs::xT
     p::pT
     p_temp::pT
-    itp::itpT # Chebyshev or equidistant linear grid
     ξ_temp::ξT
 end
 
@@ -11,21 +9,16 @@ Base.getindex(pdg::PDGrid, idx...) = pdg.p[idx...]
 Base.size(pdg::PDGrid) = size(pdg.p)
 
 # TODO: Integrate interpolation into the PDGRid!!!
-function PDGrid(sde::SDE{N,k},xs::xsT; Q_equidistant = true, Q_initialize = true, interpolation_method = EquidistantLinearInterpolation(length(xs[1]),N-k+1), kwargs...) where xsT<:AbstractVector{xT} where xT<:AbstractVector where {N,k}
-    if Q_equidistant
-        Δx = [x[2]-x[1] for x in xs]
-    else
-        Δx = nothing
-    end
+function PDGrid(sde::AbstractSDE{N,k},xs::xsT; Q_initialize = true, kwargs...) where xsT<:AbstractVector{xT} where xT<:AbstractVector where {N,k}
     lens = length.(xs);
     p = zeros(eltype(xs[1]),lens...)
     if Q_initialize
-        initialize!(p)
+        initialize!(p,xs)
     end
     if N == k
         ξ_temp = similar(p)
     end
-    PDGrid{N,k,eltype(p),typeof(Δx),xsT,typeof(p)}(Δx,xs,p,similar(p),interpolation_method, ξ_temp)
+    PDGrid{N,k,eltype(p),xsT,typeof(p),typeof(p)}(xs,p,similar(p), ξ_temp)
 end
 
 function PDGrid(sde::SDE{1,1},xs::xsT; kwargs...) where xsT<:AbstractVector{xT} where xT<:Number
@@ -40,15 +33,24 @@ end
     p[middims...] .= weight
     p
 end
+@inline function initialize!(p::AbstractArray{T,N},xs::Txs) where {T<:Number,N} where Txs<:AbstractVector{Tx} where Tx<:AbstractVector
+    μs = [(x[end]+x[1])/2 for x in xs]
+    σ²s = [((x[end]-x[1])/12)^2 for x in xs]
+    idx_it = Base.Iterators.product(eachindex.(xs)...)
+    
+    for idxs in idx_it
+        p[idxs...] = prod(normal1D(μs[i],σ²s[i],xs[i][idx]) for (i,idx) in enumerate(idxs))
+    end
+end
 
 function (p::PDGrid{1,1})(x)
-    p.itp(p.p,p.xs,x)
+    p.xs[1].itp(p.p,p.xs[1],x)
 end
 function (p::PDGrid{N,N})(x,y...) where N
-    idxs = [getidx(p.xs[i+1],_y) for (j,_y) in enumerate(y)]
-    p.itp(view(p.p,:,idxs...),p.xs[1],x)
+    idxs = [getidxs(p.xs[j+1],_y) for (j,_y) in enumerate(y)]
+    p.xs[1].itp(view(p.p,:,idxs...),p.xs[1],x)
 end
-function getidxs(xs,x)
+function getidxs(xs,x::xT) where xT
     if x isa Union{Rational,Integer}
         @inbounds i = searchsortedlast(xs, x)  
     else
@@ -59,4 +61,13 @@ function getidxs(xs,x)
     else
         return i+1
     end
+end
+
+
+## Normalize functions
+function renormalize!(p::PDGrid{1,1})
+    renormalize!(p.p,p.xs[1])
+end
+function renormalize!(p::Vp,xs::Axis) where Vp<:AbstractVector{Tp} where Tp<:Number
+    p ./= integrate_p(p,xs)
 end
