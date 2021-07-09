@@ -60,7 +60,7 @@ end
 
 function advance!(tt::TransitionTensor{1,1,2,T,probT,pdT,tpdMX_tpye}) where {N,k,T,probT,pdT,tpdMX_tpye<:Matrix{T}}
     mul!(tt.pdgrid.p_temp, tt.tpdMX, tt.pdgrid.p)
-    tt.pdgrid.p .= tt.pdgrid.p_temp ./ integrate_p(tt.pdgrid.p_temp, tt.pdgrid.xs[1])
+    tt.pdgrid.p .= tt.pdgrid.p_temp ./ _integrate(tt.pdgrid.p_temp, tt.pdgrid.xs[1])
     tt
 end
 

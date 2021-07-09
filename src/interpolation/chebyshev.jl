@@ -63,3 +63,26 @@ function (itp::ChebyshevInterpolation{N})(p::Vp,xs::Vx,x::xT, i::Integer) where 
     end
     return s1/s2
 end
+
+function basefun_vals!(itp::ChebyshevInterpolation{N},vals,xs::Vx,x) where {N,Vx<:AbstractVector{Tx}} where Tx<:Number
+    # i = 0... N
+    _1 = iseven(N) ? 1 : -1
+    vals[1] = 0.5/(x-xs[1])
+    vals[end] =  0.5* _1 /(x-xs[N+1])
+    s2 = 0.5*(1/(x-xs[1]) +  _1 /(x-xs[N+1]))
+    _1 = 1
+    for j in 2:N
+        _1 *= -1
+        _1px = 1/(x-xs[j])
+        vals[j] = _1*_1px
+        s2 += _1*_1px
+    end
+    vals .= vals./s2
+    return vals
+end
+function basefun_vals(itp::ChebyshevInterpolation{N},xs::Vx,x) where {N,Vx<:AbstractVector{Tx}} where Tx<:Number
+    # i = 0... N
+    vals = zeros(N+1);
+    basefun_vals!(itp,vals,xs,x)
+    return vals
+end
