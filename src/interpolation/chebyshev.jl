@@ -1,7 +1,7 @@
 
-ξ2x(ξ, a, b) = (ξ + 1)*((b - a)/2) + a
-x2ξ(x, a, b) = 2*(x - a)/(b - a) - 1
-x2θ(x, a, b) = acos(x2ξ(x, a, b))
+ξ2x(ξ, a, b) = (ξ + 1)*((b - a)/2) + a # local to global
+x2ξ(x, a, b) = 2*(x - a)/(b - a) - 1 # global to local
+x2θ(x, a, b) = acos(x2ξ(x, a, b)) # global to angular
 
 """
     chebygrid(n)
@@ -17,6 +17,37 @@ Create an array of `n` chebyshev nodes in [`xa`,`xb`]
 """
 function chebygrid(xa, xb, n::Integer)
     ξ2x.(chebygrid(n), xa, xb)
+end
+
+function _b(T::DataType,n,j)
+    if j == n÷2
+        one(T)
+    else
+        T(2)
+    end
+end
+"""
+    clenshawcurtisweights(n)
+Create an array of `n` weights corresponding to the `n` chebyshev nodes in [-1,1]
+"""
+function clenshawcurtisweights(n1::Integer)
+    n = n1-1
+    _n = 1/n
+    w = zeros(n1);
+    w[1] = (1-sum(_b(eltype(w),n,j)/(4j^2-1) for j in 1:n÷2))*_n
+    w[end] = w[1]#_w0(n1)#(1-sum(_b(Float64,n,j)/(4j^2-1) for j in 1:n÷2))*_n
+    for k in 1:n-1
+        ϑk = k*_n
+        w[k+1] = 2*(1-sum(_b(eltype(w),n,j)/(4j^2-1)*cospi(2j*ϑk) for j in 1:n÷2))*_n
+    end
+    w
+end
+"""
+    clenshawcurtisweights(n)
+Create an array of `n` weights corresponding to the `n` chebyshev nodes in [`xa`,`xb`]
+"""
+function clenshawcurtisweights(xa::Number,xb::Number,n1::Integer)
+    0.5*(xb-xa) .* clenshawcurtisweights(n1)
 end
 
 function (itp::ChebyshevInterpolation{N})(p::Vp,xs::Vx,x::xT, i::Integer) where {N,Vp<:AbstractVector{Tp},Vx<:AbstractVector{Tx},xT<:Number} where Tp<:Number where Tx<:Number

@@ -7,6 +7,7 @@ version = "0.1.0"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 GridInterpolations = "bb4c363b-b914-514b-8517-4eb369bc008a"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+QuadGK = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 
 [compat]

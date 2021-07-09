@@ -1,19 +1,32 @@
 abstract type AbstractInterpolationType{TF} end
 
-struct ChebyshevInterpolation{N,Ttmp} <: AbstractInterpolationType{false}
+struct ChebyshevInterpolation{N,Ttmp,wT} <: AbstractInterpolationType{false}
     tmp::Ttmp
+    wts::Vector{wT}
 end
-ChebyshevInterpolation(N) = ChebyshevInterpolation{N,Nothing}(nothing)
+ChebyshevInterpolation(N) = ChebyshevInterpolation{N-1,Nothing,Float64}(nothing,clenshawcurtisweights(N))
+function ChebyshevInterpolation(N,a::T,b::T) where T<:Number
+    wts = clenshawcurtisweights(a,b,N)
+    ChebyshevInterpolation{N-1,Nothing,eltype(wts)}(nothing,wts)
+end
 
-struct LinearInterpolation{TF,Ttmp,tΔ} <: AbstractInterpolationType{TF}
+struct TrapezoidalWeights{T} <: AbstractVector{T}
+    l::Int64
+end
+Base.getindex(t::TrapezoidalWeights{T},idx::Integer) where T = (idx == 1 || idx == t.l) ? T(0.5) : T(1.)
+Base.size(t::TrapezoidalWeights) = (t.l,)
+
+struct LinearInterpolation{TF,Ttmp,tΔ,wT} <: AbstractInterpolationType{TF}
     tmp::Ttmp
     Δ::tΔ
+    wts::TrapezoidalWeights{wT}
 end
 
-LinearInterpolation(lvl; Q_equidistant = false) = LinearInterpolation{Q_equidistant,Nothing,Nothing}(nothing,nothing)
-function LinearInterpolation(lvl, Δx; Q_equidistant = false) 
+LinearInterpolation(n; Q_equidistant = false) = LinearInterpolation{Q_equidistant,Nothing,Nothing,Float64}(nothing,nothing,TrapezoidalWeights{Float64}(n))
+function LinearInterpolation(n, Δx; Q_equidistant = false) 
+    wT = Float64
     _Δx = Q_equidistant ? Δx : nothing
-    LinearInterpolation{Q_equidistant,Nothing,typeof(_Δx)}(nothing,_Δx)
+    LinearInterpolation{Q_equidistant,Nothing,typeof(_Δx),wT}(nothing,_Δx,TrapezoidalWeights{wT}(n))
 end
 
 
