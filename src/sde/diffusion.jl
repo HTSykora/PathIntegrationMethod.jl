@@ -1,8 +1,4 @@
 
-struct DiffusionTerm{N,k,gT}
-    g::gT
-end
-
 function DiffusionTerm(g::Function)
     DiffusionTerm{1,1,typeof(g)}(g)
 end

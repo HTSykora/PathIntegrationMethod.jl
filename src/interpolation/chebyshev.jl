@@ -1,4 +1,8 @@
 
+# Constructor
+ChebyshevInterpolation(N) = ChebyshevInterpolation{N-1,Nothing}(nothing)
+
+##  Functions for the interpolation and integration
 ξ2x(ξ, a, b) = (ξ + 1)*((b - a)/2) + a # local to global
 x2ξ(x, a, b) = 2*(x - a)/(b - a) - 1 # global to local
 x2θ(x, a, b) = acos(x2ξ(x, a, b)) # global to angular

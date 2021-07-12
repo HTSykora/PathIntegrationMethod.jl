@@ -1,39 +1,6 @@
-abstract type AbstractAxis{T} <:AbstractVector{T} end 
-
-struct Axis{itpT,T,xT} <: AbstractAxis{T}
-    itp::itpT
-    x::xT
-end
-
-Base.getindex(a::Axis,idx...) = a.x[idx...]
-Base.size(a::Axis) = size(a.x)
-
-function Axis(start,stop,num::Int; lvl = 1, interpolation = :linear)
-    if interpolation == :linear
-        xs = LinRange(start,stop,num)
-        itp = LinearInterpolation(num,(stop-start)/(num-1),Q_equidistant = true);
-    elseif interpolation == :chebyshev
-        xs = chebygrid(start,stop,num)
-        itp = ChebyshevInterpolation(num, start, stop);
-    else
-        error("Interpolation should be `:linear` or `:chebyshev`")
-    end
-    return Axis{typeof(itp),eltype(xs),typeof(xs)}(itp,xs)
-end
-
-struct PDGrid{N,k,T,xT,pT,ξT,gridT,iT} <: AbstractArray{T,N}
-    xs::xT
-    p::pT
-    p_temp::pT
-    ξ_temp::ξT
-    grid::gridT
-    i_temp::iT
-end
-
+# TODO: Integrate interpolation into the PDGRid!!!
 Base.getindex(pdg::PDGrid, idx...) = pdg.p[idx...]
 Base.size(pdg::PDGrid) = size(pdg.p)
-
-# TODO: Integrate interpolation into the PDGRid!!!
 
 function PDGrid(sde::AbstractSDE{N,k},xs...; Q_initialize = true, kwargs...) where {N,k}
     lens = length.(xs);
