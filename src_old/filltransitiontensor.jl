@@ -1,4 +1,4 @@
-function fillup!(tpdMX, TT::TransitionTensor{1,1,2,T,probT,pdT}) where {T,probT,pdT<:PDGrid{1,1,T2,NTuple{M,xT}}} where {T2,xT<:Axis} where {M}
+function fillup!(tpdMX, TT::PathIntegrationProblem{1,1,2,T,probT,pdT}) where {T,probT,pdT<:PDGrid{1,1,T2,NTuple{M,xT}}} where {T2,xT<:Axis} where {M}
     temp = zeros(size(tpdMX,2))
     IK = IntegrationKernel(Int[],[0],TT.pdgrid.xs[1],nothing,TT,temp);
 
@@ -19,7 +19,7 @@ function fillup!(tpdMX, TT::TransitionTensor{1,1,2,T,probT,pdT}) where {T,probT,
     tpdMX
 end
 
-function fillup!(tpdMX, TT::TransitionTensor{2,2,2})
+function fillup!(tpdMX, TT::PathIntegrationProblem{2,2,2})
     zΔt = zero(TT.Δt)
     for (i,x) in enumerate(TT.pdgrid.xs[1])
         for (j,v) in enumerate(TT.pdgrid.xs[2])
