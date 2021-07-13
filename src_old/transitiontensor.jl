@@ -1,33 +1,21 @@
-struct PathIntegrationProblem{N,k,NN,T,probT,pdT,tpdMX_type,dtT,methodT} <: AbstractArray{T,NN}
-    sde::probT
-    pdgrid::pdT
-    tpdMX::tpdMX_type
-    Δt::dtT
-    method::methodT
-end
-
-function PathIntegrationProblem(sde::AbstractSDE{N,k},Δt::Real,xs...; kwargs...)  where {N,k}
-    PathIntegrationProblem(sde, PDGrid(sde, xs...;  kwargs...), Δt; kwargs...)
-end
-
-function PathIntegrationProblem(sde::AbstractSDE{N,k},pdgrid::PDGrid{N,k,T,xeT,pT},Δt::Real; method = EulerMaruyama()) where {N,k,T,xeT,pT}
-    PathIntegrationProblem{N,k,2N,eltype(pT),typeof(sde),typeof(pdgrid),Nothing,typeof(Δt),typeof(method)}(sde,pdgrid,nothing,Δt, method)
-end
-
-function PathIntegrationProblem(sde::SDE_Oscillator1D,Δt::Real,xs...; kwargs...)  where {N,k}
-    PathIntegrationProblem(sde, PDGrid(sde, xs...;  kwargs...), Δt; kwargs...)
-end
-function PathIntegrationProblem(sde::SDE_Oscillator1D,pdgrid::PDGrid{2,2,T,xeT,pT},Δt::Real; method = EulerMaruyama()) where {T,xeT,pT}
-    PathIntegrationProblem{2,2,2,eltype(pT),typeof(sde),typeof(pdgrid),Nothing,typeof(Δt),typeof(method)}(sde,pdgrid,nothing,Δt, method)
-end
-
-
 function Base.getindex(TM::PathIntegrationProblem{N,k,NN,T,probT,pdT,tpdMX_type},idx...) where tpdMX_type<: AbstractArray{T,NN} where {N,k,NN,T,probT,pdT}
     getindex(TM.tpdMX,idx...)
 end
 function Base.getindex(TM::PathIntegrationProblem{N,k,NN,T,probT,pdT,Nothing},idx...) where {N,k,NN,T,probT,pdT}
     zero(T)
 end
+
+
+
+
+
+
+function PathIntegrationProblem(sde::SDE_Oscillator1D,Δt::Real,xs...; kwargs...)  where {N,k}
+    PathIntegrationProblem(sde, PDGrid(sde, xs...;  kwargs...), Δt; kwargs...)
+end
+
+
+
 
 function Base.size(TM::PathIntegrationProblem{N,k,NN}) where {N,k,NN}
     (Base.@_inline_meta; ntuple(M -> size(TM.pdgrid.xs[mod1(M,(NN+1)÷2)], 1), Val(NN))::Dims)

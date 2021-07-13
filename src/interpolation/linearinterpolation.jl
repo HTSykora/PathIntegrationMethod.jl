@@ -2,7 +2,7 @@
 # Constructurs
 function LinearInterpolation(Δ; Q_equidistant = false) 
     _Δ = Q_equidistant ? Δ : nothing
-    LinearInterpolation{Q_equidistant,Nothing,typeof(_Δ),wT}(nothing,_Δ)
+    LinearInterpolation{Q_equidistant,Nothing,typeof(_Δ)}(nothing,_Δ)
 end
 
 

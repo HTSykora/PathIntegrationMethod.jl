@@ -1,3 +1,20 @@
+struct PathIntegrationProblem{N,k,sdeT,pdT,tpdMX_type,dtT,methodT}
+    sde::sdeT
+    pdgrid::pdT
+    tpdMX::tpdMX_type
+    Δt::dtT
+    method::methodT
+end
+
+struct PDGrid{N,k,T,xT,pT,ξT,gridT,iT} <: AbstractArray{T,N}
+    xs::xT
+    p::pT
+    p_temp::pT
+    ξ_temp::ξT
+    grid::gridT
+    i_temp::iT
+end
+
 abstract type AbstractSDE{N,k} end
 struct SDE{N,k,fT,gT,pT} <: AbstractSDE{N,k}
     f::fT
@@ -19,7 +36,7 @@ struct DiffusionTerm{N,k,gT} <: AbstractSDEComponent{N,k,gT}
 end
 
 abstract type AbstractAxis{T} <:AbstractVector{T} end 
-struct Axis{itpT,xeT,ewT,xT,wT} <: AbstractAxis{T}
+struct Axis{itpT,xeT,ewT,xT,wT} <: AbstractAxis{xeT}
     itp::itpT
     x::xT
     wts::wT
@@ -36,15 +53,6 @@ end
 struct TrapezoidalWeights{T,ΔT} <: AbstractVector{T}
     l::Int64
     Δ::ΔT
-end
-
-struct PDGrid{N,k,T,xT,pT,ξT,gridT,iT} <: AbstractArray{T,N}
-    xs::xT
-    p::pT
-    p_temp::pT
-    ξ_temp::ξT
-    grid::gridT
-    i_temp::iT
 end
 
 struct IntegrationKernel{iT,xT,fT,ttT,tempT}
