@@ -1,5 +1,6 @@
 #############################################
 # SDE
+SDE() = SDE{0,0,Nothing,Nothing,Nothing}(nothing,nothing,nothing)
 function SDE(f::fT,g::gT; par=nothing) where {fT<:Function,gT<:Function}
     SDE{1,1,DriftTerm{1,1,fT},DiffusionTerm{1,1,gT},typeof(par)}(DriftTerm{1,1,fT}(f),DiffusionTerm{1,1,gT}(g), par)
 end

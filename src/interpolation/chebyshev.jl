@@ -84,9 +84,16 @@ function basefun_vals!(itp::ChebyshevInterpolation{N},vals,xs::Vx,x) where {N,Vx
     vals .= vals./s2
     return vals
 end
+function basefun_vals!(vals,ax::Axis{itp},x) where itp<:ChebyshevInterpolation{N} where N
+    basefun_vals!(ax.itp,vals,ax,x)
+end
+
 function basefun_vals(itp::ChebyshevInterpolation{N},xs::Vx,x) where {N,Vx<:AbstractVector{Tx}} where Tx<:Number
     # i = 0... N
     vals = zeros(N+1);
     basefun_vals!(itp,vals,xs,x)
     return vals
+end
+function basefun_vals(ax::Axis{itp},x) where itp<:ChebyshevInterpolation{N} where N
+    basefun_vals(ax.itp,ax,x)
 end

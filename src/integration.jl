@@ -1,18 +1,20 @@
 # Integration kernel for fast computation of the transition matrix
-IntegrationKernel(idx₀::iT,idx₁::iT,xs::xT,f::fT,TT::ttT) where {iT,xT,fT,ttT} = 
-    IntegrationKernel{iT,iT,xT,fT,ttT,Nothing}(idx₀,idx₁,xs,f,TT,nothing)
+function IntegrationKernel(sde::sdeT,f::fT,xs::xT,idx₀::iT0,idx₁::iT1,pdgrid::pdT,t₀::tT,t₁::tT,method::methodT) where {sdeT, fT, xT, iT0, iT1, pdT, tT, methodT}
+    IntegrationKernel{sdeT, fT, xT, iT0, iT1, pdT, tT, methodT,Nothing}(sde, f, xs, idx₀, idx₁, pdgrid, t₀, t₁, method, nothing)
+end
 
-function (b::IntegrationKernel)(vals,x₀)
-    basefun_vals!(b.xs.itp,vals,b.xs,x₀)
-    vals .*= _tp(b.TT.sde,b.TT.pdgrid.xs[1][b.idx₁...],b.TT.Δt, x₀,zero(b.TT.Δt), method = b.TT.method)
+function (IK::IntegrationKernel{sdeT})(vals,x₀) where sdeT<:AbstractSDE{1,1}
+    basefun_vals!(IK.xs.itp,vals,IK.xs,x₀)
+    vals .*= _tp(IK.sde,IK.pdgrid.xs[1][IK.idx₁...],IK.t₁, x₀,IK.t₀, method = IK.method)
     vals
 end
-function (b::IntegrationKernel)(x₀)
-    basefun_vals(b.xs.itp,b.xs,x₀) .* _tp(b.TT.sde,b.TT.pdgrid.xs[1][b.idx₁...],b.TT.Δt, x₀,zero(b.TT.Δt), method = b.TT.method)
+function (IK::IntegrationKernel)(x₀)
+    basefun_vals(IK.xs.itp,IK.xs,x₀) .* _tp(IK.sde,IK.pdgrid.xs[1][IK.idx₁...],IK.Δt, x₀,zero(IK.TT.Δt), method = IK.method)
 end
 
-# Integration over the axis
+get_IK_weights!(IK::IntegrationKernel) = quadgk!(IK,IK.temp,IK.xs...)
 
+# Integration over the axis
 function _integrate(p::Vp,xs::NTuple{1,xsT}) where {Vp<:AbstractArray{Tp,1},xsT<:Axis{itpT}} where {Tp<:Number, itpT<:LinearInterpolation{true}}
     _integrate(p,xs...)
 end
@@ -45,7 +47,7 @@ function _integrate(p::Vp,xs::NTuple{N,xsT}) where {Vp<:AbstractArray{Tp,N},xsT<
     sp = size(p);
     last(xs).wts.Δ* sum(last(xs).wts[i]*_integrate(view(p,(Colon() for _ in 1:N-1)...,i),xs[1:N-1]) for i in 1:sp[end])
 end
-function _integrate(p::Vp,xs::Tuple{xsT}) where {Vp<:AbstractArray{Tp,N},xsT<:Axis{itpT}} where {N,Tp<:Number}
+function _integrate(p::Vp,xs::Tuple{xsT}) where {Vp<:AbstractArray{Tp,N},xsT<:Axis{itpT}} where {N,Tp<:Number,itpT<:AbstractInterpolationType}
     sp = size(p,N);
     sum(last(xs).wts[i]*_integrate(view(p,(Colon() for _ in 1:N-1)...,i),xs[1:N-1]) for i in 1:sp)
 end

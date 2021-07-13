@@ -30,7 +30,7 @@ function PDGrid(sde::AbstractSDE{N,k},xs...; Q_initialize = true, kwargs...) whe
 end
 
 PDGrid(sde::AbstractSDE,xs::AV; kwargs...) where AV<:AbstractVector{AX} where AX<:Axis = PDGrid(sde,xs...; kwargs...)
-
+PDGrid(xs...; kwargs...) = PDGrid(SDE(),xs...; kwargs...)
 # function PDGrid(sde::SDE{1,1},xs::xsT; kwargs...) where xsT<:Axis
 #     PDGrid(sde, xs; kwargs...)
 # end

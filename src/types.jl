@@ -55,12 +55,16 @@ struct TrapezoidalWeights{T,ΔT} <: AbstractVector{T}
     Δ::ΔT
 end
 
-struct IntegrationKernel{iT,xT,fT,ttT,tempT}
-    idx₀::iT
-    idx₁::iT
-    xs::xT
+struct IntegrationKernel{sdeT,iT0,iT1,xT,fT,pdT,tT,methodT,tempT}
+    sde::sdeT
     f::fT
-    TT::ttT
+    xs::xT
+    idx₀::iT0
+    idx₁::iT1
+    pdgrid::pdT
+    t₀::tT
+    t₁::tT
+    method::methodT
     temp::tempT
 end
 

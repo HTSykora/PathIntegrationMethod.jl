@@ -4,19 +4,6 @@ end
 function Base.getindex(TM::PathIntegrationProblem{N,k,NN,T,probT,pdT,Nothing},idx...) where {N,k,NN,T,probT,pdT}
     zero(T)
 end
-
-
-
-
-
-
-function PathIntegrationProblem(sde::SDE_Oscillator1D,Δt::Real,xs...; kwargs...)  where {N,k}
-    PathIntegrationProblem(sde, PDGrid(sde, xs...;  kwargs...), Δt; kwargs...)
-end
-
-
-
-
 function Base.size(TM::PathIntegrationProblem{N,k,NN}) where {N,k,NN}
     (Base.@_inline_meta; ntuple(M -> size(TM.pdgrid.xs[mod1(M,(NN+1)÷2)], 1), Val(NN))::Dims)
 end
@@ -24,6 +11,12 @@ function Base.size(TM::PathIntegrationProblem{N,k,2}) where {N,k}
     lp = length(TM.pdgrid.p)
     (lp,lp)
 end
+
+
+function PathIntegrationProblem(sde::SDE_Oscillator1D,Δt::Real,xs...; kwargs...)  where {N,k}
+    PathIntegrationProblem(sde, PDGrid(sde, xs...;  kwargs...), Δt; kwargs...)
+end
+
 
 function Base.collect(TT::PathIntegrationProblem{N,k,NN,T,probT,pdT,Nothing,dtT,methodT}) where {N,k,NN,T,probT,pdT,dtT,methodT}
     tpdMX = zeros(T,size(TT)...);

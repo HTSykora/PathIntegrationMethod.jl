@@ -7,8 +7,8 @@ using Reexport
 @reexport using QuadGK
 
 export DriftTerm, DiffusionTerm, PathIntegrationProblem,  PDGrid,  Axis,
-    SDE, SDE_Oscillator1D, EulerMaruyama, Milstein, RKMaruyama
-    # advance!,
+    SDE, SDE_Oscillator1D, EulerMaruyama, Milstein, RKMaruyama,
+    advance!
     
     
 
@@ -22,8 +22,9 @@ include("pathintegrationproblem.jl")
 include("interpolation/interpolations.jl")
 include("interpolation/chebyshev.jl")
 include("interpolation/linearinterpolation.jl")
+include("timestepping.jl")
 include("transitionprobabilities.jl")
-# include("filltransitiontensor.jl")
-# include("integration.jl")
+include("integration.jl")
+include("computetransitiontensor.jl")
 
 end
