@@ -1,5 +1,6 @@
 module PathIntegrationMethod
 
+using Base: create_expr_cache
 using Reexport
 @reexport using LinearAlgebra
 @reexport using Distributions
@@ -20,7 +21,7 @@ include("sde/sde.jl")
 include("pdgrid.jl")
 include("pathintegrationproblem.jl")
 include("interpolation/interpolations.jl")
-include("interpolation/chebyshev.jl")
+include("interpolation/chebyshevinterpolation.jl")
 include("interpolation/linearinterpolation.jl")
 include("timestepping.jl")
 include("transitionprobabilities.jl")

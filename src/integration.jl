@@ -8,7 +8,7 @@ function (IK::IntegrationKernel{sdeT})(vals,x₀) where sdeT<:AbstractSDE{1,1}
     vals .*= _tp(IK.sde,IK.pdgrid.xs[1][IK.idx₁...],IK.t₁, x₀,IK.t₀, method = IK.method)
     vals
 end
-function (IK::IntegrationKernel)(x₀)
+function (IK::IntegrationKernel{sdeT})(x₀) where sdeT<:AbstractSDE{1,1}
     basefun_vals(IK.xs.itp,IK.xs,x₀) .* _tp(IK.sde,IK.pdgrid.xs[1][IK.idx₁...],IK.Δt, x₀,zero(IK.TT.Δt), method = IK.method)
 end
 

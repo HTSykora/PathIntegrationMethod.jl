@@ -16,3 +16,8 @@ function Axis(start,stop,num::Int; lvl = 1, interpolation = :linear)
     end
     return Axis{typeof(itp),eltype(xs),eltype(wts),typeof(xs),typeof(wts)}(itp,xs,wts)
 end
+
+function create_temp_axis(T, a::Axis{itpT,xeT,ewT,xT,wT}) where {itpT,xeT,ewT,xT,wT}
+    n_itp = new_itp(T, a.itp, length(a))
+    Axis{typeof(n_itp),xeT,ewT,xT,wT}(n_itp,a.x,a.wts)
+end

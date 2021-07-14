@@ -1,6 +1,15 @@
-
 # Constructor
-ChebyshevInterpolation(N) = ChebyshevInterpolation{N-1,Nothing}(nothing)
+ChebyshevInterpolation(N::Integer; kwargs...) = ChebyshevInterpolation(Float64,N; kwargs...)
+function ChebyshevInterpolation(T::DataType,N::Integer; create_temp = false)
+    temp = create_temp ? zeros(T,N) : nothing
+    ChebyshevInterpolation{N-1,typeof(temp)}(temp)
+end
+# Reconstructor
+# Reconstructor
+function new_itp(T::DataType,itp::ChebyshevInterpolation{N,Ttemp}, n) where {N,Ttemp} # Ttemp <: Nothing
+    ChebyshevInterpolation(T,N+1, create_temp = true)
+end
+
 
 ##  Functions for the interpolation and integration
 ξ2x(ξ, a, b) = (ξ + 1)*((b - a)/2) + a # local to global
@@ -84,16 +93,14 @@ function basefun_vals!(itp::ChebyshevInterpolation{N},vals,xs::Vx,x) where {N,Vx
     vals .= vals./s2
     return vals
 end
-function basefun_vals!(vals,ax::Axis{itp},x) where itp<:ChebyshevInterpolation{N} where N
-    basefun_vals!(ax.itp,vals,ax,x)
-end
 
-function basefun_vals(itp::ChebyshevInterpolation{N},xs::Vx,x) where {N,Vx<:AbstractVector{Tx}} where Tx<:Number
-    # i = 0... N
-    vals = zeros(N+1);
-    basefun_vals!(itp,vals,xs,x)
+function basefun_vals_safe!(itp::ChebyshevInterpolation{N},vals,xs::Vx,x) where {N,Vx<:AbstractVector{Tx}} where Tx<:Number
+    needsinterpolation, i = find_idx(xs, x)
+    if needsinterpolation
+        basefun_vals!(itp,vals,xs,x)
+    else
+        vals .= zero(eltype(vals))
+        vals[i] = one(eltype(vals))
+    end
     return vals
-end
-function basefun_vals(ax::Axis{itp},x) where itp<:ChebyshevInterpolation{N} where N
-    basefun_vals(ax.itp,ax,x)
 end

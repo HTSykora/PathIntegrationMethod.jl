@@ -2,7 +2,13 @@
 Base.getindex(pdg::PDGrid, idx...) = pdg.p[idx...]
 Base.size(pdg::PDGrid) = size(pdg.p)
 
-function PDGrid(sde::AbstractSDE{N,k},xs...; Q_initialize = true, kwargs...) where {N,k}
+function PDGrid(sde::AbstractSDE{N,k},_xs...;
+    Q_initialize = true, axis_temp = true, kwargs...) where {N,k}
+    if length(_xs) >1 && axis_temp
+        xs = create_temp_axis.(Ref(Float64),_xs)
+    else
+        xs = _xs
+    end
     lens = length.(xs);
     p = zeros(eltype(xs[1]),lens...)
     if Q_initialize
@@ -54,7 +60,7 @@ end
     end
 end
 
-function (p::PDGrid{1,1})(x)
+function (p::PDGrid{1,1})(x::Number)
     p.xs[1].itp(p.p,p.xs[1],x)
 end
 # function (p::PDGrid{N,N})(x,y...) where N
@@ -65,8 +71,9 @@ end
 # function (p::PDGrid{N,N})(x,y...) where N
 #     p.xs[1].itp(view(p.p,:,idxs...),p.xs[1],x)
 # end
-function (p::PDGrid{N, k, T, NTuple{M,aT}} where {N,k,T,M,aT<:Axis{<:LinearInterpolation{true}}})(x...)
-    interpolate(p.grid,p.p,[x...])
+function (p::PDGrid)(x...)
+    # TODO...
+    interpolate_MV(p.p,p.xs,x...)
 end
 
 
