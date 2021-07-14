@@ -13,9 +13,9 @@ end
 
 ##############################################
 # Advance functions
-function advance!(tt::PathIntegrationProblem{1,1,sdeT,pdT,tpdMX_tpye}) where {sdeT,pdT,tpdMX_tpye<:Matrix{T}} where T<:Number
-    mul!(tt.pdgrid.p_temp, tt.tpdMX, tt.pdgrid.p)
-    tt.pdgrid.p .= tt.pdgrid.p_temp ./ _integrate(tt.pdgrid.p_temp, tt.pdgrid.xs[1])
+function advance!(tt::PathIntegrationProblem{N,k,sdeT,pdT,tpdMX_tpye}) where {N,k,sdeT,pdT,tpdMX_tpye<:Matrix{T}} where T<:Number
+    mul!(vec(tt.pdgrid.p_temp), tt.tpdMX, vec(tt.pdgrid.p))
+    tt.pdgrid.p .= tt.pdgrid.p_temp ./ _integrate(tt.pdgrid.p_temp, tt.pdgrid.xs)
     tt
 end
 

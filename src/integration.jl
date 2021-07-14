@@ -3,16 +3,40 @@ function IntegrationKernel(sde::sdeT,f::fT,xs::xT,idx₀::iT0,idx₁::iT1,pdgrid
     IntegrationKernel{sdeT, fT, xT, iT0, iT1, pdT, tT, methodT,Nothing}(sde, f, xs, idx₀, idx₁, pdgrid, t₀, t₁, method, nothing)
 end
 
+# Evaluating the intgarals
+get_IK_weights!(IK::IntegrationKernel{sdeT}) where sdeT<:AbstractSDE{N,N} where N = quadgk!(IK,IK.temp,IK.xs...)
+
+##############################################
+## IK calls
+# Scalar problem
 function (IK::IntegrationKernel{sdeT})(vals,x₀) where sdeT<:AbstractSDE{1,1}
     basefun_vals!(IK.xs.itp,vals,IK.xs,x₀)
     vals .*= _tp(IK.sde,IK.pdgrid.xs[1][IK.idx₁...],IK.t₁, x₀,IK.t₀, method = IK.method)
     vals
 end
+
 function (IK::IntegrationKernel{sdeT})(x₀) where sdeT<:AbstractSDE{1,1}
-    basefun_vals(IK.xs.itp,IK.xs,x₀) .* _tp(IK.sde,IK.pdgrid.xs[1][IK.idx₁...],IK.Δt, x₀,zero(IK.TT.Δt), method = IK.method)
+    basefun_vals(IK.xs.itp,IK.xs,x₀) .* _tp(IK.sde,IK.pdgrid.xs[1][IK.idx₁...],IK.t₁, x₀,IK.t₀, method = IK.method)
 end
 
-get_IK_weights!(IK::IntegrationKernel) = quadgk!(IK,IK.temp,IK.xs...)
+# 1D Oscillator problem
+function (IK::IntegrationKernel{sdeT})(vals,v₀) where sdeT<:SDE_Oscillator1D
+    ξ = get_ξ(IK.method,IK.sde,IK.t₁,IK.t₀,IK.pdgrid.xs[1][IK.idx₁[1]],nothing,nothing,v₀) # v₁, x₀ = nothing
+    basefun_vals!(IK.pdgrid.xs[1].itp,IK.pdgrid.xs[1].itp.tmp,IK.pdgrid.xs[1], ξ)
+    basefun_vals!(IK.pdgrid.xs[2].itp,IK.pdgrid.xs[2].itp.tmp,IK.pdgrid.xs[2],v₀)
+    for j in eachindex(IK.pdgrid.xs[2].itp.tmp)
+        for i in eachindex(IK.pdgrid.xs[1].itp.tmp)
+            vals[i,j] = IK.pdgrid.xs[1].itp.tmp[i] * IK.pdgrid.xs[2].itp.tmp[j] * _tp(IK.sde,IK.sde.par,IK.pdgrid.xs[1][IK.idx₁[1]], IK.pdgrid.xs[2][IK.idx₁[2]], IK.t₁,ξ,v₀,IK.t₀, method = IK.method) 
+        end
+    end
+    
+    vals
+end
+
+function (IK::IntegrationKernel{sdeT})(v₀) where sdeT<:SDE_Oscillator1D
+    basefun_vals(IK.xs.itp,IK.xs,v₀) .* _tp(IK.sde, IK.pdgrid.xs[1][IK.idx₁...], IK.t₁, v₀, IK.t₀, method = IK.method)
+end
+
 
 # Integration over the axis
 function _integrate(p::Vp,xs::NTuple{1,xsT}) where {Vp<:AbstractArray{Tp,1},xsT<:Axis{itpT}} where {Tp<:Number, itpT<:LinearInterpolation{true}}
@@ -47,7 +71,7 @@ function _integrate(p::Vp,xs::NTuple{N,xsT}) where {Vp<:AbstractArray{Tp,N},xsT<
     sp = size(p);
     last(xs).wts.Δ* sum(last(xs).wts[i]*_integrate(view(p,(Colon() for _ in 1:N-1)...,i),xs[1:N-1]) for i in 1:sp[end])
 end
-function _integrate(p::Vp,xs::Tuple{xsT}) where {Vp<:AbstractArray{Tp,N},xsT<:Axis{itpT}} where {N,Tp<:Number,itpT<:AbstractInterpolationType}
+function _integrate(p::Vp,xs::Tuple) where {Vp<:AbstractArray{Tp,N},xsT<:Axis} where {N,Tp<:Number}
     sp = size(p,N);
     sum(last(xs).wts[i]*_integrate(view(p,(Colon() for _ in 1:N-1)...,i),xs[1:N-1]) for i in 1:sp)
 end
