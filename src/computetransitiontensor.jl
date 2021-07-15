@@ -28,7 +28,9 @@ function computeintegrationmatrix(sde::SDE_Oscillator1D,pdgrid::PDGrid{2,2,T},Δ
     for (i,idx₁) in enumerate(idx_it)
         IK.idx₁ .= idx₁
         get_IK_weights!(IK)
-        tpdMX[i,:] .= vec(IK.temp) # rework it to use the transpose!
+        for j in eachindex(IK.temp)
+            tpdMX[i,j] .= IK.temp[j] # rework it to use the transpose!
+        end
     end
 
     return tpdMX
