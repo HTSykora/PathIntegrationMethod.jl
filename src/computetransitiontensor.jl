@@ -16,9 +16,28 @@ function computeintegrationmatrix(sde::AbstractSDE{1,1},pdgrid::PDGrid{1,1,T},Δ
     return tpdMX
 end
 
+# function computeintegrationmatrix(sde::SDE_Oscillator1D,pdgrid::PDGrid{2,2,T},Δt,method; kwargs...) where {T}
+#     # Prepare IK
+#     tpdMX = zeros(T,length(pdgrid),length(pdgrid))
+#     temp = similar(pdgrid)
+#     IK = IntegrationKernel(sde,nothing,pdgrid.xs[2],nothing,[0,0],pdgrid,zero(Δt),Δt,method,temp);
+
+#     # Fill the matrix representation of the transition tensor (tpdMX)
+#     idx_it = Base.Iterators.product(eachindex.(pdgrid.xs)...)
+
+#     for (i,idx₁) in enumerate(idx_it)
+#         IK.idx₁ .= idx₁
+#         get_IK_weights!(IK)
+#         for j in eachindex(IK.temp)
+#             tpdMX[i,j] .= IK.temp[j] # rework it to use the transpose!
+#         end
+#     end
+
+#     return tpdMX
+# end
 function computeintegrationmatrix(sde::SDE_Oscillator1D,pdgrid::PDGrid{2,2,T},Δt,method; kwargs...) where {T}
     # Prepare IK
-    tpdMX = zeros(T,length(pdgrid),length(pdgrid))
+    tpdMX = zeros(T,size(pdgrid)...,size(pdgrid)...)
     temp = similar(pdgrid)
     IK = IntegrationKernel(sde,nothing,pdgrid.xs[2],nothing,[0,0],pdgrid,zero(Δt),Δt,method,temp);
 
@@ -28,9 +47,7 @@ function computeintegrationmatrix(sde::SDE_Oscillator1D,pdgrid::PDGrid{2,2,T},Δ
     for (i,idx₁) in enumerate(idx_it)
         IK.idx₁ .= idx₁
         get_IK_weights!(IK)
-        for j in eachindex(IK.temp)
-            tpdMX[i,j] .= IK.temp[j] # rework it to use the transpose!
-        end
+        tpdMX[:,:,idx₁...] .= IK.temp # rework it to use the transpose!
     end
 
     return tpdMX

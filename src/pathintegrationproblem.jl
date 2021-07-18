@@ -18,6 +18,15 @@ function advance!(tt::PathIntegrationProblem{N,k,sdeT,pdT,tpdMX_tpye}) where {N,
     tt.pdgrid.p .= tt.pdgrid.p_temp ./ _integrate(tt.pdgrid.p_temp, tt.pdgrid.xs)
     tt
 end
+function advance!(tt::PathIntegrationProblem{2,2,sdeT,pdT,tpdMX_tpye}) where {sdeT<:SDE_Oscillator1D,pdT,tpdMX_tpye} where T<:Number
+    pszs = size(tt.pdgrid)
+    for j in 1:pszs[2], i in 1:pszs[1]
+            tt.pdgrid.p_temp[i,j] = sum(tt.pdgrid.p[k,l]*tt.tpdMX[k,l,i,j] for l in 1:pszs[2], k in 1:pszs[1])
+    end
+    # mul!(vec(tt.pdgrid.p_temp), tt.tpdMX, vec(tt.pdgrid.p))
+    tt.pdgrid.p .= tt.pdgrid.p_temp ./ _integrate(tt.pdgrid.p_temp, tt.pdgrid.xs)
+    tt
+end
 
 # function PathIntegrationProblem(sde::SDE_Oscillator1D,pdgrid::PDGrid{2,2},Δt::Real; method = EulerMaruyama())
 #     PathIntegrationProblem{2,2,typeof(sde),typeof(pdgrid),Nothing,typeof(Δt),typeof(method)}(sde,pdgrid,nothing,Δt, method)
