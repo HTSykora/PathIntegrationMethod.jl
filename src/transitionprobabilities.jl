@@ -26,7 +26,8 @@ end
 function _tp(sde::SDE_Oscillator1D,par,x₁,v₁,t₁,x₀,v₀,t₀; method = EulerMaruyama(), kwargs...) # transition probability for scalar problem
     f₂, g₂ = method(sde,par,x₁,v₁,t₁,x₀,v₀,t₀)
     σ² = g₂^2*(t₁-t₀)
-    μ = v₁ + f₂*(t₁-t₀)
+    # μ = v₁ + f₂*(t₁-t₀)
+    μ = v₀ + f₂*(t₁-t₀)
     normal1D(μ,σ²,v₁)
 end
 

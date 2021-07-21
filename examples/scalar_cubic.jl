@@ -4,7 +4,7 @@ using PyPlot, LaTeXStrings; pygui(true);
 PyPlot.rc("text", usetex=true);
 py_colors=PyPlot.PyDict(PyPlot.matplotlib."rcParams")["axes.prop_cycle"].by_key()["color"];
 
-using QuadGK
+using QuadGK, Arpack
 ##
 
 # 1D problem:
@@ -21,7 +21,7 @@ sde = SDE(f,g)
 xs = Axis(-5,5,31,interpolation = :chebyshev)
 myp = PDGrid(sde, xs;)
 
-@time tt = PathIntegrationProblem(sde,0.0025,xs, precompute=true)#, method = RKMaruyama());
+@time tt = PathIntegrationProblem(sde,0.25,xs, precompute=true)#, method = RKMaruyama());
 
 @time begin
     ev = eigs(tt.tpdMX)[2][:,1] .|> real
@@ -46,4 +46,14 @@ begin
     
     legend()
     # # scatter(xdef,res.(xdef))
+end
+
+
+tt.idx₁ .= [16]
+vs = LinRange(-6,6,1001)
+_tps = [tt(tt.temp,v) for v in vs]
+sum(_tps)*(vs[2]-vs[1])
+begin
+    figure(1); clf();
+    plot(vs,_tps)
 end

@@ -36,7 +36,12 @@ function PDGrid(sde::AbstractSDE{N,k},_xs...;
 end
 
 PDGrid(sde::AbstractSDE,xs::AV; kwargs...) where AV<:AbstractVector{AX} where AX<:Axis = PDGrid(sde,xs...; kwargs...)
-PDGrid(xs...; kwargs...) = PDGrid(SDE(),xs...; kwargs...)
+PDGrid(xs...; kwargs...) = PDGrid(DummySDE(length(xs),length(xs)),xs...; kwargs...)
+function PDGrid(pM::AbstractArray{T,N}, xs...; kwargs...) where {T,N}
+    pdgrid = PDGrid(DummySDE(N,N),xs...; Q_initialize = false, kwargs...)
+    pdgrid.p .= pM
+    pdgrid
+end
 # function PDGrid(sde::SDE{1,1},xs::xsT; kwargs...) where xsT<:Axis
 #     PDGrid(sde, xs; kwargs...)
 # end

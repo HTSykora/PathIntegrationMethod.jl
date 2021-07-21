@@ -9,6 +9,7 @@ using Reexport
 
 export DriftTerm, DiffusionTerm, PathIntegrationProblem,  PDGrid,  Axis,
     SDE, SDE_Oscillator1D, EulerMaruyama, Milstein, RKMaruyama,
+    IntegrationKernel,
     advance!
     
     

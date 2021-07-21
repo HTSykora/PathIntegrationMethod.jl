@@ -4,7 +4,7 @@ using PyPlot, LaTeXStrings; pygui(true);
 PyPlot.rc("text", usetex=true);
 py_colors=PyPlot.PyDict(PyPlot.matplotlib."rcParams")["axes.prop_cycle"].by_key()["color"];
 
-using QuadGK
+using QuadGK, Arpack
 ##
 
 function fx(u,p,t)
@@ -14,9 +14,9 @@ end
 function gx(u,p,t)
     p[2] # = σ
 end
-sde = SDE_Oscillator1D(fx,gx,par = [0.15, 0.5])
+sde = SDE_Oscillator1D(fx,gx,par = [0.15, 0.1])
 xvs = [Axis(-6,6,31,interpolation=:chebyshev),Axis(-6,6,31,interpolation=:chebyshev)]#,Axis(-6,6,25)]
-@time tt = PathIntegrationProblem(sde,0.005,xvs...; precompute=true);
+@time tt = PathIntegrationProblem(sde,0.0005,xvs...; precompute=true);
 
 @time for _ in 1:1
     advance!(tt)
@@ -46,4 +46,14 @@ begin
     
     # scatter3D(xvs[2], -xvs[2].*ttc.Δt, zeros(length(xvs[2])))
     # scatter3D([1.1515], [-0.5], ttc.pdgrid(1.1515,-0.5))
+end
+
+
+tt.idx₁ .= [16,16]
+vs = LinRange(-6,6,1001)
+_tps = [tt(tt.temp,v) for v in vs]
+
+begin
+    figure(1); clf();
+    plot(vs,_tps)
 end

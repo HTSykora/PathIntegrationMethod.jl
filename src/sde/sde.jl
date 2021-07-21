@@ -1,4 +1,8 @@
 #############################################
+# DummySDE
+DummySDE(N,k) = DummySDE{N,k}()
+DummySDE(N) = DummySDE{N,N}()
+
 # SDE
 SDE() = SDE{0,0,Nothing,Nothing,Nothing}(nothing,nothing,nothing)
 function SDE(f::fT,g::gT; par=nothing) where {fT<:Function,gT<:Function}

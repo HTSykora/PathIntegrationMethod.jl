@@ -16,6 +16,8 @@ struct PDGrid{N,k,T,xT,pT,ξT,gridT,iT} <: AbstractArray{T,N}
 end
 
 abstract type AbstractSDE{N,k} end
+struct DummySDE{N,k} <: AbstractSDE{N,k} end
+
 struct SDE{N,k,fT,gT,pT} <: AbstractSDE{N,k}
     f::fT
     g::gT
