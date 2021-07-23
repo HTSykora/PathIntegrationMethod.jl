@@ -94,8 +94,8 @@ function basefun_vals!(itp::ChebyshevInterpolation{N},vals,xs::Vx,x) where {N,Vx
     return vals
 end
 
-function basefun_vals_safe!(itp::ChebyshevInterpolation{N},vals,xs::Vx,x) where {N,Vx<:AbstractVector{Tx}} where Tx<:Number
-    needsinterpolation, i = find_idx(xs, x)
+function basefun_vals_safe!(itp::ChebyshevInterpolation{N},vals,xs::Vx,x; allow_extrapolation = false, kwargs...) where {N,Vx<:AbstractVector{Tx}} where Tx<:Number
+    needsinterpolation, i = find_idx(xs, x, allow_extrapolation = allow_extrapolation; kwargs...)
     if needsinterpolation
         basefun_vals!(itp,vals,xs,x)
     else

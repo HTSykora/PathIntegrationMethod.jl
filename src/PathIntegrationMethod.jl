@@ -1,6 +1,5 @@
 module PathIntegrationMethod
 
-using Base: create_expr_cache
 using Reexport
 @reexport using LinearAlgebra
 @reexport using Distributions
@@ -10,7 +9,8 @@ using Reexport
 export DriftTerm, DiffusionTerm, PathIntegrationProblem,  PDGrid,  Axis,
     SDE, SDE_Oscillator1D, EulerMaruyama, Milstein, RKMaruyama,
     IntegrationKernel,
-    advance!
+    advance!, get_stationary_by_eigenvectors, 
+    _integrate
     
     
 

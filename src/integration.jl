@@ -47,7 +47,6 @@ function (IK::IntegrationKernel{sdeT})(vals,v₀) where sdeT<:SDE_Oscillator1D
     basefun_vals!(IK.pdgrid.xs[2].itp,IK.pdgrid.xs[2].itp.tmp,IK.pdgrid.xs[2],v₀)
 
     fx = _tp(IK.sde,IK.sde.par,IK.pdgrid.xs[1][IK.idx₁[1]], IK.pdgrid.xs[2][IK.idx₁[2]], IK.t₁,ξ,v₀,IK.t₀, method = IK.method) 
-    # _TP(tt.sde,(x,v),tt.Δt,(get_ξ(tt.method,tt.sde,tt.Δt,0.,x,v₀),v₀),0.)*tt.pdgrid(get_ξ(tt.method,tt.sde,tt.Δt,0.,x,v₀),v₀)
 
     for j in eachindex(IK.pdgrid.xs[2].itp.tmp)
         for i in eachindex(IK.pdgrid.xs[1].itp.tmp)
@@ -98,4 +97,7 @@ function _integrate(p::Vp,xs::Tuple) where {Vp<:AbstractArray{Tp,N},xsT<:Axis} w
     sum(last(xs).wts[i]*_integrate(view(p,(Colon() for _ in 1:N-1)...,i),xs[1:N-1]) for i in 1:sp)
 end
 
-
+# Integrate over a full PDGrid
+function _integrate(p::PDGrid)
+    _integrate(p.p,p.xs)
+end

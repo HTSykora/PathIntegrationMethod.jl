@@ -31,3 +31,16 @@ end
 # function PathIntegrationProblem(sde::SDE_Oscillator1D,pdgrid::PDGrid{2,2},Δt::Real; method = EulerMaruyama())
 #     PathIntegrationProblem{2,2,typeof(sde),typeof(pdgrid),Nothing,typeof(Δt),typeof(method)}(sde,pdgrid,nothing,Δt, method)
 # end
+
+function get_stationary_by_eigenvectors(pip::PathIntegrationProblem; ev_id = 1, kwargs...)
+    pip_res = deepcopy(pip)
+    esys = eigs(pip_res.tpdMX; kwargs);
+    e_vec = esys[2][:,ev_id] .|> real
+    e_val = esys[1][ev_id] .|> real
+    for (i,_ev) in enumerate(e_vec)
+        pip_res.pdgrid.p[i] .= _ev
+    end
+    pip_res.pdgrid.p .= pip_res.pdgrid.p ./ _integrate(pip_res.pdgrid)
+
+    pip_res.pdgrid, e_val
+end

@@ -17,7 +17,7 @@ function (itp::AbstractInterpolationType)(p::Vp,xs::Vx,x::xT) where {N,Vp<:Abstr
 end
 
 
-function find_idx(xs::Vx,x::xT) where {N,Vx<:AbstractVector{Tx},xT<:Number} where Tp<:Number where Tx<:Number
+function find_idx(xs::Vx,x::xT; allow_extrapolation = false, kwargs...) where {N,Vx<:AbstractVector{Tx},xT<:Number} where Tp<:Number where Tx<:Number
     # this function is also used in basefun_vals_safe! (Chebyshev)
     if !(x<xs[1] || x>xs[end])
         if x isa Union{Rational,Integer}
@@ -33,7 +33,7 @@ function find_idx(xs::Vx,x::xT) where {N,Vx<:AbstractVector{Tx},xT<:Number} wher
             return true, i
         end
     else
-        return true, 0
+        return allow_extrapolation, x<xs[1] ? 1 : length(xs)
     end
 end
 

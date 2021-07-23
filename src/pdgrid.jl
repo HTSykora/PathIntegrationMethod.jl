@@ -1,7 +1,14 @@
 # TODO: Integrate interpolation into the PDGRid!!!
 Base.getindex(pdg::PDGrid, idx...) = pdg.p[idx...]
 Base.size(pdg::PDGrid) = size(pdg.p)
-
+# function PDgrid(p,_xs...; axis_temp = true, kwargs...)
+#     if length(_xs) >1 && axis_temp
+#         xs = create_temp_axis.(Ref(Float64),_xs)
+#     else
+#         xs = _xs
+#     end
+#     return PDGrid{N,k,eltype(p),typeof(xs),typeof(p),typeof(ξ_temp),typeof(grid),typeof(i_temp)}(xs, p, similar(p), ξ_temp, grid,i_temp)
+# end
 function PDGrid(sde::AbstractSDE{N,k},_xs...;
     Q_initialize = true, axis_temp = true, kwargs...) where {N,k}
     if length(_xs) >1 && axis_temp
@@ -12,7 +19,7 @@ function PDGrid(sde::AbstractSDE{N,k},_xs...;
     lens = length.(xs);
     p = zeros(eltype(xs[1]),lens...)
     if Q_initialize
-        initialize!(p,xs...)
+        initialize!(p,xs...; kwargs...)
     end
 
     if N == k
@@ -46,7 +53,7 @@ end
 #     PDGrid(sde, xs; kwargs...)
 # end
 
-@inline function initialize!(p::AbstractArray{T,N}) where {T<:Number,N}
+@inline function initialize!(p::AbstractArray{T,N}; kwargs...) where {T<:Number,N}
     p_size=size(p)
     Q_oddp = [isodd(l) for l in p_size]
     weight = 1/prod(2 + oddp for oddp in Q_oddp)
@@ -55,9 +62,16 @@ end
     p
 end
 
-@inline function initialize!(p::AbstractArray{T,N},xs...) where {T<:Number,N}
+@inline function initialize!(p::AbstractArray{T,N},xs...; σ_init = nothing,    kwargs...) where {T<:Number,N}
     μs = [(x[end]+x[1])/2 for x in xs]
-    σ²s = [((x[end]-x[1])/12)^2 for x in xs]
+    if σ_init isa Nothing
+        σ²s = [((x[end]-x[1])/12)^2 for x in xs]
+    elseif σ_init isa Number
+        σ²s = [σ_init for _ in xs]
+    elseif σ_init isa Vector
+        @assert length(σ_init) == length(xs) "Wrong number of initial σ values are given"
+        σ²s = σ_init
+    end
     idx_it = Base.Iterators.product(eachindex.(xs)...)
     
     for idxs in idx_it
