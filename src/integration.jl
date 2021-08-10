@@ -57,7 +57,22 @@ function (IK::IntegrationKernel{sdeT})(vals,v₀) where sdeT<:SDE_Oscillator1D
     vals
 end
 
+# 1D VibroImpact Oscillator problem
+function (IK::IntegrationKernel{sdeT})(vals,v₀) where sdeT<:SDE_VI_Oscillator1D
+    ξ, Q_impact, Δt1, Δt2 = get_ξ(IK.method,IK.sde,IK.t₁,IK.t₀,IK.pdgrid.xs[1][IK.idx₁[1]],nothing,nothing,v₀) # v₁, x₀ = nothing
+    basefun_vals_safe!(IK.pdgrid.xs[1].itp,IK.pdgrid.xs[1].itp.tmp,IK.pdgrid.xs[1], ξ)
+    basefun_vals!(IK.pdgrid.xs[2].itp,IK.pdgrid.xs[2].itp.tmp,IK.pdgrid.xs[2],v₀)
 
+    fx = _tp(IK.sde,IK.sde.par,IK.pdgrid.xs[1][IK.idx₁[1]], IK.pdgrid.xs[2][IK.idx₁[2]], IK.t₁,ξ,v₀,IK.t₀, method = IK.method) 
+
+    for j in eachindex(IK.pdgrid.xs[2].itp.tmp)
+        for i in eachindex(IK.pdgrid.xs[1].itp.tmp)
+            vals[i,j] = IK.pdgrid.xs[1].itp.tmp[i] * IK.pdgrid.xs[2].itp.tmp[j] * fx
+        end
+    end
+    
+    vals
+end
 
 # Integration over the axis
 function _integrate(p::Vp,xs::NTuple{1,xsT}) where {Vp<:AbstractArray{Tp,1},xsT<:Axis{itpT}} where {Tp<:Number, itpT<:LinearInterpolation{true}}

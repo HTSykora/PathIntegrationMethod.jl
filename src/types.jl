@@ -28,6 +28,16 @@ struct SDE_Oscillator1D{fT, gT, parT} <: AbstractSDE{2,2}
     g::gT
     par::parT
 end
+struct SDE_VI_Oscillator1D{wT, fT, gT, parT} <: AbstractSDE{2,2}
+    f::fT
+    g::gT
+    wall::wT
+    par::parT
+end
+struct Wall{pT,dT}
+    pos::pT
+    impact_v_sign::dT
+end
 
 abstract type AbstractSDEComponent{N,k,T} end
 struct DriftTerm{N,k,fT} <: AbstractSDEComponent{N,k,fT}

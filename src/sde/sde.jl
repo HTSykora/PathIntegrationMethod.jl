@@ -24,3 +24,12 @@ end
 function SDE_Oscillator1D(f::fT,g::gT; par=nothing) where {fT<:Function,gT<:Function}
     SDE_Oscillator1D{DriftTerm{1,1,fT},DiffusionTerm{1,1,gT},typeof(par)}(DriftTerm{1,1,fT}(f),DiffusionTerm{1,1,gT}(g), par)
 end
+
+#############################################
+# SDE_VI_Oscillator1D
+function SDE_VI_Oscillator1D(f::fT,g::gT, w::Union{Wall, Vector{wT},Tuple{wT1,wT2}}; par=nothing) where {fT<:Function,gT<:Function, wT<:Wall, wT1<:Wall, wT2<:Wall}
+    SDE_Oscillator1D{typeof(w), DriftTerm{1,1,fT},DiffusionTerm{1,1,gT},typeof(par)}(DriftTerm{1,1,fT}(f),DiffusionTerm{1,1,gT}(g), w, par)
+end
+function SDE_VI_Oscillator1D(f::fT,g::gT, w::Union{Wall, Vector{wT},Tuple{wT1,wT2}}; par=nothing) where {fT<:Function,gT<:Function, wT<:Wall, wT1<:Wall, wT2<:Wall}
+    SDE_Oscillator1D{typeof(w), DriftTerm{1,1,fT},DiffusionTerm{1,1,gT},typeof(par)}(DriftTerm{1,1,fT}(f),DiffusionTerm{1,1,gT}(g), w, par)
+end
