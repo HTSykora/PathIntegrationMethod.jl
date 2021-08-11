@@ -1,7 +1,7 @@
 Base.getindex(a::Axis,idx...) = a.x[idx...]
 Base.size(a::Axis) = size(a.x)
 
-function Axis(start,stop,num::Int; lvl = 1, interpolation = :linear)
+function Axis(start,stop,num::Int; lvl = 1, interpolation = :chebyshev)
     if interpolation == :linear
         xs = LinRange(start,stop,num)
         Δ = (stop-start)/(num-1);

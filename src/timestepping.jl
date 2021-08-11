@@ -32,25 +32,23 @@ end
 
 ## 1D VI Oscillator 
 # x₁ - φₓ(ξ,v₀,t₀,t₁) = 0
-function get_ξ(e::EulerMaruyama,sde::SDE_VI_Oscillator1D{wTT},t₁,t₀,x₁,v₁,x₀,v₀) where wTT# x - f₁(ξ) = 0
+function get_ξ(e::EulerMaruyama,sde::SDE_VI_Oscillator1D{wTT},t₁,t₀,x₁,v₁,x₀,v₀) where wTT # x - f₁(ξ) = 0
     ξ = x₁ - v₀*(t₁-t₀)
-    Q_impact, wallID = hit(ξ,sde.w)
+    Q_impact, wallID = Q_hit(ξ,sde.w)
     if Q_impact
+        r = sde.w[wallID].r(v₀)
         d = sde.w[wallID].d;
-        ξ = d - v₀*(t₁ - t₀) - (x₁ - d)
-        Δt1 = sde.w[wallID].d - ξ
-        Δt2 = 
+        ξ = ξ - (x₁ - d)/r
+        Δt₁ = (sde.w[wallID].d - ξ)/v₀
+        Δt₂ = t₁ - t₀ - Δt₁# (x₁ - sde.w[wallID].d)/v₀
     else
-        Δt1 = nothing
-        Δt2 = nothing
+        r = one(get_r_type(sde))
+        Δt₁ = zero(t₀)
+        Δt₂ = zero(t₀)
     end
-    ξ, Q_impact, Δt1, Δt2
+    ξ, Q_impact, Δt₁, Δt₂, r
 end
-ξ, Q_impact, Δt1, Δt2 = get_ξ(IK.method,IK.sde,IK.t₁,IK.t₀,IK.pdgrid.xs[1][IK.idx₁[1]],nothing,nothing,v₀) # v₁, x₀ = nothing
 
-
-function (e::EulerMaruyama)(sde::SDE_VI_Oscillator1D,par,x₁,v₁,t₁,x₀,v₀,t₀)
-    f2 = sde.f([x₀,v₀],par,t₀)
-    g2 = sde.g([x₀,v₀],par,t₀)
-    f2, g2
+function (e::EulerMaruyama)(sde::SDE_VI_Oscillator1D,par,x₁,v₁,t₁,x₀,v₀,t₀, Δt₁, Δt₂, r)
+    return e(sde.osc1D,par,x₁,v₁,t₁,x₀,v₀,t₀)
 end

@@ -9,6 +9,7 @@ Base.size(pdg::PDGrid) = size(pdg.p)
 #     end
 #     return PDGrid{N,k,eltype(p),typeof(xs),typeof(p),typeof(ξ_temp),typeof(grid),typeof(i_temp)}(xs, p, similar(p), ξ_temp, grid,i_temp)
 # end
+
 function PDGrid(sde::AbstractSDE{N,k},_xs...;
     Q_initialize = true, axis_temp = true, kwargs...) where {N,k}
     if length(_xs) >1 && axis_temp

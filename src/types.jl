@@ -1,3 +1,7 @@
+struct Scalar_Or_Function{fT} <: Function
+    f::fT
+end
+
 struct PathIntegrationProblem{N,k,sdeT,pdT,tpdMX_type,dtT,methodT}
     sde::sdeT
     pdgrid::pdT
@@ -23,21 +27,23 @@ struct SDE{N,k,fT,gT,pT} <: AbstractSDE{N,k}
     g::gT
     par::pT
 end
+
 struct SDE_Oscillator1D{fT, gT, parT} <: AbstractSDE{2,2}
     f::fT
     g::gT
     par::parT
 end
-struct SDE_VI_Oscillator1D{wT, fT, gT, parT} <: AbstractSDE{2,2}
-    f::fT
-    g::gT
+
+struct SDE_VI_Oscillator1D{wT, oscT} <: AbstractSDE{2,2}
+    osc1D::oscT
     wall::wT
-    par::parT
 end
-struct Wall{pT,dT}
+struct Wall{rT,pT,dT}
+    r::rT
     pos::pT
     impact_v_sign::dT
 end
+
 
 abstract type AbstractSDEComponent{N,k,T} end
 struct DriftTerm{N,k,fT} <: AbstractSDEComponent{N,k,fT}

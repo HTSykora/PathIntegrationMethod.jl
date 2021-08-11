@@ -6,7 +6,7 @@ function ChebyshevInterpolation(T::DataType,N::Integer; create_temp = false)
 end
 # Reconstructor
 # Reconstructor
-function new_itp(T::DataType,itp::ChebyshevInterpolation{N,Ttemp}, n) where {N,Ttemp} # Ttemp <: Nothing
+function new_itp(T::DataType,itp::ChebyshevInterpolation{N,Ttemp}, n) where {N,Ttemp <: Nothing}
     ChebyshevInterpolation(T,N+1, create_temp = true)
 end
 

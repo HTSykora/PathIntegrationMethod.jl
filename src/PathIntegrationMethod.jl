@@ -28,5 +28,7 @@ include("timestepping.jl")
 include("transitionprobabilities.jl")
 include("integration.jl")
 include("computetransitiontensor.jl")
+include("impact.jl")
+include("utils.jl")
 
 end
