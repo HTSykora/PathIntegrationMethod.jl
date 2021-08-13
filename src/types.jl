@@ -2,11 +2,11 @@ struct Scalar_Or_Function{fT} <: Function
     f::fT
 end
 
-struct PathIntegrationProblem{N,k,sdeT,pdT,tpdMX_type,dtT,methodT}
+struct PathIntegrationProblem{N,k,sdeT,pdT,tpdMX_type,tsT,methodT}
     sde::sdeT
     pdgrid::pdT
     tpdMX::tpdMX_type
-    Δt::dtT
+    ts::tsT
     method::methodT
 end
 

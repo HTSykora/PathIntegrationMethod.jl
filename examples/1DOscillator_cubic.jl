@@ -29,24 +29,25 @@ function gx(u,p,t)
     p[3] # = σ
 end
 ## 
-xmin, xmax, Nx = -7, 7, 51
-vmin, vmax, Nv = -7, 7, 51
+xmin, xmax, Nx = -7, 7, 31
+vmin, vmax, Nv = -7, 7, 31
 
 xvs = [Axis(-7,7,Nx,interpolation = :chebyshev),Axis(-7,7,Nv,interpolation = :chebyshev)]
 
-# par = [0.15, 0.25, sqrt(0.5)];
+par = [0.15, 0.25, sqrt(0.5)];
 # par = [0.2, 0.1, sqrt(0.2)];
 # par = [0.2, 0.1, sqrt(0.8)]
-par = [0.02, 0.1, 0.2]
+# par = [0.02, 0.1, 0.2]
 sde = SDE_Oscillator1D(fx,gx,par = par)
-Δt = 0.01;
+Δt = 0.001;
+# @btime PathIntegrationProblem(sde,Δt,xvs..., precompute = true, σ_init = 0.5);
 @time pip = PathIntegrationProblem(sde,Δt,xvs..., precompute = true, σ_init = 0.5);
 
-@time for _ in 1:10000
+@time for _ in 1:30000
     advance!(pip)
 end
 
-@time pip_ev, e_val = get_stationary_by_eigenvectors(pip, nev = 20, ev_id = 1)
+# @time pip_ev, e_val = get_stationary_by_eigenvectors(pip, nev = 20, ev_id = 1)
 pd_analytic = compute_analyitical(xvs..., par)
 
 begin
@@ -73,14 +74,15 @@ _xmin, _xmax, _Nx= -5,5, 101
 _vmin, _vmax, _Nv= -5,5, 101
 _X = [x for x in LinRange(_xmin,_xmax,_Nx), v in LinRange(_vmin,_vmax,_Nv)]
 _V = [v for x in LinRange(_xmin,_xmax,_Nx), v in LinRange(_vmin,_vmax,_Nv)]
-_P = [tt.pdgrid(x,y) for x in LinRange(_xmin,_xmax,_Nx), y in LinRange(_vmin,_vmax,_Nv)]
+_P = [pip.pdgrid(x,y) for x in LinRange(_xmin,_xmax,_Nx), y in LinRange(_vmin,_vmax,_Nv)]
 _PAN = [pd_analytic(x,y) for x in LinRange(_xmin,_xmax,_Nx), y in LinRange(_vmin,_vmax,_Nv)]
 
 begin
     figure(1); clf()
     
-    plot_surface(_X, _V, _P, cmap=PyPlot.cm.jet)
-    plot_surface(_X, _V, _PAN, cmap=PyPlot.cm.jet)
+    # plot_surface(_X, _V, _P, cmap=PyPlot.cm.jet)
+    # plot_surface(_X, _V, _PAN, cmap=PyPlot.cm.jet)
+    plot_surface(_X, _V, _P.-_PAN, cmap=PyPlot.cm.jet)
     # xlim(left=_xmin,right=_xmax)
     # ylim(bottom=_vmin,top=_vmax)
     zlim(bottom = 0, top = 0.15)

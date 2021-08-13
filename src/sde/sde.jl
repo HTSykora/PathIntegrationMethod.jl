@@ -31,7 +31,3 @@ function SDE_VI_Oscillator1D(f::fT,g::gT, w::Union{Wall, Vector{wT},Tuple{wT1,wT
     sde = SDE_Oscillator1D(f,g, par = par);
     SDE_Oscillator1D{typeof(w), typeof(sde)}(sde, w)
 end
-function SDE_VI_Oscillator1D(f::fT,g::gT, w::Union{Wall, Vector{wT},Tuple{wT1,wT2}}; par=nothing) where {fT<:Function,gT<:Function, wT<:Wall, wT1<:Wall, wT2<:Wall}
-    sde = SDE_Oscillator1D(f,g, par = par);
-    SDE_Oscillator1D{typeof(w), typeof(sde)}(sde, w)
-end

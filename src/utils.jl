@@ -1,6 +1,6 @@
-function (f::fT)(x) where fT <: Scalar_Or_Function{rT} where rT<:Number
-    f.r
+function (f:: Scalar_Or_Function{rT})(x) where rT<:Number
+    f.f
 end
-function (f::fT)(x) where fT <: Scalar_Or_Function{rT} where rT<:Function
-    f.r(x)
+function (f:: Scalar_Or_Function{rT})(x) where rT<:Function
+    f.f(x)
 end

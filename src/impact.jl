@@ -1,4 +1,4 @@
-function Wall(_r,d,id)
+function Wall(_r::Union{<:Number,<:Function},d,id)
     r = Scalar_Or_Function(_r)
     Wall{typeof(r),typeof(d),typeof(id)}(r,d,id)
 end
@@ -17,9 +17,9 @@ function symmetricwalls(d,r)
     walls(-d, d, r, r)
 end
 
-function Q_hit(x,w::wT) wT<:Tuple{wT1,wT2} where {wT1<:Wall, wT2<:Wall}
+function Q_hit(x,w::wT) where wT<:Tuple{wT1,wT2} where {wT1<:Wall, wT2<:Wall}
     if x<w[1].d
-        return true, 1
+        return true, 100
     elseif x>w[2].d
         return true, 2
     else
@@ -28,7 +28,7 @@ function Q_hit(x,w::wT) wT<:Tuple{wT1,wT2} where {wT1<:Wall, wT2<:Wall}
 end
 
 ## VI problem initialize
-function create_symmetric_VI_PDGrid(sde::SDE_Oscillator1D, v_ax::aT, d, r, Nₓ::Integer; x_interpolation = :chebyshev, kwargs...) where aT<:Axis
+function create_symmetric_VI_PDGrid(sde::SDE_Oscillator1D, d, r, v_ax::aT, Nₓ::Integer; x_interpolation = :chebyshev, kwargs...) where aT<:Axis
     walls = symmetricwalls(d,r);
     x_ax = Axis(-d, d, Nₓ, interpolation = x_interpolation)
     vi_sde = SDE_VI_Oscillator1D(sde,walls)
