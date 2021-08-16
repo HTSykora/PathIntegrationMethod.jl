@@ -7,10 +7,11 @@ using Reexport
 @reexport using QuadGK
 
 export DriftTerm, DiffusionTerm, PathIntegrationProblem,  PDGrid,  Axis,
-    SDE, SDE_Oscillator1D, EulerMaruyama, Milstein, RKMaruyama,
+    SDE, SDE_Oscillator1D, SDE_VI_Oscillator1D,
+    EulerMaruyama, Milstein, RKMaruyama,
     IntegrationKernel,
     advance!, get_stationary_by_eigenvectors, 
-    _integrate
+    _integrate, create_symmetric_VI_PDGrid
     
     
 

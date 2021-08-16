@@ -2,12 +2,13 @@ struct Scalar_Or_Function{fT} <: Function
     f::fT
 end
 
-struct PathIntegrationProblem{N,k,sdeT,pdT,tpdMX_type,tsT,methodT}
+struct PathIntegrationProblem{N,k,sdeT,pdT,tpdMX_type,tsT,methodT,Tstp_idx}
     sde::sdeT
     pdgrid::pdT
     tpdMX::tpdMX_type
     ts::tsT
     method::methodT
+    step_idx::Tstp_idx
 end
 
 struct PDGrid{N,k,T,xT,pT,ξT,gridT,iT} <: AbstractArray{T,N}
@@ -85,6 +86,13 @@ struct IntegrationKernel{sdeT,iT0,iT1,xT,fT,pdT,tT,methodT,tempT}
     method::methodT
     temp::tempT
 end
+struct Wrapper_4_VIx0{ξT,nT,tT,rT}
+    ξs::ξT
+    n_of_roots::nT # 0,1,2
+    Δts::tT # Δt1, Δt2
+    rval::rT # r
+end
+
 
 abstract type SDEMethod end
 struct EulerMaruyama <: SDEMethod end

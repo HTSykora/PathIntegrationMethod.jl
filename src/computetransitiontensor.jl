@@ -9,7 +9,7 @@ function computeintegrationmatrix(sde::AbstractSDE,pdgrid::PDGrid{N,k,T},ts,meth
     
     temp = similar(pdgrid)
     IK = initialize_IK(sde,pdgrid,ts,method,temp)
-
+# return IK
     # Fill the matrix representation of the transition tensor (tpdMX)
     idx_it = get_iterator(pdgrid)
     fill_tpdMX_ts!(tpdMX,IK,idx_it,ts)

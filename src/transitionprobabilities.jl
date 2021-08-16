@@ -3,7 +3,7 @@ function normal1D(μ,σ²,x) # 1D Gaussian distribuiton
 end
 
 function _tp(sde::AbstractSDE{N,k},x,t,x0,t0; kwargs...) where {N,k} # transition probability for scalar problem
-    _tp(sde,sde.par,x,t,x0,t0; kwargs...)
+    _tp(sde,_par(sde),x,t,x0,t0; kwargs...)
 end
 
 ## Scalar problems

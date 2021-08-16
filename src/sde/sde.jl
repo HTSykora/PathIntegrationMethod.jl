@@ -1,4 +1,8 @@
 #############################################
+# Some utils
+_par(sde::AbstractSDE) = sde.par
+_par(sde::SDE_VI_Oscillator1D) = sde.osc1D.par
+
 # DummySDE
 DummySDE(N,k) = DummySDE{N,k}()
 DummySDE(N) = DummySDE{N,N}()

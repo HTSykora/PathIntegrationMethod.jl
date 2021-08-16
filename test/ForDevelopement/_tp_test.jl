@@ -23,7 +23,7 @@ _x0= [0.,1.]
 Δt = 1
 
 xs = LinRange(-6,6,1001)
-tox = [_tp(sde,sde.par,_x[1],x,Δt,_x0...,0.) for x in xs]
+tox = [_tp(sde,_par(sde),_x[1],x,Δt,_x0...,0.) for x in xs]
 
 begin
     figure(1); clf()
