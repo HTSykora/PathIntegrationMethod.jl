@@ -40,9 +40,9 @@ function get_ξ!(e::EulerMaruyama,sde::SDE_VI_Oscillator1D{wTT},ξW::Wrapper_4_V
     if Q_impact
         r = sde.wall[wallID].r(v₀)
         d = sde.wall[wallID].pos;
-        ξ = d - v₀*(t₁-t₀) - (x₁ - d)/r
+        ξ = d - v₀*(t₁ - t₀) - (x₁ - d)/r
         Δt₁ = (sde.wall[wallID].pos - ξ)/v₀
-        Δt₂ = t₁ - t₀ - Δt₁# (x₁ - sde.w[wallID].d)/v₀
+        Δt₂ = t₁ - t₀ - Δt₁ # (x₁ - sde.w[wallID].d)/v₀
     else
         r = one(get_r_type(sde))
         Δt₁ = zero(t₀)

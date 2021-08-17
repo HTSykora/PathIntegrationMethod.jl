@@ -12,7 +12,7 @@ function computeintegrationmatrix(sde::AbstractSDE,pdgrid::PDGrid{N,k,T},ts,meth
 # return IK
     # Fill the matrix representation of the transition tensor (tpdMX)
     idx_it = get_iterator(pdgrid)
-    fill_tpdMX_ts!(tpdMX,IK,idx_it,ts)
+    fill_tpdMX_ts!(tpdMX,IK,idx_it,ts; kwargs...)
     tpdMX
 end
 
@@ -31,23 +31,23 @@ _t01(ts::AbstractVector{eT}) where eT<:Number = [ts[1]], [ts[2]]
 @inline get_iterator(pdgrid::PDGrid) = Base.Iterators.product(eachindex.(pdgrid.xs)...)
 @inline get_iterator(pdgrid::PDGrid{1}) = eachindex(pdgrid.xs[1]) 
 
-function fill_tpdMX_ts!(tpdMX,IK,idx_it,ts::Number)
-    fill_tpdMX!(tpdMX,IK,idx_it)
+function fill_tpdMX_ts!(tpdMX,IK,idx_it,ts::Number; kwargs...)
+    fill_tpdMX!(tpdMX,IK,idx_it; kwargs...)
     tpdMX
 end
 
-function fill_tpdMX_ts!(tpdMX,IK,idx_it,ts::AbstractVector{eT}) where {eT<:Number}
+function fill_tpdMX_ts!(tpdMX,IK,idx_it,ts::AbstractVector{eT}; kwargs...) where {eT<:Number}
     for (jₜ) in 1:length(ts)-1
         IK.t₀[1] = ts[jₜ]
         IK.t₁[1] = ts[jₜ+1]
-        fill_tpdMX!(tpdMX[jₜ],IK,idx_it)
+        fill_tpdMX!(tpdMX[jₜ],IK,idx_it; kwargs...)
     end
     tpdMX
 end
-function fill_tpdMX!(tpdMX,IK,idx_it)
+function fill_tpdMX!(tpdMX,IK,idx_it; kwargs...)
     for (i,idx₁) in enumerate(idx_it)
         update_idx1!(IK,idx₁)
-        get_IK_weights!(IK)
+        get_IK_weights!(IK; kwargs...)
         fill_to_tpdMX!(tpdMX,IK,i)
     end
     tpdMX

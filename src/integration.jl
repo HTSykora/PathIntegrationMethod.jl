@@ -1,3 +1,7 @@
+@inline function cleanup_quadgk_keywords(;σ_init = nothing, kwargs...)
+    (;kwargs...)
+end
+
 # Integration kernel for custom kernel functions
 function IntegrationKernel(f::fT,xs, tempsize; kwargs...) where fT<: Function
     temp = zeros(Float64,tempsize...) # get eltype properly
@@ -16,8 +20,10 @@ end
 @inline get_t1(IK::IntegrationKernel{sdeT,iT0, iT1,xT,fT,pdT,tT}) where {sdeT,iT0, iT1,xT,fT,pdT, tT<: Vector{teT}} where teT<:Number = IK.t₁[1]
 
 # Evaluating the intgrals
-get_IK_weights!(IK::IntegrationKernel{sdeT}; kwargs...) where sdeT<:AbstractSDE{N,N} where N = quadgk!(IK,IK.temp,IK.xs...; kwargs...)
-
+function get_IK_weights!(IK::IntegrationKernel{sdeT}; integ_limits = (IK.xs[1],IK.xs[end]), kwargs...) where sdeT<:AbstractSDE{N,N} where N 
+    # integ_limits = IK.xs -> # old version
+    quadgk!(IK,IK.temp,integ_limits...; cleanup_quadgk_keywords(;kwargs...)...)
+end
 ##############################################
 ## IK calls
 # Generic functions
