@@ -90,3 +90,38 @@ reinit!(g)
 @time quadgk(g,0.,6.)
 
 g.fx
+
+
+####
+##
+ξ2x(ξ, a, b) = (ξ + 1)*((b - a)/2) + a # local to global
+x2ξ(x, a, b) = 2*(x - a)/(b - a) - 1 # global to local
+x2θ(x, a, b) = acos(x2ξ(x, a, b)) # global to angular
+function chebygrid(n::Integer)
+    cos.(π*(n-1:-1:0)/(n-1))
+end
+function chebygrid(xa, xb, n::Integer)
+    ξ2x.(chebygrid(n), xa, xb)
+end
+##
+d = 0.25
+x = 0.251
+x = 0.249
+x = 0.24863047384206832 -0.24802867532861947
+x = 0.24692208514878441
+# x = 0.2445369001834514
+Δt = 0.01;
+α = 0.5
+vmin, vmax = -1. ,1.
+
+
+vᵢ = (x-d)/Δt
+vᵢᵢ = (d-x)/(α*Δt)
+if vᵢ<vᵢᵢ 
+    (vᵢ, vᵢᵢ, vmax)
+else
+    (vmin, vᵢᵢ, vᵢ)
+end
+
+
+chebygrid(-0.25,0.25,41)

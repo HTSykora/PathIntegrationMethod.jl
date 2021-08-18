@@ -47,10 +47,41 @@ end
 function fill_tpdMX!(tpdMX,IK,idx_it; kwargs...)
     for (i,idx₁) in enumerate(idx_it)
         update_idx1!(IK,idx₁)
-        get_IK_weights!(IK; kwargs...)
+        get_IK_weights!(IK; integ_limits = get_integ_limits(IK), kwargs...)
         fill_to_tpdMX!(tpdMX,IK,i)
     end
     tpdMX
+end
+@inline function get_integ_limits(IK)
+    (IK.xs[1], IK.xs[end])
+end
+
+function get_integ_limits(IK::IntegrationKernel{sdeT}) where sdeT<:SDE_VI_Oscillator1D{oscT,wT} where {oscT,wT<:Tuple{wT1,wT2}} where {wT1<:Wall, wT2<:Wall}
+    # assuming a single impact to the closer wall and r < 1
+    Δt = IK.t₁ - IK.t₀
+    wallID = abs(IK.sde.wall[1].pos - x) < abs(IK.sde.wall[2].pos - x) ? 1 : 2
+    d = IK.sde.wall[wallID].pos 
+    r = IK.sde.wall[wallID].r
+    vmin, vmax = IK.xs[1], IK.xs[end]
+    return get_integ_limits(vmin, vmax, x, Δt, d, r)
+end
+
+@inline function get_integ_limits(vmin, vmax, x, Δt, d, r)
+    vᵢ = (x-d)/Δt # v_{0,I} - 0 and 1 solution for ξ
+    if vmin < vᵢ < vmax
+        # TODO in case of variable r use a solver!
+        vᵢᵢ = get_vII(x,Δt, r)  # v_{0,II} - 1 and 2 solution for ξ
+        if vmin < vᵢᵢ < vmax
+            return vᵢ<vᵢᵢ ? (vᵢ, vᵢᵢ, vmax) : (vmin, vᵢᵢ, vᵢ)
+        else
+            return vᵢ<vᵢᵢ ? (vᵢ, vmax) : (vmin, vᵢ)
+        end
+    else
+        return vmin, vmax
+    end
+end
+@inline function get_vII(x,Δt, r::Scalar_Or_Function{rT}) where rT<:Number
+    (d-x)/(r.f*Δt)
 end
 
 @inline function update_idx1!(IK::IntegrationKernel{sdeT,iT0,iT1},idx₁::NTuple{M,eT}) where {sdeT,iT0,iT1<:AbstractVector{eT}} where eT<:Number where M

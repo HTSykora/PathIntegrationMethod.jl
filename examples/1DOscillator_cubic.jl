@@ -29,8 +29,8 @@ function gx(u,p,t)
     p[3] # = σ
 end
 ## 
-xmin, xmax, Nx = -7, 7, 51
-vmin, vmax, Nv = -7, 7, 51
+xmin, xmax, Nx = -7, 7, 31
+vmin, vmax, Nv = -7, 7, 31
 
 xvs = [Axis(-7,7,Nx,interpolation = :chebyshev),Axis(-7,7,Nv,interpolation = :chebyshev)]
 
@@ -41,7 +41,7 @@ par = [0.15, 0.25, sqrt(0.5)];
 sde = SDE_Oscillator1D(fx,gx,par = par)
 Δt = 0.001;
 # @btime PathIntegrationProblem(sde,Δt,xvs..., precompute = true, σ_init = 0.5);
-@time pip = PathIntegrationProblem(sde,Δt,xvs..., precompute = true, σ_init = 0.5);
+@time pip = PathIntegrationProblem(sde, Δt, xvs..., precompute = true, σ_init = 0.5);
 
 @time for _ in 1:1
     advance!(pip)
