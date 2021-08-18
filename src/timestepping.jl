@@ -32,23 +32,14 @@ end
 
 ## 1D VI Oscillator 
 # x₁ - φₓ(ξ,v₀,t₀,t₁) = 0
-function get_ξ!(e::EulerMaruyama,sde::SDE_VI_Oscillator1D{wTT},ξW::Wrapper_4_VIx0,t₁,t₀,x₁,v₁,x₀,v₀) where wTT # x - f₁(ξ) = 0
-    ξW.ξs[1] = x₁ - v₀*(t₁-t₀)
-    ξW.ξs[1] 
-    Q_impact, wallID = Q_hit(ξW.ξs[1],sde.wall)
+function get_ξ_impact(e::EulerMaruyama,sde::SDE_VI_Oscillator1D{wTT},t₁,t₀,x₁,v₁,x₀,v₀,wallID) where wTT # x - f₁(ξ) = 0
     # TODO wall hit
-    if Q_impact
-        r = sde.wall[wallID].r(v₀)
-        d = sde.wall[wallID].pos;
-        ξ = d - v₀*(t₁ - t₀) - (x₁ - d)/r
-        Δt₁ = (sde.wall[wallID].pos - ξ)/v₀
-        Δt₂ = t₁ - t₀ - Δt₁ # (x₁ - sde.w[wallID].d)/v₀
-    else
-        r = one(get_r_type(sde))
-        Δt₁ = zero(t₀)
-        Δt₂ = zero(t₀)
-    end
-    ξ, Q_impact, Δt₁, Δt₂, r
+    r = sde.wall[wallID].r(v₀)
+    d = sde.wall[wallID].pos;
+    ξ = d - v₀*(t₁ - t₀) - (x₁ - d)/r
+    Δt₁ = (sde.wall[wallID].pos - ξ)/v₀
+    Δt₂ = t₁ - t₀ - Δt₁ # (x₁ - sde.w[wallID].d)/v₀
+    ξ, Δt₁, Δt₂, sde.wall[wallID]
 end
 
 function (e::EulerMaruyama)(sde::SDE_VI_Oscillator1D,par,x₁,v₁,t₁,x₀,v₀,t₀, Δt₁, Δt₂, r)

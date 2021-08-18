@@ -5,12 +5,12 @@ end
 # Integration kernel for custom kernel functions
 function IntegrationKernel(f::fT,xs, tempsize; kwargs...) where fT<: Function
     temp = zeros(Float64,tempsize...) # get eltype properly
-    IntegrationKernel(nothing,f,xs,nothing,nothing,nothing,nothing,nothing,nothing,temp)
+    IntegrationKernel(nothing,f,xs,nothing,nothing,nothing,nothing,nothing,nothing,temp, nothing)
 end
 
 # Integration kernel for fast computation of the transition matrix
 function IntegrationKernel(sde::sdeT,f::fT,xs::xT,idx₀::iT0,idx₁::iT1,pdgrid::pdT,t₀::tT,t₁::tT,method::methodT; kwargs...) where {sdeT, fT, xT, iT0, iT1, pdT, tT, methodT}
-    IntegrationKernel{sdeT, fT, xT, iT0, iT1, pdT, tT, methodT,Nothing}(sde, f, xs, idx₀, idx₁, pdgrid, t₀, t₁, method, nothing)
+    IntegrationKernel{sdeT, fT, xT, iT0, iT1, pdT, tT, methodT,Nothing,Nothing}(sde, f, xs, idx₀, idx₁, pdgrid, t₀, t₁, method, nothing,nothing)
 end
 
 @inline get_t0(IK::IntegrationKernel) = IK.t₀
@@ -19,7 +19,7 @@ end
 @inline get_t0(IK::IntegrationKernel{sdeT,iT0, iT1,xT,fT,pdT,tT}) where {sdeT,iT0, iT1,xT,fT,pdT, tT<: Vector{teT}} where teT<:Number = IK.t₀[1]
 @inline get_t1(IK::IntegrationKernel{sdeT,iT0, iT1,xT,fT,pdT,tT}) where {sdeT,iT0, iT1,xT,fT,pdT, tT<: Vector{teT}} where teT<:Number = IK.t₁[1]
 
-# Evaluating the intgrals
+# Evaluating the integrals
 function get_IK_weights!(IK::IntegrationKernel{sdeT}; integ_limits = (IK.xs[1],IK.xs[end]), kwargs...) where sdeT<:AbstractSDE{N,N} where N 
     # integ_limits = IK.xs -> # old version
     quadgk!(IK,IK.temp,integ_limits...; cleanup_quadgk_keywords(;kwargs...)...)
@@ -72,23 +72,33 @@ end
 
 # 1D VibroImpact Oscillator problem
 function (IK::IntegrationKernel{sdeT})(vals,v₀) where sdeT<:Union{SDE_VI_Oscillator1D}
-    ξ, extra_args... = get_ξ(IK.method,IK.sde,get_t1(IK),get_t0(IK),IK.pdgrid.xs[1][IK.idx₁[1]],nothing,nothing,v₀) # v₁, x₀ = nothing
+    ξ = get_ξ(IK.method,IK.sde.osc1D, get_t1(IK),get_t0(IK),IK.pdgrid.xs[1][IK.idx₁[1]],nothing,nothing,v₀) # v₁, x₀ = nothing
     # for impact system:
     # extra_args  == Q_impact, Δt1, Δt2, r
 
     basefun_vals_safe!(IK.pdgrid.xs[1].itp,IK.pdgrid.xs[1].itp.tmp,IK.pdgrid.xs[1], ξ)
     basefun_vals!(IK.pdgrid.xs[2].itp,IK.pdgrid.xs[2].itp.tmp,IK.pdgrid.xs[2],v₀)
 
-    fx = _tp(IK.sde,_par(IK.sde),IK.pdgrid.xs[1][IK.idx₁[1]], IK.pdgrid.xs[2][IK.idx₁[2]], get_t1(IK),ξ,v₀,get_t0(IK), extra_args...; method = IK.method) 
+    fx = _tp(IK.sde,_par(IK.sde),IK.pdgrid.xs[1][IK.idx₁[1]], IK.pdgrid.xs[2][IK.idx₁[2]], get_t1(IK),ξ,v₀,get_t0(IK); method = IK.method) 
     # for impact system:
     # fx = _tp(IK.sde,_par(IK.sde),IK.pdgrid.xs[1][IK.idx₁[1]], IK.pdgrid.xs[2][IK.idx₁[2]], get_t1(IK),ξ,v₀,get_t0(IK), Q_impact, Δt1, Δt2, r , method = IK.method) 
-
     for j in eachindex(IK.pdgrid.xs[2].itp.tmp)
         for i in eachindex(IK.pdgrid.xs[1].itp.tmp)
             vals[i,j] = IK.pdgrid.xs[1].itp.tmp[i] * IK.pdgrid.xs[2].itp.tmp[j] * fx
         end
     end
     
+    if IK.wallID[1] != 0
+        ξ, Δt₁, Δt₂, r = get_ξ_impact(IK.method,IK.sde.osc1D, get_t1(IK),get_t0(IK),IK.pdgrid.xs[1][IK.idx₁[1]],nothing,nothing,v₀,IK.wallID[1]) # v₁, x₀ = nothing
+        basefun_vals_safe!(IK.pdgrid.xs[1].itp,IK.pdgrid.xs[1].itp.tmp,IK.pdgrid.xs[1], ξ)
+        fx = _tp(IK.sde,_par(IK.sde),IK.pdgrid.xs[1][IK.idx₁[1]], IK.pdgrid.xs[2][IK.idx₁[2]], get_t1(IK),ξ,v₀,get_t0(IK), Δt₁, Δt₂, r; method = IK.method) / r(v₀)
+
+        for j in eachindex(IK.pdgrid.xs[2].itp.tmp)
+            for i in eachindex(IK.pdgrid.xs[1].itp.tmp)
+                vals[i,j] = vals[i,j] + IK.pdgrid.xs[1].itp.tmp[i] * IK.pdgrid.xs[2].itp.tmp[j] * fx
+            end
+        end
+    end
     vals
 end
 

@@ -125,3 +125,8 @@ end
 
 
 chebygrid(-0.25,0.25,41)
+
+myf = x->x^2
+
+using QuadGK
+
