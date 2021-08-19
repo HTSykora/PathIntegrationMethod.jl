@@ -35,7 +35,7 @@ function export_to_png(pip,i)
         figure(1); clf()
         _x = LinRange(xs[1],xs[end],101)
         plot(_x,pip.pdgrid.(_x), label="Iteration")
-        
+
         ylim(bottom=-0.02,top=0.5)
         savefig("./examples/Animfiles/scalar_cubic_$(i).png")
     end
@@ -53,4 +53,4 @@ export_to_png(pip,0)
     export_to_png(pip,0)
 end
 
-`ffmpeg -y -framerate 24 -start_number 0 -i ./examples/Animfiles/scalar_cubic_%d.png -vframes $(n_frames+1) ./examples/Animfiles/scala_cubic_anim.mp4` |> run
+`ffmpeg -y -framerate 24 -start_number 0 -i ./examples/Animfiles/scalar_cubic_%d.png -vframes $(n_frames+1) ./examples/Animfiles/scalar_cubic_anim.mp4` |> run
