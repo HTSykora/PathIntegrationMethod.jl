@@ -74,7 +74,7 @@ struct TrapezoidalWeights{T,ΔT} <: AbstractVector{T}
     Δ::ΔT
 end
 
-struct IntegrationKernel{sdeT,iT0,iT1,xT,fT,pdT,tT,methodT,tempT,widT}
+struct IntegrationKernel{sdeT,iT0,iT1,xT,fT,pdT,tT,methodT,tempT,iiT}
     sde::sdeT
     f::fT
     xs::xT
@@ -85,13 +85,11 @@ struct IntegrationKernel{sdeT,iT0,iT1,xT,fT,pdT,tT,methodT,tempT,widT}
     t₁::tT
     method::methodT
     temp::tempT
-    wallID::widT
+    impactinterval::iiT
 end
-struct Wrapper_4_VIx0{ξT,nT,tT,rT}
-    ξs::ξT
-    n_of_roots::nT # 0,1,2
-    Δts::tT # Δt1, Δt2
-    rval::rT # r
+struct ImpactInterval{limT,wT}
+    lims::limT # r
+    wallID::wT
 end
 
 

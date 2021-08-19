@@ -22,14 +22,14 @@ end
 
 @inline function initialize_IK(sde::AbstractSDE{N,N},pdgrid,ts,method,temp) where N
     t₀, t₁ = _t01(ts)
-    wallID = _wallID(sde)
+    wallID = _wallID(sde,pdgrid)
     IntegrationKernel(sde,nothing,pdgrid.xs[N],nothing,zeros(Int,N),pdgrid, t₀, t₁, method,temp, wallID); # initialize IK
 end
 
 @inline _t01(ts::Number) = zero(ts), ts
 @inline _t01(ts::AbstractVector{eT}) where eT<:Number = [ts[1]], [ts[2]]
-@inline _wallID(sde) = nothing
-@inline _wallID(sde::SDE_VI_Oscillator1D) = [0]
+@inline _wallID(sde,pdgrid) = nothing
+@inline _wallID(sde::SDE_VI_Oscillator1D,pdgrid) = ImpactInterval(zeros(eltype(pdgrid.xs[2]),2),[0])
 
 @inline get_iterator(pdgrid::PDGrid) = Base.Iterators.product(eachindex.(pdgrid.xs)...)
 @inline get_iterator(pdgrid::PDGrid{1}) = eachindex(pdgrid.xs[1]) 
@@ -59,36 +59,6 @@ end
     (IK.xs[1], IK.xs[end])
 end
 
-function get_integ_limits(IK::IntegrationKernel{sdeT}) where sdeT<:SDE_VI_Oscillator1D{oscT,wT} where {oscT,wT<:Tuple{wT1,wT2}} where {wT1<:Wall, wT2<:Wall}
-    # assuming a single impact to the closer wall and r < 1
-    Δt = IK.t₁ - IK.t₀
-    x = IK.pdgrid.xs[1][IK.idx₁[1]]
-    d = IK.sde.wall[wallID[1]].pos 
-    r = IK.sde.wall[wallID[1]].r
-    vmin, vmax = IK.xs[1], IK.xs[end]
-    return get_integ_limits(vmin, vmax, x, Δt, d, r)
-end
-
-@inline function get_integ_limits(vmin, vmax, x, Δt, d, r)
-    vᵢ = (x-d)/Δt # v_{0,I} - 0 and 1 solution for ξ
-    if vmin < vᵢ < vmax
-        # TODO in case of variable r use a solver!
-        vᵢᵢ = get_vII(x,Δt, r)  # v_{0,II} - 1 and 2 solution for ξ
-        if vmin < vᵢᵢ < vmax
-            return vᵢ<vᵢᵢ ? (vᵢ, vᵢᵢ, vmax) : (vmin, vᵢᵢ, vᵢ)
-        else
-            IK.wallID[1] = 0
-            return vᵢ<vᵢᵢ ? (vᵢ, vmax) : (vmin, vᵢ)
-        end
-    else
-        IK.wallID[1] = 0
-        return vmin, vmax
-    end
-end
-@inline function get_vII(x,Δt, r::Scalar_Or_Function{rT}) where rT<:Number
-    (d-x)/(r.f*Δt)
-end
-
 @inline function update_idx1!(IK::IntegrationKernel{sdeT,iT0,iT1},idx₁::NTuple{M,eT}) where {sdeT,iT0,iT1<:AbstractVector{eT}} where eT<:Number where M
     for m in 1:M
         IK.idx₁[m] = idx₁[m]
@@ -100,7 +70,7 @@ end
         IK.idx₁[m] = idx₁[m]
     end
     x = IK.pdgrid.xs[1][IK.idx₁[1]]
-    IK.wallID[1] = abs(IK.sde.wall[1].pos - x) < abs(IK.sde.wall[2].pos - x) ? 1 : 2
+    IK.impactinterval.wallID[1] = abs(IK.sde.wall[1].pos - x) < abs(IK.sde.wall[2].pos - x) ? 1 : 2
     nothing
 end
 @inline function update_idx1!(IK::IntegrationKernel{sdeT,iT0,iT1},idx₁::eT) where {sdeT<:AbstractSDE{1,1},iT0,iT1<:AbstractVector{eT}} where eT<:Number

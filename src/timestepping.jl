@@ -39,7 +39,7 @@ function get_ξ_impact(e::EulerMaruyama,sde::SDE_VI_Oscillator1D{wTT},t₁,t₀,
     ξ = d - v₀*(t₁ - t₀) - (x₁ - d)/r
     Δt₁ = (sde.wall[wallID].pos - ξ)/v₀
     Δt₂ = t₁ - t₀ - Δt₁ # (x₁ - sde.w[wallID].d)/v₀
-    ξ, Δt₁, Δt₂, sde.wall[wallID]
+    ξ, Δt₁, Δt₂, sde.wall[wallID].r
 end
 
 function (e::EulerMaruyama)(sde::SDE_VI_Oscillator1D,par,x₁,v₁,t₁,x₀,v₀,t₀, Δt₁, Δt₂, r)
