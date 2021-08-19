@@ -43,7 +43,7 @@ end
 # Scalar problem
 function (IK::IntegrationKernel{sdeT})(vals,x₀) where sdeT<:AbstractSDE{1,1}
     basefun_vals!(IK.xs.itp,vals,IK.xs,x₀)
-    fx = _tp(IK.sde,IK.pdgrid.xs[1][IK.idx₁...],get_t1(IK), x₀,IK.t₀, method = IK.method);
+    fx = _tp(IK.sde,IK.pdgrid.xs[1][IK.idx₁...],get_t1(IK), x₀,get_t0(IK), method = IK.method);
     vals .*= fx
     vals
 end

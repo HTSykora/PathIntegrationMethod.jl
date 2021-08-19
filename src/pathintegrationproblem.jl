@@ -31,7 +31,7 @@ function advance!(pip::PathIntegrationProblem{N,k,sdeT,pdT,tpdMX_tpye}) where {N
     pip
 end
 function advance!(pip::PathIntegrationProblem{N,k,sdeT,pdT,tpdMX_tpye}) where {N,k,sdeT,pdT,tpdMX_tpye<:vmT} where vmT<: AbstractVector{mT} where mT<:AbstractMatrix{T} where T<:Number
-    pip.step_idx[1] += mod1(pip.step_idx[1] + 1, length(pip.tpdMX))
+    pip.step_idx[1] = mod1(pip.step_idx[1] + 1, length(pip.tpdMX))
     mul!(vec(pip.pdgrid.p_temp), pip.tpdMX[pip.step_idx[1]], vec(pip.pdgrid.p))
     pip.pdgrid.p .= pip.pdgrid.p_temp ./ _integrate(pip.pdgrid.p_temp, pip.pdgrid.xs)
     pip

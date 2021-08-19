@@ -19,41 +19,27 @@ function p_AN(xs, ε=1.)
 end
 sde = SDE(f,g)
 xs = Axis(-5,5,31,interpolation = :chebyshev)
-myp = PDGrid(sde, xs;)
 
-@time tt = PathIntegrationProblem(sde,0.25,xs, precompute=true)#, method = RKMaruyama());
+@time pip = PathIntegrationProblem(sde,0.25,xs, precompute=true)#, method = RKMaruyama());
 
 @time begin
-    ev = eigs(tt.tpdMX)[2][:,1] .|> real
-    myp_ev = deepcopy(myp);
-    myp_ev.p .= ev;
-    myp_ev.p .= myp_ev.p ./ PathIntegrationMethod._integrate(myp_ev.p, xs)
+    ev = eigs(pip.tpdMX)[2][:,1] .|> real
+    pip_ev = PDGrid(sde, xs;);
+    pip_ev.p .= ev;
+    pip_ev.p .= myp_ev.p ./ PathIntegrationMethod._integrate(myp_ev.p, xs)
 end
 
 @time for _ in 1:1000
-    advance!(tt)
+    advance!(pip)
 end
-res = tt.pdgrid;
 
 begin
     figure(1); clf()
     _x = LinRange(xs[1],xs[end],101)
     plot(_x,myp.(_x),label="Initial PDF" )
-    plot(_x,res.(_x),label="Iteration" )
+    plot(_x,pip.pdgrid.(_x),label="Iteration" )
     plot(_x,p_AN(_x), label = "Reference")
-    plot(_x,myp_ev.(_x), label = "Eigenvector")
-    # scatter(xs,myp_ev.p)
+    plot(_x,pip_ev.(_x), label = "Eigenvector")
     
     legend()
-    # # scatter(xdef,res.(xdef))
-end
-
-
-tt.idx₁ .= [16]
-vs = LinRange(-6,6,1001)
-_tps = [tt(tt.temp,v) for v in vs]
-sum(_tps)*(vs[2]-vs[1])
-begin
-    figure(1); clf();
-    plot(vs,_tps)
 end
