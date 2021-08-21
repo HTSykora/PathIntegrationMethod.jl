@@ -20,12 +20,12 @@ function symmetricwalls(d,r)
 end
 
 ## Integration kernel functions
-function get_integ_limits(IK::IntegrationKernel{sdeT}) where sdeT<:SDE_VI_Oscillator1D{oscT,wT} where {oscT,wT<:Tuple{wT1,wT2}} where {wT1<:Wall, wT2<:Wall}
+function get_integ_limits(IK::IntegrationKernel{sdeT}) where sdeT<:SDE_VI_Oscillator1D{wT,oscT} where {oscT,wT<:Tuple{wT1,wT2}} where {wT1<:Wall, wT2<:Wall}
     # assuming a single impact to the closer wall and r < 1
-    Δt = IK.t₁ - IK.t₀
+    Δt = get_Δt(IK)
     x = IK.pdgrid.xs[1][IK.idx₁[1]]
-    d = IK.sde.wall[wallID[1]].pos 
-    r = IK.sde.wall[wallID[1]].r
+    d = IK.sde.wall[IK.impactinterval.wallID[1]].pos 
+    r = IK.sde.wall[IK.impactinterval.wallID[1]].r
     vmin, vmax = IK.xs[1], IK.xs[end]
     return get_integ_limits!(IK,vmin, vmax, x, Δt, d, r)
 end
@@ -38,7 +38,7 @@ end
         return IK.impactinterval.wallID[1] == 1 ? (vmin, vᵢ) : (vᵢ, vmax)
     elseif vmin < vᵢ < vmax
         # TODO in case of variable r use a solver!
-        vᵢᵢ = get_vII(x,Δt, r)  # v_{0,II} - 1 and 2 solution for ξ
+        vᵢᵢ = get_vII(x,d,Δt, r)  # v_{0,II} - 1 and 2 solution for ξ
         if vmin < vᵢᵢ < vmax
             if vᵢ<vᵢᵢ
                 IK.impactinterval.lims[1] = vᵢᵢ
@@ -63,7 +63,7 @@ end
     ii.lims .= zero(eltype(ii.lims))
 end
 
-@inline function get_vII(x,Δt, r::Scalar_Or_Function{rT}) where rT<:Number
+@inline function get_vII(x,d,Δt, r::Scalar_Or_Function{rT}) where rT<:Number
     (d-x)/(r.f*Δt)
 end
 

@@ -15,6 +15,7 @@ end
 
 @inline get_t0(IK::IntegrationKernel) = IK.t₀
 @inline get_t1(IK::IntegrationKernel) = IK.t₁
+@inline get_Δt(IK::IntegrationKernel) = get_t1(IK) - get_t0(IK)
 
 @inline get_t0(IK::IntegrationKernel{sdeT,iT0, iT1,xT,fT,pdT,tT}) where {sdeT,iT0, iT1,xT,fT,pdT, tT<: Vector{teT}} where teT<:Number = IK.t₀[1]
 @inline get_t1(IK::IntegrationKernel{sdeT,iT0, iT1,xT,fT,pdT,tT}) where {sdeT,iT0, iT1,xT,fT,pdT, tT<: Vector{teT}} where teT<:Number = IK.t₁[1]
@@ -61,7 +62,7 @@ function (IK::IntegrationKernel{sdeT})(vals,v₀) where sdeT<:Union{SDE_Oscillat
     # for impact system:
     # fx = _tp(IK.sde,_par(IK.sde),IK.pdgrid.xs[1][IK.idx₁[1]], IK.pdgrid.xs[2][IK.idx₁[2]], get_t1(IK),ξ,v₀,get_t0(IK), Q_impact, Δt1, Δt2, r , method = IK.method) 
 
-    for j in eachindex(IK.pdgrid.xs[2].itp.tmp)
+    @inbounds for j in eachindex(IK.pdgrid.xs[2].itp.tmp)
         for i in eachindex(IK.pdgrid.xs[1].itp.tmp)
             vals[i,j] = IK.pdgrid.xs[1].itp.tmp[i] * IK.pdgrid.xs[2].itp.tmp[j] * fx
         end
@@ -80,7 +81,7 @@ function (IK::IntegrationKernel{sdeT})(vals,v₀) where sdeT<:Union{SDE_VI_Oscil
     fx = _tp(IK.sde.osc1D,_par(IK.sde),IK.pdgrid.xs[1][IK.idx₁[1]], IK.pdgrid.xs[2][IK.idx₁[2]], get_t1(IK),ξ,v₀,get_t0(IK); method = IK.method) 
     # for impact system:
     # fx = _tp(IK.sde,_par(IK.sde),IK.pdgrid.xs[1][IK.idx₁[1]], IK.pdgrid.xs[2][IK.idx₁[2]], get_t1(IK),ξ,v₀,get_t0(IK), Q_impact, Δt1, Δt2, r , method = IK.method) 
-    for j in eachindex(IK.pdgrid.xs[2].itp.tmp)
+    @inbounds for j in eachindex(IK.pdgrid.xs[2].itp.tmp)
         for i in eachindex(IK.pdgrid.xs[1].itp.tmp)
             vals[i,j] = IK.pdgrid.xs[1].itp.tmp[i] * IK.pdgrid.xs[2].itp.tmp[j] * fx
         end
@@ -91,7 +92,7 @@ function (IK::IntegrationKernel{sdeT})(vals,v₀) where sdeT<:Union{SDE_VI_Oscil
         basefun_vals_safe!(IK.pdgrid.xs[1].itp,IK.pdgrid.xs[1].itp.tmp,IK.pdgrid.xs[1], ξ)
         fx = _tp(IK.sde,_par(IK.sde),IK.pdgrid.xs[1][IK.idx₁[1]], IK.pdgrid.xs[2][IK.idx₁[2]], get_t1(IK),ξ,v₀,get_t0(IK), Δt₁, Δt₂, r; method = IK.method) / r(v₀)
 
-        for j in eachindex(IK.pdgrid.xs[2].itp.tmp)
+        @inbounds for j in eachindex(IK.pdgrid.xs[2].itp.tmp)
             for i in eachindex(IK.pdgrid.xs[1].itp.tmp)
                 vals[i,j] = vals[i,j] + IK.pdgrid.xs[1].itp.tmp[i] * IK.pdgrid.xs[2].itp.tmp[j] * fx
             end

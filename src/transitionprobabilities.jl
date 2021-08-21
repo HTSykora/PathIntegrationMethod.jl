@@ -29,6 +29,6 @@ function _tp(sde::SDE_VI_Oscillator1D,par,x₁,v₁,t₁,x₀,v₀,t₀, Δt₁,
     r = _r(v₀)
     f₂, g₂ = method(sde,par,x₁,v₁,t₁,x₀,v₀,t₀,Δt₁,Δt₂,r)
     σ² = g₂^2*(r^2*Δt₁+Δt₂)
-    μ = r*v₀ + f₂*(r*Δt₁+Δt₂)
+    μ = -r*v₀ + f₂*(Δt₂-r*Δt₁)
     return normal1D(μ,σ²,v₁) # abs(r) r should be positive!
 end
