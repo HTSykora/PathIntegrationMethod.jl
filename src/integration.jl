@@ -78,7 +78,8 @@ function (IK::IntegrationKernel{sdeT})(vals,v₀) where sdeT<:Union{SDE_VI_Oscil
     basefun_vals_safe!(IK.pdgrid.xs[1].itp,IK.pdgrid.xs[1].itp.tmp,IK.pdgrid.xs[1], ξ)
     basefun_vals_safe!(IK.pdgrid.xs[2].itp,IK.pdgrid.xs[2].itp.tmp,IK.pdgrid.xs[2],v₀)
 
-    fx = _tp(IK.sde.osc1D,_par(IK.sde),IK.pdgrid.xs[1][IK.idx₁[1]], IK.pdgrid.xs[2][IK.idx₁[2]], get_t1(IK),ξ,v₀,get_t0(IK); method = IK.method) 
+    fx = _tp(IK.sde,_par(IK.sde),IK.pdgrid.xs[1][IK.idx₁[1]], IK.pdgrid.xs[2][IK.idx₁[2]], get_t1(IK),ξ,v₀,get_t0(IK), get_r(IK); method = IK.method, Q_atwall = IK.impactinterval.Q_atwall[1]) 
+
     # for impact system:
     # fx = _tp(IK.sde,_par(IK.sde),IK.pdgrid.xs[1][IK.idx₁[1]], IK.pdgrid.xs[2][IK.idx₁[2]], get_t1(IK),ξ,v₀,get_t0(IK), Q_impact, Δt1, Δt2, r , method = IK.method) 
     @inbounds for j in eachindex(IK.pdgrid.xs[2].itp.tmp)

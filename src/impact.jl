@@ -34,8 +34,9 @@ end
 @inline function get_integ_limits!(IK,vmin, vmax, x, Δt, d, r)
     vᵢ = (x-d)/Δt # v_{0,I} - 0 and 1 solution for ξ
     if isapprox(vᵢ,zero(vᵢ),atol = eps(typeof(vᵢ)))
-        zero_out_impactinterval!(IK.impactinterval)
-        return IK.impactinterval.wallID[1] == 1 ? (vmin, vᵢ) : (vᵢ, vmax)
+        res = IK.impactinterval.wallID[1] == 1 ? (vmin, vᵢ) : (vᵢ, vmax)
+        zero_out_impactinterval!(IK.impactinterval, Q_atwall = true, zero_wallID = false)
+        return res
     elseif vmin < vᵢ < vmax
         # TODO in case of variable r use a solver!
         vᵢᵢ = get_vII(x,d,Δt, r)  # v_{0,II} - 1 and 2 solution for ξ
@@ -58,9 +59,27 @@ end
         return vmin, vmax
     end
 end
-@inline function zero_out_impactinterval!(ii::ImpactInterval)
-    ii.wallID[1] = zero(eltype(ii.wallID))
+@inline function zero_out_impactinterval!(ii::ImpactInterval; Q_atwall::Bool = false, zero_wallID = true)
     ii.lims .= zero(eltype(ii.lims))
+    if zero_wallID
+        ii.wallID[1] = zero(eltype(ii.wallID))
+    end
+    if Q_atwall && !ii.Q_atwall[1]
+        ii.Q_atwall[1] = true
+    elseif ii.Q_atwall[1]
+        ii.Q_atwall[1] = false
+    end
+    ii
+end
+
+@inline get_r(IK::IntegrationKernel) = nothing
+function get_r(IK::IntegrationKernel{sdeT}) where sdeT<:SDE_VI_Oscillator1D
+    wallID = IK.impactinterval.wallID[1]
+    if wallID != 0
+        IK.sde.wall[wallID].r
+    else
+        IK.sde.wall[1].r
+    end
 end
 
 @inline function get_vII(x,d,Δt, r::Scalar_Or_Function{rT}) where rT<:Number
@@ -71,7 +90,7 @@ function is_impact(v₀,IK::IntegrationKernel)
     false
 end
 function is_impact(v₀,IK::IntegrationKernel{sdeT}) where sdeT<:SDE_VI_Oscillator1D
-    IK.impactinterval.wallID[1] != 0 && is_impact(v₀,IK.impactinterval)
+    !(IK.impactinterval.Q_atwall[1]) && IK.impactinterval.wallID[1] != 0 && is_impact(v₀,IK.impactinterval)
 end
 is_impact(v₀,ii::ImpactInterval) = ii.lims[1] < v₀ < ii.lims[2] 
 

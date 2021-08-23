@@ -90,6 +90,7 @@ end
 struct ImpactInterval{limT,wT}
     lims::limT # r
     wallID::wT
+    Q_atwall::BitArray{1}
 end
 
 

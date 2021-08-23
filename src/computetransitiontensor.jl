@@ -29,7 +29,7 @@ end
 @inline _t01(ts::Number) = zero(ts), ts
 @inline _t01(ts::AbstractVector{eT}) where eT<:Number = [ts[1]], [ts[2]]
 @inline _wallID(sde,pdgrid) = nothing
-@inline _wallID(sde::SDE_VI_Oscillator1D,pdgrid) = ImpactInterval(zeros(eltype(pdgrid.xs[2]),2),[0])
+@inline _wallID(sde::SDE_VI_Oscillator1D,pdgrid) = ImpactInterval(zeros(eltype(pdgrid.xs[2]),2),[0],falses(1))
 
 @inline get_iterator(pdgrid::PDGrid) = Base.Iterators.product(eachindex.(pdgrid.xs)...)
 @inline get_iterator(pdgrid::PDGrid{1}) = eachindex(pdgrid.xs[1]) 

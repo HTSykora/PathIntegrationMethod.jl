@@ -24,6 +24,20 @@ function _tp(sde::SDE_Oscillator1D,par,x₁,v₁,t₁,x₀,v₀,t₀; method = E
     normal1D(μ,σ²,v₁)
 end
 
+# transition propability without impact
+function _tp(sde::SDE_VI_Oscillator1D,par,x₁,v₁,t₁,x₀,v₀,t₀, _r; method = EulerMaruyama(), Q_atwall::Bool = false, kwargs...)
+    f₂, g₂ = method(sde.osc1D,par,x₁,v₁,t₁,x₀,v₀,t₀)
+    σ² = g₂^2*(t₁-t₀)
+    # μ = v₁ + f₂*(t₁-t₀)
+    μ = v₀ + f₂*(t₁-t₀)
+    res = normal1D(μ,σ²,v₁)
+    if Q_atwall
+        r = _r(v₀) 
+        return res + normal1D(-r*μ,σ²*r^2,v₁)
+    else
+        return res
+    end
+end
 # transition propability at impact
 function _tp(sde::SDE_VI_Oscillator1D,par,x₁,v₁,t₁,x₀,v₀,t₀, Δt₁, Δt₂, _r; method = EulerMaruyama(), kwargs...)
     r = _r(v₀)
