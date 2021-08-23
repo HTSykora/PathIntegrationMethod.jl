@@ -30,7 +30,7 @@ r = 0.8
 
 sde = SDE_Oscillator1D(fx,gx,par = p)
 
-Nᵥ = 51; Nₓ = 51; # 300 seconds at this resolution
+Nᵥ = 71; Nₓ = 71; # 300 seconds at this resolution
 v_ax = Axis(-1,1,Nᵥ)
 Δt = 0.005
 vi_sde, pdgrid = create_symmetric_VI_PDGrid(sde, d, r, v_ax, Nₓ,σ_init =  [0.001,0.05])
@@ -85,7 +85,7 @@ function export_to_png(pip,i)
     end
 end
 
-increment = 5; step = ceil(Int,4/Δt)
+increment = 5; step = ceil(Int,6/Δt)
 n_frames = (step÷increment)
 export_to_png(pip,0)
 @time for i in 1:n_frames
@@ -100,8 +100,8 @@ end
 
 
 
-_xmin, _xmax, _Nx= -0.25,0.25, 1001
-_vmin, _vmax, _Nv= -1.,1., 1001
+_xmin, _xmax, _Nx= -0.25,0.25, 101
+_vmin, _vmax, _Nv= -1.,1., 101
 xrange, vrange =  LinRange(_xmin,_xmax,_Nx), LinRange(_vmin,_vmax,_Nv);
 _X = [x for x in xrange, v in vrange]
 _V = [v for x in xrange, v in vrange]
@@ -124,22 +124,22 @@ function export_surf_to_png!(_P, _X, _V,xrange, vrange, pip,i)
     xlabel(L"x")
     ylabel(L"v")
     zlabel(L"p(x,v)")
-    savefig("./examples/Animfiles/1DVIOscillator_surf_$(i).png")
+    savefig("./examples/Animfiles/1DVIOscillator_noharmonic_surf_$(i).png")
 end
 
 @load "./examples/Animfiles/1DVIOscillator_initpip.jld2"
-increment = 1
-n_frames = 5((length(ts)-1)÷increment)
+increment = 5; step = ceil(Int,12/Δt)
+n_frames = (step÷increment)
 @time export_surf_to_png!(_P,_X, _V, xrange, vrange, pip, 0)
 
 @time for i in 1:n_frames
     for _ in 1:increment
         advance!(pip)
     end
-    export_surf_to_png(_X, _V, xrange, vrange, pip, i)
+    export_surf_to_png!(_P,_X, _V, xrange, vrange, pip, i)
 end
 
-`ffmpeg -y -framerate 24 -start_number 0 -i ./examples/Animfiles/1DVIOscillator_surf_%d.png -vframes $(n_frames+1) ./examples/Animfiles/1DVIOscillator_surf_anim.mp4` |> run
+`ffmpeg -y -framerate 24 -start_number 0 -i ./examples/Animfiles/1DVIOscillator_noharmonic_surf_%d.png -vframes $(n_frames+1) ./examples/Animfiles/1DVIOscillator_noharmonic_surf_anim.mp4` |> run
 
 ##
 # IK = PathIntegrationMethod.computeintegrationmatrix(vi_sde, pdgrid, ts, EulerMaruyama())
