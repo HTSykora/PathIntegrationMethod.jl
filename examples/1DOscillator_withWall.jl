@@ -2,19 +2,16 @@ include("./example_init.jl")
 ##
 
 function fx(u,p,t)
-    g = p[1] # f, g, σ
-    g
+    ζ = p[1] # f, g, σ
+    -2ζ*u[2] - u[1]
 end
 function gx(u,p,t)
     p[2] # = σ
 end
 ##
 
-β = π/18; r = 0.3; d = 0.25;
-Mg_F = 0.1245/5 * 9.81 # M*g/|F|
-g = Mg_F*sin(β) # M*g/|F|*sin(β)
-σ = 0.05
-p=(g, σ)
+ζ = 0.1; σ = 0.1
+p=[ζ, σ]
 
 sde = SDE_Oscillator1D(fx,gx,par = p)
 

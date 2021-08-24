@@ -5,6 +5,17 @@ PyPlot.rc("text", usetex=true);
 py_colors=PyPlot.PyDict(PyPlot.matplotlib."rcParams")["axes.prop_cycle"].by_key()["color"];
 
 using QuadGK, Arpack
+
+function plot_pip(pip; save_as = nothing, top = 0.5)
+    figure(1); clf()
+    _x = LinRange(xs[1],xs[end],101)
+    plot(_x,pip.pdgrid.(_x))
+    ylim(bottom=-0.02, top=top)
+
+    if save_as isa String
+        savefig(save_as)
+    end
+end
 ##
 
 # 1D problem:
@@ -30,27 +41,21 @@ end
 end
 
 ## Create an animation
-function export_to_png(pip,i)
-    begin
-        figure(1); clf()
-        _x = LinRange(xs[1],xs[end],101)
-        plot(_x,pip.pdgrid.(_x), label="Iteration")
-
-        ylim(bottom=-0.02,top=0.5)
-        savefig("./examples/Animfiles/scalar_cubic_$(i).png")
-    end
-end
-
+fname = "./examples/Animfiles/scalar_cubic_"
+save_as_i(i) = fname*"$(i).png"
 
 increment = 2
 n_frames = 2((length(ts)-1)÷increment)
+
+
 @time pip = PathIntegrationProblem(sde,ts,xs, precompute=true)#, method = RKMaruyama());
-export_to_png(pip,0)
+plot_pip(pip,save_as = save_as_i(0))
 @time for i in 1:n_frames
     for _ in 1:increment
         advance!(pip)
     end
-    export_to_png(pip,0)
+    plot_pip(pip,save_as = save_as_i(i))
 end
 
-`ffmpeg -y -framerate 24 -start_number 0 -i ./examples/Animfiles/scalar_cubic_%d.png -vframes $(n_frames+1) ./examples/Animfiles/scalar_cubic_anim.mp4` |> run
+`ffmpeg -y -framerate 24 -start_number 0 -i $(fname)%d.png -vframes $(n_frames+1) $(fname)anim.mp4` |> run
+`rm $(fname)*.png`

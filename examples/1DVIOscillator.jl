@@ -1,12 +1,4 @@
-using Pkg; Pkg.activate()
-using Revise, BenchmarkTools
-using PathIntegrationMethod
-using PyPlot, LaTeXStrings; pygui(true);
-using JLD2
-PyPlot.rc("text", usetex=true);
-py_colors=PyPlot.PyDict(PyPlot.matplotlib."rcParams")["axes.prop_cycle"].by_key()["color"];
-
-using QuadGK, Arpack
+include("./example_init.jl")
 
 struct ExcitationFunction{fT,pT}
     f::fT
@@ -50,57 +42,27 @@ vi_sde, pdgrid = create_symmetric_VI_PDGrid(sde, d, r, v_ax, Nₓ)
 # for _ in 1:10
 #     advance!(pip)
 # end
-# begin
-#     figure(1); clf()
-    
-#     res = pip.pdgrid
-#     X = [res.xs[1][i] for i in eachindex(res.xs[1]), j in eachindex(res.xs[2])]
-#     Y = [res.xs[2][j] for i in eachindex(res.xs[1]), j in eachindex(res.xs[2])]
-   
-#     scatter3D(X, Y, pip.pdgrid.p)
-#     # scatter3D(xvs[1],-1 .+ 0.25*xvs[1].^3,zero(xvs[1]))
-#     # xlim(left=-6,right=6)
-#     # ylim(bottom=-6,top=6)
-#     # zlim(bottom=0,top=0.15)
-#     xlabel(L"x")
-#     ylabel(L"v")
-#     zlabel(L"p(x,v)")
-# end
-
+scatter_pip(pip; elev=60, azim = 45., top = 100)
 
 ##
 # Create an animation
 @load "./examples/Animfiles/1DVIOscillator_initpip.jld2"
-function export_to_png(pip,i)
-    begin
-        figure(1); clf()
-        res = pip.pdgrid
-        X = [res.xs[1][i] for i in eachindex(res.xs[1]), j in eachindex(res.xs[2])]
-        Y = [res.xs[2][j] for i in eachindex(res.xs[1]), j in eachindex(res.xs[2])]
-       
-        scatter3D(X, Y, pip.pdgrid.p)
-        # scatter3D(xvs[1],-1 .+ 0.25*xvs[1].^3,zero(xvs[1]))
-        # xlim(left=-6,right=6)
-        # ylim(bottom=-6,top=6)
-        zlim(bottom=0,top=100)
-        xlabel(L"x")
-        ylabel(L"v")
-        zlabel(L"p(x,v)")
-        savefig("./examples/Animfiles/1DVIOscillator_$(i).png")
-    end
-end
+fname = "./examples/Animfiles/1DVIOscillator_"
+save_as_i(i) = fname*"$(i).png"
+
 
 increment = 1
 n_frames = 5((length(ts)-1)÷increment)
-export_to_png(pip,0)
+scatter_pip(pip; elev=60, azim = 45., top = 100, save_as = save_as_i(0))
 @time for i in 1:n_frames
     for _ in 1:increment
         advance!(pip)
     end
-    export_to_png(pip,i)
+    scatter_pip(pip; elev=60, azim = 45., top = 100, save_as = save_as_i(i))
 end
 
-`ffmpeg -y -framerate 24 -start_number 0 -i ./examples/Animfiles/1DVIOscillator_%d.png -vframes $(n_frames+1) ./examples/Animfiles/1DVIOscillator_anim.mp4` |> run
+`ffmpeg -y -framerate 24 -start_number 0 -i $(fname)%d.png -vframes $(n_frames+1) $(fname)_anim.mp4` |> run
+`rm $(fname)*.png` |> run # clean up pngs
 
 
 
@@ -112,48 +74,19 @@ _X = [x for x in xrange, v in vrange]
 _V = [v for x in xrange, v in vrange]
 _P = similar(_X)
 
-function export_surf_to_png!(_P, _X, _V,xrange, vrange, pip,i)
-    for (j,v) in enumerate(vrange)
-        for (i,x) in enumerate(xrange)
-            _P[i,j] = pip.pdgrid(x,v)
-        end
-    end
-    figure(1); clf()
-    
-    plot_surface(_X, _V, _P, cmap=PyPlot.cm.jet)
-
-    ax = gca()
-    ax.view_init(elev=60, azim = -90)
-    
-    zlim(bottom = 0, top = 100)
-    xlabel(L"x")
-    ylabel(L"v")
-    zlabel(L"p(x,v)")
-    savefig("./examples/Animfiles/1DVIOscillator_surf_$(i).png")
-end
-
 @load "./examples/Animfiles/1DVIOscillator_initpip.jld2"
+fname = "./examples/Animfiles/1DVIOscillator_surf_"
+save_as_i(i) = fname*"$(i).png"
+
 increment = 1
 n_frames = 5((length(ts)-1)÷increment)
-@time export_surf_to_png!(_P,_X, _V, xrange, vrange, pip, 0)
+@time surf_pip!(_P,_X, _V, xrange, vrange, pip, save_as = save_as_i(0))
 
 @time for i in 1:n_frames
     for _ in 1:increment
         advance!(pip)
     end
-    export_surf_to_png(_X, _V, xrange, vrange, pip, i)
+    surf_pip!(_P,_X, _V, xrange, vrange, pip, save_as = save_as_i(i))
 end
-
-`ffmpeg -y -framerate 24 -start_number 0 -i ./examples/Animfiles/1DVIOscillator_surf_%d.png -vframes $(n_frames+1) ./examples/Animfiles/1DVIOscillator_surf_anim.mp4` |> run
-
-##
-# IK = PathIntegrationMethod.computeintegrationmatrix(vi_sde, pdgrid, ts, EulerMaruyama())
-
-
-# PathIntegrationMethod.update_idx1!(IK,(3,1))
-# PathIntegrationMethod.get_integ_limits(IK)
-# @run ik = IK(IK.temp,-1.)
-# quadgk!(IK,IK.temp,v_ax[16],v_ax[17])
-
-# PathIntegrationMethod.get_ξ(EulerMaruyama(),vi_sde,ts[2],ts[1],pdgrid.xs[1][2],nothing,nothing,-1)
-
+`ffmpeg -y -framerate 24 -start_number 0 -i $(fname)%d.png -vframes $(n_frames+1) $(fname)_anim.mp4` |> run
+`rm $(fname)*.png` |> run # clean up pngs
