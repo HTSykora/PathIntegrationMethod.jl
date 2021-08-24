@@ -38,11 +38,12 @@ end
 struct SDE_VI_Oscillator1D{wT, oscT} <: AbstractSDE{2,2}
     osc1D::oscT
     wall::wT
+    # wT<:Tuple{Wall} = it is assumed, that it is a bottom wall (going down)
 end
-struct Wall{rT,pT,dT}
+struct Wall{rT,pT}
     r::rT
     pos::pT
-    impact_v_sign::dT
+    # impact_v_sign::dT
 end
 
 

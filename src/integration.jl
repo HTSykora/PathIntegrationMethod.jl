@@ -1,4 +1,4 @@
-@inline function cleanup_quadgk_keywords(;σ_init = nothing, kwargs...)
+@inline function cleanup_quadgk_keywords(;σ_init = nothing, μ_init = nothing, kwargs...)
     (;kwargs...)
 end
 

@@ -8,6 +8,7 @@ using Reexport
 
 export DriftTerm, DiffusionTerm, PathIntegrationProblem,  PDGrid,  Axis,
     SDE, SDE_Oscillator1D, SDE_VI_Oscillator1D,
+    Wall,
     EulerMaruyama, Milstein, RKMaruyama,
     IntegrationKernel,
     advance!, get_stationary_by_eigenvectors, 

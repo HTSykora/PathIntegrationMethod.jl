@@ -10,25 +10,28 @@ function gx(u,p,t)
 end
 ##
 
-ζ = 0.1; σ = 0.1
+ζ = 0.1; σ = 1.
 p=[ζ, σ]
 
+r = 0.5
+walls = (Wall(r,0.),Wall(r,5.))
 sde = SDE_Oscillator1D(fx,gx,par = p)
+vi_sde = SDE_VI_Oscillator1D(sde,walls)
 
 Nᵥ = 71; Nₓ = 71; # 300 seconds at this resolution
-v_ax = Axis(-1,1,Nᵥ)
+x_ax = Axis(walls[1].pos,walls[2].pos,Nₓ)
+v_ax = Axis(-6,6,Nᵥ)
 Δt = 0.005
-vi_sde, pdgrid = create_symmetric_VI_PDGrid(sde, d, r, v_ax, Nₓ,σ_init =  [0.001,0.05])
 
-@time pip = PathIntegrationProblem(vi_sde, pdgrid, Δt; precompute=true);
+@time pip = PathIntegrationProblem(vi_sde, Δt, x_ax, v_ax; precompute=true, μ_init=[2.,0.], σ_init = [0.25,0.5]);
 
-@save "./examples/Animfiles/1DVIOscillator_initpip_noharmonic.jld2" pip
+@save "./examples/Animfiles/1DOscillator_withWall_initpip.jld2" pip
 
 
-for _ in 1:500
+for _ in 1:100
     advance!(pip)
 end
-scatter_pip(pip; elev=60, azim = 45)
+scatter_pip(pip; elev=60, azim = 45, top = 1.5)
 
 
 ##

@@ -1,22 +1,25 @@
 @inline get_r_type(sde::SDE_VI_Oscillator1D) = get_f_type(sde.wall[1].r)
 
-function Wall(_r::Union{<:Number,<:Function},d,id)
+function Wall(_r::Union{<:Number,<:Function},d)
     r = Scalar_Or_Function(_r)
-    Wall{typeof(r),typeof(d),typeof(id)}(r,d,id)
+    Wall{typeof(r),typeof(d)}(r,d)
+end
+function Wall(_r::Union{<:Number,<:Function},d::Integer)
+    Wall(_r,float(d))
 end
 
-function walls(_d1,_d2, _r1, _r2)
+function _walls(_d1,_d2, _r1, _r2)
     d1, d2 = minmax(_d1, _d2)
     if d1 == _d1
         r1, r2 = _r1, _r2
     else
         r1, r2 = _r2, _r1
     end
-    Wall(r1,d1,Int8(-1)), Wall(r2,d2,Int8(1))
+    Wall(r1,d1), Wall(r2,d2)
 end
 function symmetricwalls(d,r)
     @assert d>0 "d<0!"
-    walls(-d, d, r, r)
+    _walls(-d, d, r, r)
 end
 
 ## Integration kernel functions

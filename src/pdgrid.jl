@@ -63,16 +63,25 @@ end
     p
 end
 
-@inline function initialize!(p::AbstractArray{T,N},xs...; σ_init = nothing,    kwargs...) where {T<:Number,N}
-    μs = [(x[end]+x[1])/2 for x in xs]
+@inline function initialize!(p::AbstractArray{T,N},xs...; μ_init = nothing, σ_init = nothing,    kwargs...) where {T<:Number,N}
+    if μ_init isa Nothing
+        μs = [(x[end]+x[1])/2 for x in xs]
+    elseif μ_init isa Number
+        μs = [μ_init for _ in xs]
+    elseif μ_init isa Vector
+        @assert length(μ_init) == length(xs) "Wrong number of initial μ values are given"
+        μs = μ_init
+    end
+
     if σ_init isa Nothing
         σ²s = [((x[end]-x[1])/12)^2 for x in xs]
     elseif σ_init isa Number
-        σ²s = [σ_init for _ in xs]
+        σ²s = [σ_init^2 for _ in xs]
     elseif σ_init isa Vector
         @assert length(σ_init) == length(xs) "Wrong number of initial σ values are given"
-        σ²s = σ_init
+        σ²s = σ_init.^2
     end
+    
     idx_it = Base.Iterators.product(eachindex.(xs)...)
     
     for idxs in idx_it

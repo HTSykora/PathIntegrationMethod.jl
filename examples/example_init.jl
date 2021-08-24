@@ -19,7 +19,7 @@ function scatter_pip(pip; azim = 45, elev = 60, top = 10, save_as = nothing, fig
     ax = gca()
     ax.view_init(elev = elev, azim = azim)
     
-    zlim(bottom=0,top=10)
+    zlim(bottom=0,top=top)
     xlabel(L"x")
     ylabel(L"v")
     zlabel(L"p(x,v)")
