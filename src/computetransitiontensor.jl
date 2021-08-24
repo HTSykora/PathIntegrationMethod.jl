@@ -70,12 +70,23 @@ end
         IK.idx₁[m] = idx₁[m]
     end
     x = IK.pdgrid.xs[1][IK.idx₁[1]]
-    IK.impactinterval.wallID[1] = abs(IK.sde.wall[1].pos - x) < abs(IK.sde.wall[2].pos - x) ? 1 : 2
+    set_wallID!(IK,x)
     nothing
 end
 @inline function update_idx1!(IK::IntegrationKernel{sdeT,iT0,iT1},idx₁::eT) where {sdeT<:AbstractSDE{1,1},iT0,iT1<:AbstractVector{eT}} where eT<:Number
     IK.idx₁[1] = idx₁
     nothing
+end
+
+@inline function set_wallID!(IK::IntegrationKernel{sdeT},x) where sdeT<:SDE_VI_Oscillator1D{wT} where {wT<:Union{Wall, Tuple{wT0}} where wT0<:Wall}
+    IK.impactinterval.wallID[1] = 1
+end
+@inline function set_wallID!(IK::IntegrationKernel{sdeT},x) where sdeT<:SDE_VI_Oscillator1D{wT} where {wT<:Union{Vector{wT0}, Tuple{wT1,wT2}}} where {wT0<:Wall, wT1<:Wall, wT2<:Wall}
+    if wT isa Vector && length(IK.sde.walls)==1
+        IK.impactinterval.wallID[1] = 1
+    else
+        IK.impactinterval.wallID[1] = abs(IK.sde.wall[1].pos - x) < abs(IK.sde.wall[2].pos - x) ? 1 : 2
+    end
 end
 
 @inline function fill_to_tpdMX!(tpdMX,IK,i)

@@ -14,7 +14,7 @@ end
 p=[ζ, σ]
 
 r = 0.5
-walls = (Wall(r,0.),Wall(r,5.))
+walls = (Wall(r,0.),Wall(r,3.))
 sde = SDE_Oscillator1D(fx,gx,par = p)
 vi_sde = SDE_VI_Oscillator1D(sde,walls)
 
@@ -23,7 +23,7 @@ x_ax = Axis(walls[1].pos,walls[2].pos,Nₓ)
 v_ax = Axis(-6,6,Nᵥ)
 Δt = 0.005
 
-@time pip = PathIntegrationProblem(vi_sde, Δt, x_ax, v_ax; precompute=true, μ_init=[2.,0.], σ_init = [0.25,0.5]);
+@time pip = PathIntegrationProblem(vi_sde, Δt, x_ax, v_ax; precompute=true, μ_init=[1.,0.], σ_init = [0.25,0.5]);
 
 @save "./examples/Animfiles/1DOscillator_withWall_initpip.jld2" pip
 
