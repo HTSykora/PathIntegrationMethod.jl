@@ -56,7 +56,7 @@ function (IK::IntegrationKernel{sdeT})(vals,v₀) where sdeT<:Union{SDE_Oscillat
     # extra_args  == Q_impact, Δt1, Δt2, r
 
     basefun_vals_safe!(IK.pdgrid.xs[1].itp,IK.pdgrid.xs[1].itp.tmp,IK.pdgrid.xs[1], ξ)
-    basefun_vals!(IK.pdgrid.xs[2].itp,IK.pdgrid.xs[2].itp.tmp,IK.pdgrid.xs[2],v₀)
+    basefun_vals_safe!(IK.pdgrid.xs[2].itp,IK.pdgrid.xs[2].itp.tmp,IK.pdgrid.xs[2],v₀)
 
     fx = _tp(IK.sde,_par(IK.sde),IK.pdgrid.xs[1][IK.idx₁[1]], IK.pdgrid.xs[2][IK.idx₁[2]], get_t1(IK),ξ,v₀,get_t0(IK), extra_args...; method = IK.method) 
     # for impact system:
@@ -72,7 +72,7 @@ function (IK::IntegrationKernel{sdeT})(vals,v₀) where sdeT<:Union{SDE_Oscillat
 end
 
 # 1D VibroImpact Oscillator problem
-function (IK::IntegrationKernel{sdeT})(vals,v₀) where sdeT<:Union{SDE_VI_Oscillator1D}
+function (IK::IntegrationKernel{sdeT})(vals,v₀) where sdeT<:SDE_VI_Oscillator1D
     ξ = get_ξ(IK.method,IK.sde.osc1D, get_t1(IK),get_t0(IK),IK.pdgrid.xs[1][IK.idx₁[1]],nothing,nothing,v₀) # v₁, x₀ = nothing
 
     basefun_vals_safe!(IK.pdgrid.xs[1].itp,IK.pdgrid.xs[1].itp.tmp,IK.pdgrid.xs[1], ξ)
@@ -80,8 +80,6 @@ function (IK::IntegrationKernel{sdeT})(vals,v₀) where sdeT<:Union{SDE_VI_Oscil
 
     fx = _tp(IK.sde,_par(IK.sde),IK.pdgrid.xs[1][IK.idx₁[1]], IK.pdgrid.xs[2][IK.idx₁[2]], get_t1(IK),ξ,v₀,get_t0(IK), get_r(IK); method = IK.method, Q_atwall = IK.impactinterval.Q_atwall[1]) 
 
-    # for impact system:
-    # fx = _tp(IK.sde,_par(IK.sde),IK.pdgrid.xs[1][IK.idx₁[1]], IK.pdgrid.xs[2][IK.idx₁[2]], get_t1(IK),ξ,v₀,get_t0(IK), Q_impact, Δt1, Δt2, r , method = IK.method) 
     @inbounds for j in eachindex(IK.pdgrid.xs[2].itp.tmp)
         for i in eachindex(IK.pdgrid.xs[1].itp.tmp)
             vals[i,j] = IK.pdgrid.xs[1].itp.tmp[i] * IK.pdgrid.xs[2].itp.tmp[j] * fx

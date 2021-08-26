@@ -29,21 +29,24 @@ function gx(u,p,t)
     p[3] # = σ
 end
 ## 
-xmin, xmax, Nx = -7, 7, 31
-vmin, vmax, Nv = -7, 7, 31
+xmin, xmax, Nx = -10, 10, 101
+vmin, vmax, Nv = -10, 10, 101
 
-xvs = [Axis(-7,7,Nx,interpolation = :chebyshev),Axis(-7,7,Nv,interpolation = :chebyshev)]
+xvs = [Axis(xmin,xmax,Nx,interpolation = :chebyshev),Axis(vmin,vmax,Nv,interpolation = :chebyshev)]
 
 par = [0.15, 0.25, sqrt(0.5)];
-# par = [0.2, 0.1, sqrt(0.2)];
+par = [0.2, 0.1, sqrt(0.2)];
 # par = [0.2, 0.1, sqrt(0.8)]
 # par = [0.02, 0.1, 0.2]
-sde = SDE_Oscillator1D(fx,gx,par = par)
-Δt = 0.001;
-@time PathIntegrationProblem(sde,Δt,xvs..., precompute = true, σ_init = 0.5);
-@btime pip = PathIntegrationProblem($sde,$Δt,$xvs..., precompute = $true, σ_init = $0.5);
 
-@time for _ in 1:1
+sde = SDE_Oscillator1D(fx,gx,par = par)
+Δt = 0.01;
+@time pip = PathIntegrationProblem(sde,Δt,xvs..., precompute = true, σ_init = 0.5,μ_init = [3.1, 0.]);
+# @btime PathIntegrationProblem($sde,$Δt,$xvs..., precompute = $true, σ_init = $0.5);
+
+PathIntegrationMethod.initialize!(pip.pdgrid.p,xvs..., σ_init = 0.5,μ_init = [5.1, 0.])
+
+@time for _ in 1:1000
     advance!(pip)
 end
 
@@ -62,7 +65,7 @@ begin
     # scatter3D(xvs[1],-1 .+ 0.25*xvs[1].^3,zero(xvs[1]))
     # xlim(left=-6,right=6)
     # ylim(bottom=-6,top=6)
-    zlim(bottom=0,top=0.15)
+    zlim(bottom=0,top=0.5)
     xlabel(L"x")
     ylabel(L"v")
     zlabel(L"p(x,v)")
@@ -70,7 +73,7 @@ end
 
 
 # High-res, interpolated visualisation
-_xmin, _xmax, _Nx= -5,5, 101
+dd_xmin, _xmax, _Nx= -5,5, 101
 _vmin, _vmax, _Nv= -5,5, 101
 _X = [x for x in LinRange(_xmin,_xmax,_Nx), v in LinRange(_vmin,_vmax,_Nv)]
 _V = [v for x in LinRange(_xmin,_xmax,_Nx), v in LinRange(_vmin,_vmax,_Nv)]
@@ -80,12 +83,12 @@ _PAN = [pd_analytic(x,y) for x in LinRange(_xmin,_xmax,_Nx), y in LinRange(_vmin
 begin
     figure(1); clf()
     
-    # plot_surface(_X, _V, _P, cmap=PyPlot.cm.jet)
+    plot_surface(_X, _V, _P, cmap=PyPlot.cm.jet)
     # plot_surface(_X, _V, _PAN, cmap=PyPlot.cm.jet)
-    plot_surface(_X, _V, _P.-_PAN, cmap=PyPlot.cm.jet)
+    # plot_surface(_X, _V, _P.-_PAN, cmap=PyPlot.cm.jet)
     # xlim(left=_xmin,right=_xmax)
     # ylim(bottom=_vmin,top=_vmax)
-    zlim(bottom = 0, top = 0.15)
+    zlim(bottom = 0, top = 0.5)
     xlabel(L"x")
     ylabel(L"v")
     zlabel(L"p(x,v)")

@@ -13,26 +13,43 @@ end
 ζ = 0.1; σ = 1.
 p=[ζ, σ]
 
-r = 0.5
-walls = (Wall(r,0.),Wall(r,3.))
+r = 0.7
+# walls = (Wall(r,0.0),Wall(r,3.))
+walls = (Wall(r,0.),)
 sde = SDE_Oscillator1D(fx,gx,par = p)
 vi_sde = SDE_VI_Oscillator1D(sde,walls)
 
-Nᵥ = 71; Nₓ = 71; # 300 seconds at this resolution
-x_ax = Axis(walls[1].pos,walls[2].pos,Nₓ)
+Nᵥ = 101; Nₓ = 101; # 300 seconds at this resolution
+x_lims = (walls[1].pos, length(walls) >1 ? walls[2].pos : 3.)
+x_ax = Axis(x_lims...,Nₓ)
 v_ax = Axis(-6,6,Nᵥ)
-Δt = 0.005
+Δt = 0.05
 
-@time pip = PathIntegrationProblem(vi_sde, Δt, x_ax, v_ax; precompute=true, μ_init=[1.,0.], σ_init = [0.25,0.5]);
+@time pip = PathIntegrationProblem(vi_sde, Δt, x_ax, v_ax; precompute=true, μ_init=[2.,0.], σ_init = [0.1,0.25]);
 
-@save "./examples/Animfiles/1DOscillator_withWall_initpip.jld2" pip
+p_0 = deepcopy(pip.pdgrid.p);
 
+# @save "./examples/Animfiles/1DOscillator_withWall_initpip.jld2" pip
 
-for _ in 1:100
+pip.pdgrid.p .= p_0
+@time for _ in 1:1
     advance!(pip)
 end
-scatter_pip(pip; elev=60, azim = 45, top = 1.5)
+# scatter_pip(pip; elev=15, azim = 85, top = 1.5)
+# scatter3D(fill(pip.pdgrid.xs[1][1],Nᵥ),pip.pdgrid.xs[2],pip.pdgrid[1,:])
+# scatter3D(fill(pip.pdgrid.xs[1][2],Nᵥ),pip.pdgrid.xs[2],pip.pdgrid[2,:])
+# scatter3D(fill(pip.pdgrid.xs[1][3],Nᵥ),pip.pdgrid.xs[2],pip.pdgrid[3,:])
+begin
+    figure(2); clf();
+    for i in 1:10
+        plot(pip.pdgrid.xs[2],pip.pdgrid[i,:], label=i)
+    end
+    legend()
+end
+1
 
+
+PathIntegrationMethod.get_ξ_impact(PathIntegrationMethod.EulerMaruyama(),vi_sde, Δt, 0.,2.9,nothing,nothing,1.,1)
 
 ##
 # Create point-cloud animation
@@ -71,6 +88,7 @@ save_as_i = (i-> fname*"$(i).png")
 increment = 5; step = ceil(Int,12/Δt)
 n_frames = (step÷increment)
 
+@time surf_pip!(_P,_X, _V, xrange, vrange, pip)
 @time surf_pip!(_P,_X, _V, xrange, vrange, pip, save_as = save_as_i(0))
 
 @time for i in 1:n_frames

@@ -24,25 +24,27 @@ function _tp(sde::SDE_Oscillator1D,par,x₁,v₁,t₁,x₀,v₀,t₀; method = E
     normal1D(μ,σ²,v₁)
 end
 
-# transition propability without impact
+# transition probability without impact/at wall
 function _tp(sde::SDE_VI_Oscillator1D,par,x₁,v₁,t₁,x₀,v₀,t₀, _r; method = EulerMaruyama(), Q_atwall::Bool = false, kwargs...)
     f₂, g₂ = method(sde.osc1D,par,x₁,v₁,t₁,x₀,v₀,t₀)
-    σ² = g₂^2*(t₁-t₀)
+    Δt = (t₁-t₀);
+    σ² = g₂^2*Δt
     # μ = v₁ + f₂*(t₁-t₀)
-    μ = v₀ + f₂*(t₁-t₀)
-    res = normal1D(μ,σ²,v₁)
+    μᵥ = v₀ + f₂*Δt
+    res = normal1D(μᵥ,σ²,v₁)
     if Q_atwall
         r = _r(v₀) 
-        return res + normal1D(-r*μ,σ²*r^2,v₁)
-    else
-        return res
+        res = res + normal1D(-r*μᵥ,σ²*r^2,v₁)/r # ?? TODO ??
+        # + renormalisation?
     end
+    return res
 end
-# transition propability at impact
+
+# transition probability at impact
 function _tp(sde::SDE_VI_Oscillator1D,par,x₁,v₁,t₁,x₀,v₀,t₀, Δt₁, Δt₂, _r; method = EulerMaruyama(), kwargs...)
     r = _r(v₀)
     f₂, g₂ = method(sde,par,x₁,v₁,t₁,x₀,v₀,t₀,Δt₁,Δt₂,r)
     σ² = g₂^2*(r^2*Δt₁+Δt₂)
-    μ = -r*v₀ + f₂*(Δt₂-r*Δt₁)
-    return normal1D(μ,σ²,v₁) # abs(r) r should be positive!
+    μᵥ = -r*v₀ + f₂*(Δt₂-r*Δt₁)
+    return normal1D(μᵥ,σ²,v₁) # abs(r) r should be positive!
 end

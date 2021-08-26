@@ -3,13 +3,15 @@ function computeintegrationmatrix(sde::AbstractSDE{N,k},pdgrid,ts,method; kwargs
     return nothing
 end
 
-function computeintegrationmatrix(sde::AbstractSDE,pdgrid::PDGrid{N,k,T},ts,method; kwargs...) where {N,k,T}
+function computeintegrationmatrix(sde::AbstractSDE,pdgrid::PDGrid{N,k,T},ts,method; debug_mode = false, kwargs...) where {N,k,T}
     # Prepare IK
     tpdMX = initialize_transitionmatrix(T,ts,length(pdgrid))
     
     temp = similar(pdgrid)
     IK = initialize_IK(sde,pdgrid,ts,method,temp)
-# return IK
+    if debug_mode
+        return IK
+    end
     # Fill the matrix representation of the transition tensor (tpdMX)
     idx_it = get_iterator(pdgrid)
     fill_tpdMX_ts!(tpdMX,IK,idx_it,ts; kwargs...)
@@ -65,28 +67,10 @@ end
     end
     nothing
 end
-@inline function update_idx1!(IK::IntegrationKernel{sdeT,iT0,iT1},idx₁::NTuple{M,eT}) where {sdeT<:SDE_VI_Oscillator1D,iT0,iT1<:AbstractVector{eT}} where eT<:Number where M
-    for m in 1:M
-        IK.idx₁[m] = idx₁[m]
-    end
-    x = IK.pdgrid.xs[1][IK.idx₁[1]]
-    set_wallID!(IK,x)
-    nothing
-end
+
 @inline function update_idx1!(IK::IntegrationKernel{sdeT,iT0,iT1},idx₁::eT) where {sdeT<:AbstractSDE{1,1},iT0,iT1<:AbstractVector{eT}} where eT<:Number
     IK.idx₁[1] = idx₁
     nothing
-end
-
-@inline function set_wallID!(IK::IntegrationKernel{sdeT},x) where sdeT<:SDE_VI_Oscillator1D{wT} where {wT<:Union{Wall, Tuple{wT0}} where wT0<:Wall}
-    IK.impactinterval.wallID[1] = 1
-end
-@inline function set_wallID!(IK::IntegrationKernel{sdeT},x) where sdeT<:SDE_VI_Oscillator1D{wT} where {wT<:Union{Vector{wT0}, Tuple{wT1,wT2}}} where {wT0<:Wall, wT1<:Wall, wT2<:Wall}
-    if wT isa Vector && length(IK.sde.walls)==1
-        IK.impactinterval.wallID[1] = 1
-    else
-        IK.impactinterval.wallID[1] = abs(IK.sde.wall[1].pos - x) < abs(IK.sde.wall[2].pos - x) ? 1 : 2
-    end
 end
 
 @inline function fill_to_tpdMX!(tpdMX,IK,i)

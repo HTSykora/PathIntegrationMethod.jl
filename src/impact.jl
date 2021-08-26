@@ -23,7 +23,7 @@ function symmetricwalls(d,r)
 end
 
 ## Integration kernel functions
-function get_integ_limits(IK::IntegrationKernel{sdeT}) where sdeT<:SDE_VI_Oscillator1D{wT,oscT} where {oscT,wT<:Tuple{wT1,wT2}} where {wT1<:Wall, wT2<:Wall}
+function get_integ_limits(IK::IntegrationKernel{sdeT}) where sdeT<:SDE_VI_Oscillator1D{wT,oscT} where {oscT,wT<:Union{Tuple{wT1},Tuple{wT1,wT2}}} where {wT1<:Wall, wT2<:Wall}
     # assuming a single impact to the closer wall and r < 1
     Δt = get_Δt(IK)
     x = IK.pdgrid.xs[1][IK.idx₁[1]]
@@ -36,42 +36,46 @@ end
 # Can change the IK 
 @inline function get_integ_limits!(IK,vmin, vmax, x, Δt, d, r)
     vᵢ = (x-d)/Δt # v_{0,I} - 0 and 1 solution for ξ
-    if isapprox(vᵢ,zero(vᵢ),atol = eps(typeof(vᵢ)))
-        res = IK.impactinterval.wallID[1] == 1 ? (vmin, vᵢ) : (vᵢ, vmax)
-        zero_out_impactinterval!(IK.impactinterval, Q_atwall = true, zero_wallID = false)
-        return res
-    elseif vmin < vᵢ < vmax
-        # TODO in case of variable r use a solver!
-        vᵢᵢ = get_vII(x,d,Δt, r)  # v_{0,II} - 1 and 2 solution for ξ
-        if vmin < vᵢᵢ < vmax
-            if vᵢ<vᵢᵢ
-                IK.impactinterval.lims[1] = vᵢᵢ
-                IK.impactinterval.lims[2] = vmax
-                return (vᵢ, vᵢᵢ, vmax)
-            else
-                IK.impactinterval.lims[1] = vmin
-                IK.impactinterval.lims[2] = vᵢᵢ
-                return (vmin, vᵢᵢ, vᵢ)
-            end
-        else
-            zero_out_impactinterval!(IK.impactinterval)
-            return vᵢ<vᵢᵢ ? (vᵢ, vmax) : (vmin, vᵢ)
-        end
-    else
+    if !(vmin < vᵢ < vmax)
         zero_out_impactinterval!(IK.impactinterval)
         return vmin, vmax
     end
+
+    if isapprox(vᵢ,zero(vᵢ),atol = eps(typeof(vᵢ)))
+        res = IK.impactinterval.wallID[1] == 1 ? (vmin, zero(vᵢ)) : (zero(vᵢ), vmax)
+        zero_out_impactinterval!(IK.impactinterval, Q_atwall = true, Q_zero_wallID = false)
+        return res
+    end
+    
+    # TODO in case of variable r use a solver!
+    vᵢᵢ = get_vII(x, d, Δt, r)  # v_{0,II} - 1 and 2 solution for ξ
+    if vᵢᵢ < vmin
+        zero_out_impactinterval!(IK.impactinterval)
+        return (vmin, vᵢ)
+    elseif vmax < vᵢᵢ
+        zero_out_impactinterval!(IK.impactinterval)
+        return (vᵢ, vmax)
+    end
+
+    if vᵢ<vᵢᵢ
+        IK.impactinterval.Q_atwall[1] = false
+        IK.impactinterval.lims[1] = vᵢᵢ
+        IK.impactinterval.lims[2] = vmax
+        return (vᵢ, vᵢᵢ, vmax)
+    else
+        IK.impactinterval.Q_atwall[1] = false
+        IK.impactinterval.lims[1] = vmin
+        IK.impactinterval.lims[2] = vᵢᵢ
+        return (vmin, vᵢᵢ, vᵢ)
+    end
 end
-@inline function zero_out_impactinterval!(ii::ImpactInterval; Q_atwall::Bool = false, zero_wallID = true)
+
+@inline function zero_out_impactinterval!(ii::ImpactInterval; Q_atwall::Bool = false, Q_zero_wallID = true)
     ii.lims .= zero(eltype(ii.lims))
-    if zero_wallID
+    if Q_zero_wallID
         ii.wallID[1] = zero(eltype(ii.wallID))
     end
-    if Q_atwall && !ii.Q_atwall[1]
-        ii.Q_atwall[1] = true
-    elseif ii.Q_atwall[1]
-        ii.Q_atwall[1] = false
-    end
+    ii.Q_atwall[1] = Q_atwall
     ii
 end
 
@@ -97,6 +101,24 @@ function is_impact(v₀,IK::IntegrationKernel{sdeT}) where sdeT<:SDE_VI_Oscillat
 end
 is_impact(v₀,ii::ImpactInterval) = ii.lims[1] < v₀ < ii.lims[2] 
 
+@inline function update_idx1!(IK::IntegrationKernel{sdeT,iT0,iT1},idx₁::NTuple{M,eT}) where {sdeT<:SDE_VI_Oscillator1D,iT0,iT1<:AbstractVector{eT}} where eT<:Number where M
+    for m in 1:M
+        IK.idx₁[m] = idx₁[m]
+    end
+    x = IK.pdgrid.xs[1][IK.idx₁[1]]
+    set_wallID!(IK,x)
+    nothing
+end
+@inline function set_wallID!(IK::IntegrationKernel{sdeT},x) where sdeT<:SDE_VI_Oscillator1D{wT} where {wT<:Union{Wall, Tuple{wT0}} where wT0<:Wall}
+    IK.impactinterval.wallID[1] = 1
+end
+@inline function set_wallID!(IK::IntegrationKernel{sdeT},x) where sdeT<:SDE_VI_Oscillator1D{wT} where {wT<:Union{Vector{wT0}, Tuple{wT1,wT2}}} where {wT0<:Wall, wT1<:Wall, wT2<:Wall}
+    if wT isa Vector && length(IK.sde.walls)==1
+        IK.impactinterval.wallID[1] = 1
+    else
+        IK.impactinterval.wallID[1] = (abs(IK.sde.wall[1].pos - x) < abs(IK.sde.wall[2].pos - x)) ? 1 : 2
+    end
+end
 
 ## VI problem initialize
 function create_symmetric_VI_PDGrid(sde::SDE_Oscillator1D, d, r, v_ax::aT, Nₓ::Integer; x_interpolation = :chebyshev, kwargs...) where aT<:Axis
