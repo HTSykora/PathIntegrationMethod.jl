@@ -34,8 +34,7 @@ function _tp(sde::SDE_VI_Oscillator1D,par,x₁,v₁,t₁,x₀,v₀,t₀, _r; met
     res = normal1D(μᵥ,σ²,v₁)
     if Q_atwall
         r = _r(v₀) 
-        res = res + normal1D(-r*μᵥ,σ²*r^2,v₁)/r # ?? TODO ??
-        # + renormalisation?
+        res = res + normal1D(-r*μᵥ,σ²*r^2,v₁)/r
     end
     return res
 end

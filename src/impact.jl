@@ -58,16 +58,18 @@ end
     end
 
     if vᵢ<vᵢᵢ
-        IK.impactinterval.Q_atwall[1] = false
-        IK.impactinterval.lims[1] = vᵢᵢ
-        IK.impactinterval.lims[2] = vmax
+        set_impactinterval!(IK.impactinterval, vᵢᵢ, vmax)
         return (vᵢ, vᵢᵢ, vmax)
     else
-        IK.impactinterval.Q_atwall[1] = false
-        IK.impactinterval.lims[1] = vmin
-        IK.impactinterval.lims[2] = vᵢᵢ
+        set_impactinterval!(IK.impactinterval, vmin, vᵢᵢ)
         return (vmin, vᵢᵢ, vᵢ)
     end
+end
+
+function set_impactinterval!(ii::ImpactInterval, _min, _max)
+    ii.Q_atwall[1] = false
+    ii.lims[1] = _min
+    ii.lims[2] = _max
 end
 
 @inline function zero_out_impactinterval!(ii::ImpactInterval; Q_atwall::Bool = false, Q_zero_wallID = true)

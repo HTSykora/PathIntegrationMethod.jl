@@ -30,6 +30,7 @@ IK = PathIntegrationProblem(vi_sde, Δt, x_ax, v_ax; precompute=true, μ_init=[2
 
 IK
 idx₁ = (5,64)
+IK.pdgrid.xs[1][idx₁[1]]
 IK.pdgrid.xs[2][idx₁[2]]
 
 PathIntegrationMethod.update_idx1!(IK,idx₁)
