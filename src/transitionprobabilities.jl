@@ -8,6 +8,9 @@ function normal1D(μ,σ,x) # 1D normal distribuiton
     normal1D((x-μ)/σ) / σ
 end
 
+function normal1D_σ2(μ,σ²,x) # 1D standard normal distribuiton
+    exp(-0.5*((x-μ)^2)/σ²)/sqrt(2π*σ²)
+end
 # Transformation for a Milstein step: y = x + Rx²; where x ∼ N(μₓ, σₓ)
 function get_milstein_xvals(R,y)
     D2 = 1 + 4*R*y # D²
@@ -45,7 +48,7 @@ function _tp(sde::SDE{1,1},par,x₁,t₁,x₀,t₀; method = EulerMaruyama()) # 
     μ₀, σ₀ = method(sde,par,x₀,t₀,t₁-t₀)
     σ² = σ₀^2*(t₁-t₀)
     μ = x₀ + μ₀*(t₁-t₀)
-    normal1D(μ,σ²,x₁)
+    normal1D_σ2(μ,σ²,x₁)
 end
 
 # Second order system
@@ -53,9 +56,8 @@ end
 function _tp(sde::SDE_Oscillator1D,par,x₁,v₁,t₁,x₀,v₀,t₀; method = EulerMaruyama(), kwargs...)
     f₂, g₂ = method(sde,par,x₁,v₁,t₁,x₀,v₀,t₀)
     σ² = g₂^2*(t₁-t₀)
-    # μ = v₁ + f₂*(t₁-t₀)
     μ = v₀ + f₂*(t₁-t₀)
-    normal1D(μ,σ²,v₁)
+    normal1D_σ2(μ,σ²,v₁)
 end
 
 # transition probability without impact/at wall
@@ -65,7 +67,7 @@ function _tp(sde::SDE_VI_Oscillator1D,par,x₁,v₁,t₁,x₀,v₀,t₀, _r; met
     σ² = g₂^2*Δt
     # μ = v₁ + f₂*(t₁-t₀)
     μᵥ = v₀ + f₂*Δt
-    res = normal1D(μᵥ,σ²,v₁)
+    res = normal1D_σ2(μᵥ,σ²,v₁)
     if Q_atwall
         r = _r(v₀) 
         res = res + normal1D(-r*μᵥ,σ²*r^2,v₁)/r
@@ -79,5 +81,5 @@ function _tp(sde::SDE_VI_Oscillator1D,par,x₁,v₁,t₁,x₀,v₀,t₀, Δt₁,
     f₂, g₂ = method(sde,par,x₁,v₁,t₁,x₀,v₀,t₀,Δt₁,Δt₂,r)
     σ² = g₂^2*(r^2*Δt₁+Δt₂)
     μᵥ = -r*v₀ + f₂*(Δt₂-r*Δt₁)
-    return normal1D(μᵥ,σ²,v₁) # abs(r) r should be positive!
+    return normal1D_σ2(μᵥ,σ²,v₁) # abs(r) r should be positive!
 end

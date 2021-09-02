@@ -16,7 +16,7 @@ function (e::RKMaruyama)(sde::SDE{1,1},par,x0,t0,Δt)
     k3 = sde.f(x0 + 0.5*Δt*k2,par,t0+0.5*Δt)
     k4 = sde.f(x0 + Δt*k3,par,t0+Δt)
     
-    (k1+k2+k3+k4)/6, sde.g(x0,par,t0)
+    (k1+2*k2+2*k3+k4)/6, sde.g(x0,par,t0)
 end
 
 ## 1D Oscillator 
