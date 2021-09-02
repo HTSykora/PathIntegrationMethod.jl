@@ -1,7 +1,41 @@
-function normal1D(μ,σ²,x) # 1D Gaussian distribuiton
-    exp(-0.5*((x - μ)^2 / σ²))/sqrt(2π*σ²)
+## Base distributions
+# Normal Distribution
+function normal1D(x) # 1D standard normal distribuiton
+    exp(-0.5*x^2)/sqrt(2π)
 end
 
+function normal1D(μ,σ,x) # 1D normal distribuiton
+    normal1D((x-μ)/σ) / σ
+end
+
+# Transformation for a Milstein step: y = x + Rx²; where x ∼ N(μₓ, σₓ)
+function get_milstein_xvals(R,y)
+    D2 = 1 + 4*R*y # D²
+    if D2 > zero(D2)
+        D = sqrt(D2)
+        _2b = one(D)/(2R)
+        D_2b = D*_2b
+
+        x1,x2 = (- D_2b - _2b, D_2b - _2b)
+
+        d = one(D)/(D)
+        return x1, x2, d
+    end
+    
+    z = zero(D2)
+    return z, z, z
+end
+
+function milstein_dist(μₓ, σₓ, R, y)#, atol = sqrt(eps(R)))
+    if abs2(R) < eps(R)
+        return normal1D(μₓ, σₓ, y)
+    end
+    
+    x1, x2, d = get_milstein_xvals(R,y)
+    (normal1D(μₓ, σₓ, x1)  + normal1D(μₓ, σₓ, x2)) * d
+end
+
+## Step distributions
 function _tp(sde::AbstractSDE{N,k},x,t,x0,t0; kwargs...) where {N,k} # transition probability for scalar problem
     _tp(sde,_par(sde),x,t,x0,t0; kwargs...)
 end

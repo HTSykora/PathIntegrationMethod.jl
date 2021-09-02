@@ -25,7 +25,7 @@ x_ax = Axis(x_lims...,Nₓ)
 v_ax = Axis(-6,6,Nᵥ)
 Δt = 0.05
 
-@time pip = PathIntegrationProblem(vi_sde, Δt, x_ax, v_ax; precompute=true, μ_init=[2.,0.], σ_init = [0.1,0.25]);
+@time pip = PathIntegrationProblem(vi_sde, Δt, x_ax, v_ax; precompute = true, μ_init = [2.,0.], σ_init = [0.1,0.25]);
 
 @save "./examples/Animfiles/1DOscillator_withWall_initpip.jld2" pip
 
