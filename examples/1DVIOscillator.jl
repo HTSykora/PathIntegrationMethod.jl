@@ -22,26 +22,26 @@ f_per = ExcitationFunction((p,t)-> cos(π*t + p[1]),[0.]) # p = [φ₀]
 Mg_F = 0.1245/5 * 9.81 # M*g/|F|
 g = Mg_F*sin(β) # M*g/|F|*sin(β)
 σ = 0.1
-p=(f_per, g, σ)
+p=(f_per, -g, σ)
 
 r = 0.3
 
 sde = SDE_Oscillator1D(fx,gx,par = p)
 
-Nᵥ = 71; Nₓ = 51; # 300 seconds at this resolution
+Nᵥ = 51; Nₓ = 51; # 300 seconds at this resolution
 v_ax = Axis(-1.5,1.5,Nᵥ)
 ts = LinRange(0,2,51)
-vi_sde, pdgrid = create_symmetric_VI_PDGrid(sde, d, r, v_ax, Nₓ)
+vi_sde, pdgrid = create_symmetric_VI_PDGrid(sde, d, r, v_ax, Nₓ,σ_init = [0.025,0.25])
 
-@time pip = PathIntegrationProblem(vi_sde, pdgrid, ts; precompute=true, σ_init = 0.1);
+@time pip = PathIntegrationProblem(vi_sde, pdgrid, ts; precompute=true);
 
 @save "./examples/Animfiles/1DVIOscillator_initpip.jld2" pip
 # @run PathIntegrationProblem(vi_sde, pdgrid, ts; precompute=true);
 
 
-# for _ in 1:10
-#     advance!(pip)
-# end
+for _ in 1:2
+    advance!(pip)
+end
 scatter_pip(pip; elev=60, azim = 45., top = 100)
 
 ##

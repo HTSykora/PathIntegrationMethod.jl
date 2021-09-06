@@ -70,7 +70,7 @@ function _tp(sde::SDE_VI_Oscillator1D,par,x₁,v₁,t₁,x₀,v₀,t₀, _r; met
     res = normal1D_σ2(μᵥ,σ²,v₁)
     if Q_atwall
         r = _r(v₀) 
-        res = res + normal1D(-r*μᵥ,σ²*r^2,v₁)/r
+        res = res + normal1D_σ2(-r*μᵥ,σ²*r^2,v₁)/r
     end
     return res
 end
@@ -81,5 +81,5 @@ function _tp(sde::SDE_VI_Oscillator1D,par,x₁,v₁,t₁,x₀,v₀,t₀, Δt₁,
     f₂, g₂ = method(sde,par,x₁,v₁,t₁,x₀,v₀,t₀,Δt₁,Δt₂,r)
     σ² = g₂^2*(r^2*Δt₁+Δt₂)
     μᵥ = -r*v₀ + f₂*(Δt₂-r*Δt₁)
-    return normal1D_σ2(μᵥ,σ²,v₁) # abs(r) r should be positive!
+    return normal1D_σ2(μᵥ,σ²,v₁)
 end

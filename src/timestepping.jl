@@ -11,7 +11,7 @@ function (e::Milstein)(sde::SDE{1,1},par,x0,t0,Δt)
     f1, (L + mil_corretion*sqΔt)
 end
 function (e::RKMaruyama)(sde::SDE{1,1},par,x0,t0,Δt)
-    k1 = sde.f(x0,par,t0)
+    k1 = sde.f(x0,par,t0) 
     k2 = sde.f(x0 + 0.5*Δt*k1,par,t0+0.5*Δt)
     k3 = sde.f(x0 + 0.5*Δt*k2,par,t0+0.5*Δt)
     k4 = sde.f(x0 + Δt*k3,par,t0+Δt)

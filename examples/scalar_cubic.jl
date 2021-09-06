@@ -8,8 +8,8 @@ using QuadGK, Arpack
 ##
 
 # 1D problem:
-f(x,p,t) = x-x^3
-g(x,p,t) = sqrt(2)
+f(x,p,t) = 2.5x-x^3
+g(x,p,t) = 0.5;sqrt(2)
 
 # Analytic form of the 
 _p_AN(x,ε = 1.) = exp(x^2/2 - ε*x^4/4)
@@ -18,10 +18,10 @@ function p_AN(xs, ε=1.)
     _p_AN.(xs,Ref(ε)) ./ itg
 end
 sde = SDE(f,g)
-xs = Axis(-5,5,41,interpolation = :chebyshev)
+xs = Axis(-3,3,71,interpolation = :chebyshev)
 
 Δt = 0.01
-@time pip = PathIntegrationProblem(sde,Δt,xs, precompute=true, method = RKMaruyama());
+@time pip = PathIntegrationProblem(sde,Δt,xs, precompute=true)#, method = RKMaruyama());
 
 # @time begin
 #     ev = eigs(pip.tpdMX)[2][:,1] .|> real
@@ -36,9 +36,9 @@ end
 
 begin
     figure(1); clf()
-    _x = LinRange(xs[1],xs[end],101)
+    _x = LinRange(xs[1],xs[end],1001)
     plot(_x,pip.pdgrid.(_x),label="Iteration" )
-    plot(_x,p_AN(_x), label = "Reference")
+    # plot(_x,p_AN(_x), label = "Reference")
     # plot(_x,pip_ev.(_x), label = "Eigenvector")
     ylim(top=0.8)
     legend()

@@ -85,7 +85,7 @@ end
     idx_it = Base.Iterators.product(eachindex.(xs)...)
     
     for idxs in idx_it
-        p[idxs...] = prod(normal1D(μs[i],σ²s[i],xs[i][idx]) for (i,idx) in enumerate(idxs))
+        p[idxs...] = prod(normal1D_σ2(μs[i],σ²s[i],xs[i][idx]) for (i,idx) in enumerate(idxs))
     end
 end
 

@@ -41,7 +41,7 @@ par = [0.2, 0.1, sqrt(0.2)];
 
 sde = SDE_Oscillator1D(fx,gx,par = par)
 Δt = 0.01;
-@time pip = PathIntegrationProblem(sde,Δt,xvs..., precompute = true, σ_init = 0.5,μ_init = [3.1, 0.]);
+@time pip = PathIntegrationProblem(sde,Δt,xvs..., precompute = true, σ_init = 0.5, μ_init = [3.1, 0.]);
 # @btime PathIntegrationProblem($sde,$Δt,$xvs..., precompute = $true, σ_init = $0.5);
 
 PathIntegrationMethod.initialize!(pip.pdgrid.p,xvs..., σ_init = 0.5,μ_init = [5.1, 0.])
@@ -73,8 +73,8 @@ end
 
 
 # High-res, interpolated visualisation
-dd_xmin, _xmax, _Nx= -5,5, 101
-_vmin, _vmax, _Nv= -5,5, 101
+_xmin, _xmax, _Nx= -5, 5, 101
+_vmin, _vmax, _Nv= -5, 5, 101
 _X = [x for x in LinRange(_xmin,_xmax,_Nx), v in LinRange(_vmin,_vmax,_Nv)]
 _V = [v for x in LinRange(_xmin,_xmax,_Nx), v in LinRange(_vmin,_vmax,_Nv)]
 _P = [pip.pdgrid(x,y) for x in LinRange(_xmin,_xmax,_Nx), y in LinRange(_vmin,_vmax,_Nv)]
