@@ -28,10 +28,10 @@ r = 0.3
 
 sde = SDE_Oscillator1D(fx,gx,par = p)
 
-Nᵥ = 51; Nₓ = 51; # 300 seconds at this resolution
+Nᵥ = 81; Nₓ = 81; # 300 seconds at this resolution
 v_ax = Axis(-1.5,1.5,Nᵥ)
 ts = LinRange(0,2,51)
-vi_sde, pdgrid = create_symmetric_VI_PDGrid(sde, d, r, v_ax, Nₓ,σ_init = [0.025,0.25])
+vi_sde, pdgrid = create_symmetric_VI_PDGrid(sde, d, r, v_ax, Nₓ)
 
 @time pip = PathIntegrationProblem(vi_sde, pdgrid, ts; precompute=true);
 
@@ -39,14 +39,14 @@ vi_sde, pdgrid = create_symmetric_VI_PDGrid(sde, d, r, v_ax, Nₓ,σ_init = [0.0
 # @run PathIntegrationProblem(vi_sde, pdgrid, ts; precompute=true);
 
 
-for _ in 1:2
+for _ in 1:1
     advance!(pip)
 end
-scatter_pip(pip; elev=60, azim = 45., top = 100)
+scatter_pip(pip; elev=30, azim = -45., top = 30)
 
 ##
-# Create an animation
 @load "./examples/Animfiles/1DVIOscillator_initpip.jld2"
+# Create an animation
 fname = "./examples/Animfiles/1DVIOscillator_"
 save_as_i(i) = fname*"$(i).png"
 
