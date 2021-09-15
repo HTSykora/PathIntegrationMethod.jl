@@ -1,43 +1,35 @@
 
 function DriftTerm(f::Function)
-    DriftTerm{1,1,typeof(f)}(f)
+    DriftTerm{1,typeof(f)}(f)
 end
-function DriftTerm(f::Union{Vector,Tuple},k)
-    N = length(f)
-    DriftTerm{N,k,typeof(f)}(f)
+function DriftTerm(f::TupleVectorUnion)
+    d = length(f)
+    DriftTerm{d,typeof(f)}(f)
 end
-function DriftTerm(f::Union{Vector,Tuple})
-    DriftTerm(f,1)
-end
+
 
 function (F::DriftTerm{1,1,fT})(u,p,t) where fT<:Function
     return F.f(u,p,t)
 end
-function (F::DriftTerm{1,1,fT})(n::Integer,u,p,t) where fT<:Function
+function (F::DriftTerm{1,1,fT})(i::Integer,u,p,t) where fT<:Function
     return F.f(u,p,t)
 end
-function (F::DriftTerm{N,k,fT})(n::Integer,u,p,t) where {N,k,fT<:Function}
-    F.f(u,p,t)
-end
 
-function (F::DriftTerm{N,k,fT})(n::Integer,u,p,t) where {N,k,fT<:Union{Vector,Tuple}}
-    if n <= N
-        return F.f[n](u,p,t)
+function (F::DriftTerm{d,fT})(i::Integer,u,p,t) where {d,fT<:TupleVectorUnion}
+    if i <= d
+        return F.f[i](u,p,t)
     else
-        error("n > N")
+        error("i > d")
     end
 end
 
-function (F::DriftTerm{N,k,fT})(du,u,p,t) where {N,k,fT<:Union{Vector,Tuple}}
-    for i in 1:N
+function (F::DriftTerm{d,fT})(du,u,p,t) where {d,fT<:TupleVectorUnion}
+    for i in 1:d
         du[i] = D(i,u,p,t)
     end
     return du
 end
-function (F::DriftTerm{N,k,fT})(u,p,t) where {N,k,fT<:Union{Vector,Tuple}}
-    du = similar(u)
-    for i in 1:N
-        du[i] = D(i,u,p,t)
-    end
-    return du
+function (F::DriftTerm{d,fT})(u,p,t) where {d,fT<:TupleVectorUnion}
+    du = similar(u) # TODO: type safety!
+    F(du,u,p,t)
 end

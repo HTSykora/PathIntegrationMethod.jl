@@ -1,3 +1,7 @@
+# Trapezoidal weights for linear interpolation
+Base.getindex(t::TrapezoidalWeights{T},idx::Integer) where T = (idx == 1 || idx == t.l) ? T(0.5) : T(1.)
+Base.size(t::TrapezoidalWeights) = (t.l,)
+
 #######################################
 # Constructurs
 LinearInterpolation(Δ, n::Integer = 0; kwargs...) = LinearInterpolation(Float64,Δ,n;kwargs...)

@@ -2,40 +2,22 @@ struct Scalar_Or_Function{fT} <: Function
     f::fT
 end
 
-struct PathIntegrationProblem{N,k,sdeT,pdT,tpdMX_type,tsT,methodT,Tstp_idx}
-    sde::sdeT
-    pdgrid::pdT
-    tpdMX::tpdMX_type
-    ts::tsT
-    method::methodT
-    step_idx::Tstp_idx
-end
-
-struct PDGrid{N,k,T,xT,pT,ξT,gridT,iT} <: AbstractArray{T,N}
-    xs::xT
-    p::pT
-    p_temp::pT
-    ξ_temp::ξT
-    grid::gridT
-    i_temp::iT
-end
-
-abstract type AbstractSDE{N,k} end
-struct DummySDE{N,k} <: AbstractSDE{N,k} end
-
-struct SDE{N,k,fT,gT,pT} <: AbstractSDE{N,k}
+# Types to describe the SDE dynamics
+abstract type AbstractSDE{d,k,m} end
+# f: Rᵈ×[0,T] ↦ Rᵈ, g: Rᵈ × [0,T] ↦ Rᵈˣᵐ, gᵢ,ⱼ = 0 for i = 1,...,m; j = k ... d
+struct SDE{d,k,m,fT,gT,pT} <: AbstractSDE{d,k,m}
     f::fT
     g::gT
     par::pT
 end
 
-struct SDE_Oscillator1D{fT, gT, parT} <: AbstractSDE{2,2}
+struct SDE_Oscillator1D{fT, gT, parT} <: AbstractSDE{2,2,1}
     f::fT
     g::gT
-    par::parT
+    par::parT0
 end
 
-struct SDE_VI_Oscillator1D{wT, oscT} <: AbstractSDE{2,2}
+struct SDE_VI_Oscillator1D{wT, oscT} <: AbstractSDE{2,2,1}
     osc1D::oscT
     wall::wT
     # wT<:Tuple{Wall} = it is assumed, that it is a bottom wall (going down)
@@ -45,36 +27,88 @@ struct Wall{rT,pT}
     pos::pT
     # impact_v_sign::dT
 end
-
-
-abstract type AbstractSDEComponent{N,k,T} end
-struct DriftTerm{N,k,fT} <: AbstractSDEComponent{N,k,fT}
+abstract type AbstractSDEComponent end
+struct DriftTerm{d,fT} <: AbstractSDEComponent
     f::fT
 end
-struct DiffusionTerm{N,k,gT} <: AbstractSDEComponent{N,k,gT}
+struct DiffusionTerm{d,k,kd,m,gT} <: AbstractSDEComponent
     g::gT
 end
 
-abstract type AbstractAxis{T} <:AbstractVector{T} end 
-struct Axis{itpT,xeT,ewT,xT,wT} <: AbstractAxis{xeT}
-    itp::itpT
-    x::xT
-    wts::wT
+abstract type DiscreteTimeSteppingMethod end
+abstract type DiscreteDriftMethod <: DiscreteTimeSteppingMethod end
+abstract type DiscreteDiffusionMethod <: DiscreteTimeSteppingMethod end
+struct Euler <: DiscreteDriftMethod end
+struct RK4 <: DiscreteDriftMethod end
+struct Maruyama <: DiscreteDiffusionMethod end
+struct Milstein <: DiscreteDiffusionMethod end
+struct DiscreteTimeStepping{TDrift,TDiff} <:DiscreteTimeSteppingMethod
+    drift::TDrift
+    diffusion::TDiff
 end
 
-abstract type AbstractInterpolationType{TF} end # Q_equidistant = TF
-struct ChebyshevInterpolation{N,Ttmp} <: AbstractInterpolationType{false}
-    tmp::Ttmp
+struct SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}
+    sde::sdeT
+    method::methodT
+    x0::x0T
+    x1::x1T
+    t0::ΔtT
+    t1::ΔtT
+    
+    steptracer::tracerT # Required for discrete time step backtracing
 end
-struct LinearInterpolation{TF,Ttmp,tΔ} <: AbstractInterpolationType{TF}
-    tmp::Ttmp
-    Δ::tΔ
+abstract type PreComputeLevel end
+struct PreComputeJacobian <: PreComputeLevel end
+struct PreComputeLU <: PreComputeLevel end
+struct PreComputeNewtonStep <: PreComputeLevel end
+struct SymbolicNewtonStep{xIT, detJiT,tempT}
+    xI_0!::xIT
+    # xII_1!::xIIT
+    detJ_inv::detJiT
+    temp::tempT
+end
+# struct StepJacobianLU{JT, JMT}
+    
+# end
+struct StepJacobian{JT, JMT,tempT}
+    J!::JT
+    JM::_JT
+    temp::tempT
+end
+
+# Structs needed for PDF interpolation
+abstract type AbstractGridAxis{T} <:AbstractVector{T} end 
+struct GridAxis{itpT,wT,xT,xeT,tmpT} <: AbstractGridAxis{xeT}
+    itp::itpT
+    xs::xT
+    wts::wT
+    temp::tmpT
+end
+
+abstract type AbstractInterpolationType end
+struct ChebyshevInterpolation{N} <: AbstractInterpolationType end
+struct FourierInterpolation{N} <: AbstractInterpolationType end
+struct LinearInterpolation{ΔT} <: AbstractInterpolationType
+    Δ::ΔT
 end
 struct TrapezoidalWeights{T,ΔT} <: AbstractVector{T}
     l::Int64
     Δ::ΔT
 end
 
+struct ProbabilityDensityFunction{T,N,axesT,pT} <: AbstractArray{T,N}
+    axes::axesT
+    p::pT
+end
+struct PathIntegrationProblem
+    step_dynamics::dynT # SDEStep
+    pdgrid::pdT
+    ts::tsT
+    step_MX::tpdMX_type
+    step_idx::Tstp_idx
+end
+
+# Utility types
 struct IntegrationKernel{sdeT,iT0,iT1,xT,fT,pdT,tT,methodT,tempT,iiT}
     sde::sdeT
     f::fT
@@ -95,7 +129,4 @@ struct ImpactInterval{limT,wT}
 end
 
 
-abstract type SDEMethod end
-struct EulerMaruyama <: SDEMethod end
-struct Milstein <: SDEMethod end
-struct RKMaruyama <: SDEMethod end
+

@@ -2,35 +2,23 @@ module PathIntegrationMethod
 
 using Reexport
 @reexport using LinearAlgebra
-@reexport using Distributions
-@reexport using GridInterpolations
 @reexport using QuadGK
+using Symbolics
 
-export DriftTerm, DiffusionTerm, PathIntegrationProblem,  PDGrid,  Axis,
-    SDE, SDE_Oscillator1D, SDE_VI_Oscillator1D,
-    Wall,
-    EulerMaruyama, Milstein, RKMaruyama,
-    IntegrationKernel,
-    advance!, get_stationary_by_eigenvectors, 
-    _integrate, create_symmetric_VI_PDGrid
-    
+export SDE
     
 
 include("types.jl")
-include("axis.jl")
+include("pdf_representation/gridaxis.jl")
+include("pdf_representation/probabilitydensityfunction.jl")
+include("pdf_representation/gridinterpolations/interpolations_base.jl")
+include("pdf_representation/gridinterpolations/chebyshevinterpolation.jl")
 include("sde/drift.jl")
 include("sde/diffusion.jl")
 include("sde/sde.jl")
-include("pdgrid.jl")
-include("pathintegrationproblem.jl")
-include("interpolation/interpolations.jl")
-include("interpolation/chebyshevinterpolation.jl")
-include("interpolation/linearinterpolation.jl")
-include("timestepping.jl")
-include("transitionprobabilities.jl")
-include("integration.jl")
-include("computetransitiontensor.jl")
-include("impact.jl")
-include("utils.jl")
+include("sde/timeevolution/sdestep.jl")
+include("sde/timeevolution/discretetimestepping/timestepping.jl")
+include("sde/timeevolution/discretetimestepping/driftstep.jl")
+include("sde/timeevolution/discretetimestepping/diffusionstep.jl")
 
 end
