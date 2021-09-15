@@ -1,6 +1,7 @@
 struct Scalar_Or_Function{fT} <: Function
     f::fT
 end
+TupleVectorUnion = Union{Tuple,AbstractVector}
 
 # Types to describe the SDE dynamics
 abstract type AbstractSDE{d,k,m} end
@@ -14,7 +15,7 @@ end
 struct SDE_Oscillator1D{fT, gT, parT} <: AbstractSDE{2,2,1}
     f::fT
     g::gT
-    par::parT0
+    par::parT
 end
 
 struct SDE_VI_Oscillator1D{wT, oscT} <: AbstractSDE{2,2,1}
@@ -47,13 +48,13 @@ struct DiscreteTimeStepping{TDrift,TDiff} <:DiscreteTimeSteppingMethod
     diffusion::TDiff
 end
 
-struct SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}
+struct SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,tT}
     sde::sdeT
     method::methodT
     x0::x0T
     x1::x1T
-    t0::ΔtT
-    t1::ΔtT
+    t0::tT
+    t1::tT
     
     steptracer::tracerT # Required for discrete time step backtracing
 end
@@ -72,7 +73,7 @@ end
 # end
 struct StepJacobian{JT, JMT,tempT}
     J!::JT
-    JM::_JT
+    JM::JMT
     temp::tempT
 end
 
@@ -100,7 +101,7 @@ struct ProbabilityDensityFunction{T,N,axesT,pT} <: AbstractArray{T,N}
     axes::axesT
     p::pT
 end
-struct PathIntegrationProblem
+struct PathIntegrationProblem{dynT, pdT, tsT, tpdMX_type, Tstp_idx}
     step_dynamics::dynT # SDEStep
     pdgrid::pdT
     ts::tsT

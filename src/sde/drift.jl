@@ -6,12 +6,15 @@ function DriftTerm(f::TupleVectorUnion)
     d = length(f)
     DriftTerm{d,typeof(f)}(f)
 end
+function DriftTerm(f::Vararg{Any,d}) where d
+    DriftTerm{d,typeof(f)}(f)
+end
 
 
-function (F::DriftTerm{1,1,fT})(u,p,t) where fT<:Function
+function (F::DriftTerm{1,fT})(u,p,t) where fT<:Function
     return F.f(u,p,t)
 end
-function (F::DriftTerm{1,1,fT})(i::Integer,u,p,t) where fT<:Function
+function (F::DriftTerm{1,fT})(i::Integer,u,p,t) where fT<:Function
     return F.f(u,p,t)
 end
 

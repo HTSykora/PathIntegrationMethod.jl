@@ -12,8 +12,8 @@ function DiffusionTerm(d,k,m, g::TupleVectorUnion)
     @assert d - k + 1 == dk "Wrong diffusion length: $(d - k + 1) ≠ $(dk)!"
     DiffusionTerm{d,k,dk,m,typeof(g)}(g)
 end
-function DiffusionTerm(g::TupleVectorUnion)
-    DiffusionTerm(1,1,1,g)
+function DiffusionTerm(d,k,m, g::Vararg{Any,dk}) where dk
+    DiffusionTerm(d,k,m,g)
 end
 
 function (D::DiffusionTerm{1,1,1,m,gT})(u,p,t) where {m,gT<:Function}
@@ -23,20 +23,20 @@ function (D::DiffusionTerm{1,1,1,m,gT})(i::Integer,u,p,t) where {m,gT<:TupleVect
     return D.g(u,p,t)
 end
 
-function (D::DiffusionTerm{d,k,dk,m,gT})(i::Integer,u,p,t) where {d,k,dk,m,gT<:TupleVectorUnion}
+function (D::DiffusionTerm{d,k,dk,m,gT})(i::Integer,u,p,t) where {d,k,dk,m,gT<:Function}
     if i<d
         return zeros(m)
     else 
-        return D.g[i-k+1](u,p,t)
+        return D.g(u,p,t)
     end
 end
 
-function (D::DiffusionTerm{d,k,dk,m,gT})(n::Integer,u,p,t) where {d,k,dk,m,gT<:TupleVectorUnion}
-    if n<k
+function (D::DiffusionTerm{d,k,dk,m,gT})(i::Integer,u,p,t) where {d,k,dk,m,gT<:TupleVectorUnion}
+    if i<k
         return zeros(m) # TODO: not the same type as the output of g!
     end
-    if n ∈ k:d
-        return D.g[n-k+1](u,p,t)
+    if i ∈ k:d
+        return D.g[i-k+1](u,p,t)
     end
 end
 # function (D::DiffusionTerm{d,k,dk,1,gT})(du,u::T,p,t) where {d,k,dk,gT<:TupleVectorUnion} where T

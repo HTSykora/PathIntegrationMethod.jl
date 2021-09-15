@@ -5,7 +5,9 @@ using Reexport
 @reexport using QuadGK
 using Symbolics
 
-export SDE
+export SDE, DriftTerm, DiffusionTerm,
+    Euler, RK4, Maruyama,
+    SDEStep
     
 
 include("types.jl")
