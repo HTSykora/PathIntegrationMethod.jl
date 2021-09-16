@@ -1,7 +1,7 @@
-function eval_driftstep!(step::SDEStep{d,k,m, sdeT, DiscreteTimeStepping{Euler}}) where {d,k,m,sdeT}
+function eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:Euler}
     Δt = _Δt(step)
     for i in 1:d
-        step.x1[i] = step.sde.f(i,step.x0,_par(step),_t0(step))*Δt
+        step.x1[i] = step.x0[i] + step.sde.f(i,step.x0,_par(step),_t0(step))*Δt
     end
 end
 
@@ -9,13 +9,13 @@ end
 function eval_driftstep_xI_sym(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStepping{<:Euler}, x, par, t0, t1) where {d,k,m}
     [x[i] + sde.f(i,x,par,t0)*(t1-t0) for i in 1:k-1]
 end
-function update_drift_x!(step::SDEStep{d,k,m, sdeT, DiscreteTimeStepping{Euler}}) where {d,k,m,sdeT}
+function update_drift_x!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT,methodT<: DiscreteTimeStepping{TDrift}} where {TDrift}
     for i in 1:k-1
         step.x0[i] = step.steptracer.temp[i]
     end
     Δt = _Δt(step)
     for i in k:d
-        step.x1[i] = step.sde.f(i,step.x0,_par(step),_t0(step))*Δt
+        step.x1[i] = step.x0[i] + step.sde.f(i,step.x0,_par(step),_t0(step))*Δt
     end
 end
 
@@ -29,11 +29,13 @@ end
 
 function missing_states_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}; max_iter = 100, atol = sqrt(eps()), kwargs...) where {d,k,m,sdeT,TDrift, TDiff}
     i = 1
-    while x_change < atol || i< max_iter
+    x_change = 2atol
+    while x_change > atol && i < max_iter
         iterate_xI!(step)
         x_change = norm(step.x0[j] - x for (j,x) in enumerate(step.steptracer.temp))
         update_drift_x!(step)
         i = i + 1
     end
+    # println("iterations: $(i-1)")
     step
 end

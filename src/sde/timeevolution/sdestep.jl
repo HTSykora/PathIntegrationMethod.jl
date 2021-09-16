@@ -12,11 +12,13 @@ function (pcl::PreComputeNewtonStep)(sde::AbstractSDE{d,k,m}, method::DiscreteTi
 
     step_sym = eval_driftstep_xI_sym(sde,method,x,par,t0,t1)
     yI_eq = [y[i] - step_sym[i] for i in 1:k-1]
-    J_sym = simplify(Symbolics.jacobian(yI_eq, collect(x[1:k-1])), expand = true)
-    _corr = J_sym\yI_eq;
+    J_sym = Symbolics.jacobian(yI_eq, collect(x[1:k-1]))
+    # J_sym = simplify(Symbolics.jacobian(yI_eq, collect(x[1:k-1])), expand = true)
+    _corr = lu(J_sym)\yI_eq;
     x_new = [x[i] - _corr[i] for i in 1:k-1]
-    # x_new = [simplify(x, expand = true) for x in x_new]
-    detJ_inv = (simplify(det(J_sym), expand = true)^(-1))
+    detJ_inv = (det(J_sym)^(-1))
+    # x_new = [simplify(x, expand = true) for x in x_new] # expand not working
+    # detJ_inv = (simplify(det(J_sym), expand = true)^(-1)) # expand not working
     detJ⁻¹ = build_function(detJ_inv,x, par, t0, t1, expression = Val{false})
     _, xI_0! = build_function(x_new, x, y, par, t0, t1, expression = Val{false})
 
@@ -56,4 +58,6 @@ end
 _Δt(step) = _t1(step) - _t0(step)
 _t0(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT} = step.t0[1] # ΔtT<:Number ???
 # _t0(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT<:AbstractArray} = step.t0[1]
+_t1(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT} = step.t1[1] # ΔtT<:Number ???
+# _t1(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT<:AbstractArray} = step.t1[1]
 _par(step) = step.sde.par

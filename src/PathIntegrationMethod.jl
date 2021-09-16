@@ -7,7 +7,7 @@ using Symbolics
 
 export SDE, DriftTerm, DiffusionTerm,
     Euler, RK4, Maruyama,
-    SDEStep
+    SDEStep, eval_driftstep!
     
 
 include("types.jl")
