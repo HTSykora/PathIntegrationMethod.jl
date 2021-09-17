@@ -12,9 +12,9 @@ function (pcl::PreComputeNewtonStep)(sde::AbstractSDE{d,k,m}, method::DiscreteTi
 
     step_sym = eval_driftstep_xI_sym(sde,method,x,par,t0,t1)
     yI_eq = [y[i] - step_sym[i] for i in 1:k-1]
-    J_sym = Symbolics.jacobian(yI_eq, collect(x[1:k-1]))
+    J_sym = Symbolics.jacobian(yI_eq, collect(x[1:k-1])) |> lu
     # J_sym = simplify(Symbolics.jacobian(yI_eq, collect(x[1:k-1])), expand = true)
-    _corr = lu(J_sym)\yI_eq;
+    _corr = J_sym\yI_eq;
     x_new = [x[i] - _corr[i] for i in 1:k-1]
     detJ_inv = (det(J_sym)^(-1))
     # x_new = [simplify(x, expand = true) for x in x_new] # expand not working

@@ -1,5 +1,5 @@
-Base.getindex(a::GridAxis,idx...) = a.x[idx...]
-Base.size(a::GridAxis) = size(a.x)
+Base.getindex(a::GridAxis,idx...) = a.xs[idx...]
+Base.size(a::GridAxis) = size(a.xs)
 
 function GridAxis(start,stop,num::Int; interpolation = :chebyshev)
     if interpolation == :linear

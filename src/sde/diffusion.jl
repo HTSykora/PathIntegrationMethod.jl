@@ -19,6 +19,10 @@ end
 function (D::DiffusionTerm{1,1,1,m,gT})(u,p,t) where {m,gT<:Function}
     return D.g(u,p,t)
 end
+function (D::DiffusionTerm{1,1,1,m,gT})(u,p,t) where {m,gT<:Tuple{T}} where T<:Function
+    return D.g[1](u,p,t)
+end
+
 function (D::DiffusionTerm{1,1,1,m,gT})(i::Integer,u,p,t) where {m,gT<:TupleVectorUnion}
     return D.g(u,p,t)
 end

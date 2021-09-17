@@ -3,18 +3,17 @@ using PathIntegrationMethod
 using BenchmarkTools
 ##
 
-f1(x,p,t) = x[2]^2 + x[1]^2 + x[3]^2 + t
-function f2(x,p,t)
-    ζ,λ = p
-    - x[1] - λ*x[1]^3 - 2*ζ*x[2] + sin(t) + λ*x[3]^3 + 2ζ*x[3]
+function f(x...) 
+    sin(norm(x))
 end
-function f3(x,p,t)
-    ζ,λ = p
-    - x[1] - λ*x[1]^3 - 2*ζ*x[2] + cos(t) - λ*x[3]^2
-end
-function g(x,p,t)
-    sqrt(2)
-end
+
+grid_dat = [(-1,1,11),(0,5,11),(-7,-1,21)]
+itp = :chebyshev
+pdf = ProbabilityDensityFunction([GridAxis(start,stop,num; interpolation = itp) for (start, stop, num) in grid_dat]...; f = f)
+
+xs = [LinRange(start,stop, 10(num - 1)) for (start,stop,num) in grid_dat]
+Iterators.product(xs...)
+
 
 method = Euler()
 ##
@@ -24,7 +23,7 @@ sde = SDE((f1,f2,f3), g, par)
 
 @time sdestep = SDEStep(sde,method,x0, similar(x0), t0,t1)
 
-@time PathIntegrationMethod.eval_driftstep!(sdestep)
+@time eval_driftstep!(sdestep)
 x0_ref = deepcopy(sdestep.x0)
 x1_ref = deepcopy(sdestep.x1)
 

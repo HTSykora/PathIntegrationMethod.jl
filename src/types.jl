@@ -110,24 +110,25 @@ struct PathIntegrationProblem{dynT, pdT, tsT, tpdMX_type, Tstp_idx}
 end
 
 # Utility types
-struct IntegrationKernel{sdeT,iT0,iT1,xT,fT,pdT,tT,methodT,tempT,iiT}
-    sde::sdeT
-    f::fT
-    xs::xT
-    idx₀::iT0
-    idx₁::iT1
-    pdgrid::pdT
-    t₀::tT
-    t₁::tT
-    method::methodT
+struct IntegrationKernel{sdeT,xT,fT,pdfT,x1idxT,tidxT,tempT,iiT}
+    sdestep::sdeT
+    f::fT # function to integrate over
+    xs::xT # integration axes
+    x1_idx::x1idxT
+    t_idx::tidxT
+    pdf::pdfT
     temp::tempT
-    impactinterval::iiT
 end
-struct ImpactInterval{limT,wT}
-    lims::limT # r
-    wallID::wT
-    Q_atwall::BitArray{1}
+struct IK_temp{VT,MT}
+    itpVs::VT
+    itpM::MT
+    # impactinterval::iiT
 end
+# struct ImpactInterval{limT,wT}
+#     lims::limT # r
+#     wallID::wT
+#     Q_atwall::BitArray{1}
+# end
 
 
 
