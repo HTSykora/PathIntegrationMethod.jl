@@ -11,8 +11,23 @@ grid_dat = [(-1,1,11),(0,5,11),(-7,-1,21)]
 itp = :chebyshev
 pdf = ProbabilityDensityFunction([GridAxis(start,stop,num; interpolation = itp) for (start, stop, num) in grid_dat]...; f = f)
 
-xs = [LinRange(start,stop, 10(num - 1)) for (start,stop,num) in grid_dat]
-Iterators.product(xs...)
+xs = [LinRange(start,stop, 2(num - 1)) for (start,stop,num) in grid_dat]
+f_interpolated = [pdf(x...) for x in Iterators.product(xs...)]
+f_true = [f(x...) for x in Iterators.product(xs...)]
+
+@btime pdf(0.1,1.2,1.1)
+@time PathIntegrationMethod.interpolate(pdf.p,pdf.axes,0.1,1.2,1.1; idx_it = pdf.idx_it)
+@btime PathIntegrationMethod.interpolate($pdf.p,$pdf.axes,0.1,1.2,1.1; idx_it = $pdf.idx_it)
+
+@time PathIntegrationMethod.basefun_vals_safe!(pdf.axes[1].temp,pdf.axes[1].itp,pdf.axes[1],1.)
+@time PathIntegrationMethod.basefun_vals_safe!(pdf.axes[2].temp,pdf.axes[2].itp,pdf.axes[2],1.)
+@btime PathIntegrationMethod.basefun_vals_safe!($pdf.axes[3].temp,$pdf.axes[3].itp, $pdf.axes[3],$(-1.5))
+
+
+@btime PathIntegrationMethod.basefun_vals!($pdf.axes[3].temp,$pdf.axes[3].itp, $pdf.axes[3],$(-1.5))
+
+
+@btime PathIntegrationMethod.find_idx($pdf.axes[3],$(-1.5))
 
 
 method = Euler()

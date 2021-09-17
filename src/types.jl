@@ -97,9 +97,10 @@ struct TrapezoidalWeights{T,ΔT} <: AbstractVector{T}
     Δ::ΔT
 end
 
-struct ProbabilityDensityFunction{T,N,axesT,pT} <: AbstractArray{T,N}
+struct ProbabilityDensityFunction{T,N,axesT,pT,idx_itT} <: AbstractArray{T,N}
     axes::axesT
     p::pT
+    idx_it::idx_itT
 end
 struct PathIntegrationProblem{dynT, pdT, tsT, tpdMX_type, Tstp_idx}
     step_dynamics::dynT # SDEStep

@@ -67,7 +67,7 @@ end
 #     return s1/s2
 # end
 
-function basefun_vals!(itp::ChebyshevInterpolation{N},vals,xs::Vx,x) where {N,Vx<:AbstractVector{Tx}} where Tx<:Number
+function basefun_vals!(vals,itp::ChebyshevInterpolation{N},xs::Vx,x) where {N,Vx<:AbstractVector{Tx}} where Tx<:Number
     # i = 0... N
     _1 = iseven(N) ? 1 : -1
     vals[1] = 0.5/(x-xs[1])
@@ -80,17 +80,24 @@ function basefun_vals!(itp::ChebyshevInterpolation{N},vals,xs::Vx,x) where {N,Vx
         vals[j] = _1*_1px
         s2 += _1*_1px
     end
-    vals .= vals./s2
-    return vals
+    for i in eachindex(vals)
+        vals[i] = vals[i]/s2
+    end
+    # vals .= vals ./ s2
+    nothing
+    # return vals
 end
 
-function basefun_vals_safe!(itp::ChebyshevInterpolation{N},vals,xs::Vx,x; allow_extrapolation = false, kwargs...) where {N,Vx<:AbstractVector{Tx}} where Tx<:Number
+function basefun_vals_safe!(vals,itp::ChebyshevInterpolation{N},xs::Vx,x; allow_extrapolation = false, kwargs...) where {N,Vx<:AbstractVector{Tx}} where Tx<:Number
     needsinterpolation, i = find_idx(xs, x, allow_extrapolation = allow_extrapolation; kwargs...)
     if needsinterpolation
-        basefun_vals!(itp,vals,xs,x)
+        basefun_vals!(vals,itp,xs,x)
     else
-        vals .= zero(eltype(vals))
+        for j in eachindex(vals)
+            vals[j] = zero(eltype(vals))
+        end
         vals[i] = one(eltype(vals))
     end
-    return vals
+    nothing
+    # return vals
 end
