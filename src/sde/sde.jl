@@ -5,10 +5,12 @@ _par(sde::SDE_VI_Oscillator1D) = sde.osc1D.par
 
 # SDE
 SDE() = SDE{0,0,Nothing,Nothing,Nothing}(nothing,nothing,nothing)
-SDE(d,k) = SDE{d,k,Nothing,Nothing,Nothing}(nothing,nothing,nothing)
-SDE(d) = SDE(d,d)
-function SDE(f::fT,g::gT; par=nothing) where {fT<:Function,gT<:Function}
-    SDE{1,1,DriftTerm{1,1,fT},DiffusionTerm{1,1,gT},typeof(par)}(DriftTerm{1,1,fT}(f),DiffusionTerm{1,1,gT}(g), par)
+SDE(d::Integer,k::Integer) = SDE{d,k,Nothing,Nothing,Nothing}(nothing,nothing,nothing)
+SDE(d::Integer) = SDE(d,d)
+function SDE(f::fT,g::gT, par=nothing) where {fT<:Function,gT<:Function}
+    _f = DriftTerm(f);
+    _g = DiffusionTerm(g);
+    SDE{1,1,1,typeof(_f),typeof(_g),typeof(par)}(_f,_g, par)
 end
 
 function SDE(f::fT,g::gT, par=nothing; m = 1) where {fT<:TupleVectorUnion,gT<:TupleVectorUnion} 

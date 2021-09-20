@@ -1,4 +1,11 @@
-function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pclT = PreComputeNewtonStep()) where {sdeT<:AbstractSDE{d,k,m}, methodT <: DiscreteTimeSteppingMethod, pclT <: PreComputeLevel} where {d,k,m}
+function SDEStep(sde, method, x0, x1, dt::Number; kwargs...)
+    SDEStep(sde, method, x0, x1, zero(dt), dt; kwargs...)
+end
+function SDEStep(sde, method, x0, x1, t::AbstractVector; kwargs...)
+    SDEStep(sde, method, x0, x1, similar(t,1), similar(t,1); kwargs...)
+end
+
+function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pclT = PreComputeNewtonStep(), kwargs...) where {sdeT<:AbstractSDE{d,k,m}, methodT <: DiscreteTimeSteppingMethod, pclT <: PreComputeLevel} where {d,k,m}
     
     _method = DiscreteTimeStepping(method)
     steptracer = precomputelevel(sde,_method,x0,x1, t0, t1)
@@ -6,6 +13,9 @@ function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pcl
     SDEStep{d,k,m,sdeT,typeof(_method),typeof(steptracer),typeof(x0),typeof(x1),typeof(t0)}(sde, _method, x0, x1, t0, t1, steptracer)
 end
 
+function (pcl::PreComputeLevel)(sde::AbstractSDE{1,1,1}, method::DiscreteTimeSteppingMethod, x0, x1, _t0, _t1)
+    nothing
+end
 function (pcl::PreComputeNewtonStep)(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMethod, x0, x1, _t0, _t1) where {d,k,m}
 
     @variables x[1:d] y[1:k-1] par[1:length(_par(sde))] t0 t1
@@ -50,7 +60,7 @@ function (pcl::PreComputeJacobian)(sde::AbstractSDE{d,k,m}, method::DiscreteTime
 end
 # Update xI
 
-function iterate_xI!(step::SDEStep{d, k, m, sdeT, methodT,tracerT}) where {d, k, m, sdeT, methodT,tracerT<:SymbolicNewtonStep}
+function iterate_xI!(step::SDEStep{1,1,1, sdeT, methodT,tracerT}) where {sdeT, methodT,tracerT<:SymbolicNewtonStep}
     step.steptracer.xI_0!(step.steptracer.temp, step.x0,step.x1,_par(step),_t0(step),_t1(step))
 end
 

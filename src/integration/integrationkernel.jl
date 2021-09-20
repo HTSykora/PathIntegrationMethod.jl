@@ -1,8 +1,12 @@
+function IntegrationKernel(sdestep, f, int_axes,x1_idx, ts, pdf, ikt)
+    IntegrationKernel{length(int_axes), typeof(sdestep), typeof(int_axes), typeof(f), typeof(pdf), typeof(ts), typeof(x1_idx), typeof(ikt)}(sdestep, f, int_axes,x1_idx,t_idx, ts, pdf, ikt)
+end
+
 # Evaluating the integrals
 @inline function cleanup_quadgk_keywords(;σ_init = nothing, μ_init = nothing, kwargs...)
     (;kwargs...)
 end
-function get_IK_weights!(IK::IntegrationKernel{sdeT}; integ_limits = (IK.xs[1],IK.xs[end]), kwargs...) where sdeT<:AbstractSDE{d,d} where N 
+function get_IK_weights!(IK::IntegrationKernel{sdeT}; integ_limits = (IK.xs[1],IK.xs[end]), kwargs...) where sdeT<:AbstractSDE{d,d} where d 
     # integ_limits = IK.xs -> # old version
     quadgk!(IK,IK.temp,integ_limits...; cleanup_quadgk_keywords(;kwargs...)...)
 end
@@ -56,3 +60,4 @@ function fill_vals!(vals::AbstractArray{T,d}, IK::IntegrationKernel{sdeT}, fx) w
     end
     vals
 end
+

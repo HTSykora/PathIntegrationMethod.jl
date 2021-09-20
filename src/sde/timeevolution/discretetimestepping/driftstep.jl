@@ -27,6 +27,10 @@ function eval_driftstep_xI_sym(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStep
     x + 1//6*Δt*(k1+2k2+2k3+k4)
 end
 
+function compute_missing_states_driftstep!(step::SDEStep{d,1,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}; kwargs...) where {d,m,sdeT,TDrift, TDiff}
+    eval_driftstep!(step)
+end
+
 function compute_missing_states_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}; max_iter = 100, atol = sqrt(eps()), kwargs...) where {d,k,m,sdeT,TDrift, TDiff}
     i = 1
     x_change = 2atol
@@ -37,5 +41,5 @@ function compute_missing_states_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTime
         i = i + 1
     end
     # println("iterations: $(i-1)")
-    step
+    nothing
 end

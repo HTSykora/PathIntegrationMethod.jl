@@ -100,26 +100,28 @@ struct TrapezoidalWeights{T,ΔT} <: AbstractVector{T}
     Δ::ΔT
 end
 
-struct ProbabilityDensityFunction{T,N,axesT,pT,idx_itT} <: AbstractArray{T,N}
+struct InterpolatedFunction{T,N,axesT,pT,idx_itT} <: AbstractArray{T,N}
     axes::axesT
     p::pT
     idx_it::idx_itT
 end
-struct PathIntegrationProblem{dynT, pdT, tsT, tpdMX_type, Tstp_idx}
+struct PathIntegration{dynT, pdT, tsT, tpdMX_type, Tstp_idx, IKT, kwargT}
     step_dynamics::dynT # SDEStep
-    pdgrid::pdT
+    pdf::pdT
     ts::tsT
     step_MX::tpdMX_type
     step_idx::Tstp_idx
+    IK::IKT
+    kwargs::kwargT
 end
 
 # Utility types
-struct IntegrationKernel{sdeT,xT,fT,pdfT,x1idxT,tidxT,tempT,iiT}
+struct IntegrationKernel{kd,sdeT,xT,fT,pdfT, tT,x1idxT,tempT}
     sdestep::sdeT
     f::fT # function to integrate over
     xs::xT # integration axes
     x1_idx::x1idxT
-    t_idx::tidxT
+    t::tT
     pdf::pdfT
     temp::tempT
 end
@@ -135,5 +137,7 @@ end
 #     Q_atwall::BitArray{1}
 # end
 
-
-
+struct DiagonalNormalPDF{uT, sT}
+    μ::uT
+    σ²::sT
+end
