@@ -35,14 +35,15 @@ function update_relevant_states!(IK::IntegrationKernel{sdeT},x::AbstractVector) 
 end
 
 function basefun_vals_safe!(IK::IntegrationKernel{sdeT}) where sdeT<:AbstractSDE{d} where d
-    for i in 1:d
-        basefun_vals_safe!(IK.temp.itpVs[i], IK.pdf.axes[i],IK.sdestep.x0[i])
-    end
+    basefun_vals_safe!.(IK.temp.itpVs, IK.pdf.axes,IK.sdestep.x0)
 end
+
+
+get_tempval(str::AbstractVector, i) = str[i]
 function fill_vals!(vals::AbstractArray{T,d}, IK::IntegrationKernel{sdeT}, fx) where {T,sdeT<:AbstractSDE{d}} where d
-    idx_it = Base.Iterators.product(eachindex.(IK.temp.itpVs)...)
-    for idxs in idx_it
-        vals[idxs...] = fx * prod(IK.temp.itpVs[i][idx[i]] for (i,idx) in enumerate(idxs))
+    for idxs in IK.temp.idx_it
+        vals[idxs...] = fx * reduce_tempprod(zip(IK.temp.itpVs,idx)...)
+        # prod(IK.temp.itpVs[i][idx[i]] for (i,idx) in enumerate(idxs))
     end
     vals
 end

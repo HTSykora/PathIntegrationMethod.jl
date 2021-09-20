@@ -26,4 +26,6 @@ include("sde/timeevolution/discretetimestepping/driftstep.jl")
 include("sde/timeevolution/discretetimestepping/diffusionstep.jl")
 include("integration/integrationkernel.jl")
 include("integration/integrate.jl")
+
+include("utils.jl")
 end

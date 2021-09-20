@@ -22,7 +22,7 @@ x0 = [1.,2.,3.]; t0 = 0.6; t1 = t0 + 0.1;
 par = [0.1,1.1]
 sde = SDE((f1,f2,f3), g, par)
 
-@time sdestep = SDEStep(sde,method,x0, similar(x0), t0,t1)
+@time sdestep = SDEStep(sde, method, x0, similar(x0), t0, t1)
 
 @time PathIntegrationMethod.eval_driftstep!(sdestep)
 x0_ref = deepcopy(sdestep.x0)
@@ -33,6 +33,6 @@ sdestep.x0[2] = x1_ref[2]
 sdestep.x1[3] = sdestep.x0[3]
 
 ##
-@time PathIntegrationMethod.compute_missing_states_driftstep!(sdestep)
+@btime PathIntegrationMethod.compute_missing_states_driftstep!($sdestep)
 reduce(&, x0_ref .≈ sdestep.x0)
 reduce(&, x1_ref .≈ sdestep.x1)
