@@ -39,7 +39,6 @@ end
 
 # Multivariate interopolation
 get_tempval(axis::GridAxis,i) = axis.temp[i]
-# get_tempval(axes,idx,i) = get_tempval(axes[i],idx[i])
 function interpolate(p::MX,axes, x::Vararg{Any,N}; idx_it = Base.Iterators.product(eachindex.(axes)...)) where MX<:AbstractArray{T,N} where {T,N} #xs <: NTuple{<:gridAxis}
     basefun_vals_safe!.(axes,x)
     val = zero(eltype(p))

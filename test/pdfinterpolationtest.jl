@@ -7,9 +7,10 @@ function f(x...)
 end
 get_pdf_vals(pdf, xs) = [pdf(x...) for x in Iterators.product(xs...)]
 ##
+
 itp = :chebyshev
 
-grid_dat = [(-1,1,15),(0,5,15),(-7,-1,21)]
+grid_dat = [(-1,1,11),(0,5,15),(-7,-1,21)]
 pdf = ProbabilityDensityFunction([GridAxis(start,stop,num; interpolation = itp) for (start, stop, num) in grid_dat]...; f = f)
 xs = [LinRange(start,stop, 2(num - 1)) for (start,stop,num) in grid_dat]
 

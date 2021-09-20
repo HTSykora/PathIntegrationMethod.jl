@@ -1,6 +1,8 @@
 # Constructor
 function ChebyshevInterpolation(N::Integer;)
-    ChebyshevInterpolation{N-1}()
+    _N = N - 1
+    _1 = iseven(_N) ? 1 : -1
+    ChebyshevInterpolation(_N,_1)
 end
 
 ##  Functions for the interpolation and integration
@@ -53,23 +55,10 @@ function clenshawcurtisweights(T,xa::Number,xb::Number,n1::Integer)
     0.5*(xb-xa) .* clenshawcurtisweights(T,n1)
 end
 
-# function (itp::ChebyshevInterpolation{N})(p::Vp,xs::Vx,x::xT, i::Integer) where {N,Vp<:AbstractVector{Tp},Vx<:AbstractVector{Tx},xT<:Number} where Tp<:Number where Tx<:Number
-#     _1 = iseven(N) ? 1 : -1
-#     s1 = 0.5*(p[1]/(x-xs[1]) +  _1 * p[N+1]/(x-xs[N+1]))
-#     s2 = 0.5*(1/(x-xs[1]) +  _1 /(x-xs[N+1]))
-#     _1 = 1
-#     for j in 2:N
-#         _1 *= -1
-#         _1px = 1/(x-xs[j])
-#         s1 += _1*p[j]*_1px
-#         s2 += _1*_1px
-#     end
-#     return s1/s2
-# end
-
-function basefun_vals!(vals,itp::ChebyshevInterpolation{N},xs::Vx,x) where {N,Vx<:AbstractVector{Tx}} where Tx<:Number
+function basefun_vals!(vals,itp::ChebyshevInterpolation,xs::Vx,x) where {Vx<:AbstractVector{Tx}} where Tx<:Number
     # i = 0... N
-    _1 = iseven(N) ? 1 : -1
+    N = itp.N
+    _1 = itp._1 # iseven(N) ? 1 : -1
     vals[1] = 0.5/(x-xs[1])
     vals[end] =  0.5* _1 /(x-xs[N+1])
     s2 = 0.5*(1/(x-xs[1]) +  _1 /(x-xs[N+1]))
@@ -88,7 +77,7 @@ function basefun_vals!(vals,itp::ChebyshevInterpolation{N},xs::Vx,x) where {N,Vx
     # return vals
 end
 
-function basefun_vals_safe!(vals,itp::ChebyshevInterpolation{N},xs::Vx,x; allow_extrapolation = false, kwargs...) where {N,Vx<:AbstractVector{Tx}} where Tx<:Number
+function basefun_vals_safe!(vals,itp::ChebyshevInterpolation,xs::Vx,x; allow_extrapolation = false, kwargs...) where {Vx<:AbstractVector{Tx}} where Tx<:Number
     needsinterpolation, i = find_idx(xs, x, allow_extrapolation = allow_extrapolation; kwargs...)
     if needsinterpolation
         basefun_vals!(vals,itp,xs,x)

@@ -87,7 +87,10 @@ struct GridAxis{itpT,wT,xT,xeT,tmpT} <: AbstractGridAxis{xeT}
 end
 
 abstract type AbstractInterpolationType end
-struct ChebyshevInterpolation{N} <: AbstractInterpolationType end
+struct ChebyshevInterpolation{NT,_1T} <: AbstractInterpolationType 
+    N::NT
+    _1::_1T
+end
 struct FourierInterpolation{N} <: AbstractInterpolationType end
 struct LinearInterpolation{ΔT} <: AbstractInterpolationType
     Δ::ΔT
