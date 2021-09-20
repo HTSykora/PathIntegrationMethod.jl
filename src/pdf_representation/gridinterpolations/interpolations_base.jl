@@ -36,41 +36,20 @@ function find_idx(xs::Vx,x::xT; allow_extrapolation::Bool = false, zero_extrapol
     return needsinterpolation, i
 end
 
+
+# Multivariate interopolation
 get_axistempval(axis,i) = axis.temp[i]
-get_axistempval(axes,idx,i) = axes[i].temp[idx[i]]
-reduce_axestempprod(ax1) = one(eltype(ax1.temp))
-function reduce_axestempprod(axi1,axi_tail...)
+get_axistempval(axes,idx,i) = get_axistempval(axes[i],idx[i])
+reduce_axestempprod(axi1::Tuple) = get_axistempval(axi1...)
+function reduce_axestempprod(axi1, axi_tail::Vararg{Any,N}) where N
     val = get_axistempval(axi1...)
     val * reduce_axestempprod(axi_tail...)
 end
-
-# Multivariate interopolation
-function interpolate(p::MX,axes,x::Vararg{Any,N}; idx_it = Base.Iterators.product(eachindex.(axes)...)) where MX<:AbstractArray{T,N} where {T,N} #xs <: NTuple{<:gridAxis}
-    val = zero(eltype(p))
-    # @inbounds for (i,_x) in enumerate(x)
-    #     basefun_vals_safe!(axes[i],_x)
-    # end
-    #
+function interpolate(p::MX,axes, x::Vararg{Any,N}; idx_it = Base.Iterators.product(eachindex.(axes)...)) where MX<:AbstractArray{T,N} where {T,N} #xs <: NTuple{<:gridAxis}
     basefun_vals_safe!.(axes,x)
-    # basefun_vals_safe!(axes[1],x[1])
-    # basefun_vals_safe!(axes[2],x[2])
-    # basefun_vals_safe!(axes[3],x[3])
-    
+    val = zero(eltype(p))
     @inbounds for idx in idx_it
-        # _temp = one(val)
-        # @inbounds for i in 1:N
-        #     # axes[i].temp[idx[i]]
-        #     _temp *= get_axistempval(axes,idx,i)
-        # end
-        # _temp *= axes[1].temp[idx[1]]
-        # _temp *= axes[2].temp[idx[2]]
-        # _temp *= axes[3].temp[idx[3]]
-        _temp = mapreduce(get_axistempval, *, axes, idx)
-        # _temp = prod(a.temp[idx[i]] for (i,a) in enumerate(axes))
-        # _temp = reduce_axestempprod(zip(axes,idx)...)
-        val += p[idx...] * _temp
-        # val += p[idx...] * prod(axes[i].temp[_i] for (i,_i) in enumerate(idx))
-        # val += p[idx...] * prod(axes[i].temp[_i] for (i,_i) in enumerate(idx))
+        val += p[idx...] * reduce_axestempprod(zip(axes,idx)...)
     end
     
     val

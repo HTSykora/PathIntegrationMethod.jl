@@ -12,8 +12,9 @@ itp = :chebyshev
 pdf = ProbabilityDensityFunction([GridAxis(start,stop,num; interpolation = itp) for (start, stop, num) in grid_dat]...; f = f)
 
 xs = [LinRange(start,stop, 2(num - 1)) for (start,stop,num) in grid_dat]
-f_interpolated = [pdf(x...) for x in Iterators.product(xs...)]
-f_true = [f(x...) for x in Iterators.product(xs...)]
+get_pdf_vals(pdf, xs) = [pdf(x...) for x in Iterators.product(xs...)]
+@time f_interpolated =get_pdf_vals(pdf, xs)
+# f_true = [f(x...) for x in Iterators.product(xs...)]
 
 @btime pdf(0.1,1.2,1.1)
 @time PathIntegrationMethod.interpolate(pdf.p,pdf.axes,0.1,1.2,1.1; idx_it = pdf.idx_it)
