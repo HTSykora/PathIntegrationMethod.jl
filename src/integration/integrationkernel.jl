@@ -1,3 +1,12 @@
+# Evaluating the integrals
+@inline function cleanup_quadgk_keywords(;σ_init = nothing, μ_init = nothing, kwargs...)
+    (;kwargs...)
+end
+function get_IK_weights!(IK::IntegrationKernel{sdeT}; integ_limits = (IK.xs[1],IK.xs[end]), kwargs...) where sdeT<:AbstractSDE{d,d} where N 
+    # integ_limits = IK.xs -> # old version
+    quadgk!(IK,IK.temp,integ_limits...; cleanup_quadgk_keywords(;kwargs...)...)
+end
+
 # scalar problem
 #TODO
 function (IK::IntegrationKernel{sdeT})(vals,x₀) where sdeT<:AbstractSDE{1,1}

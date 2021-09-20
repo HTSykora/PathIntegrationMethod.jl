@@ -10,8 +10,8 @@ get_pdf_vals(pdf, xs) = [pdf(x...) for x in Iterators.product(xs...)]
 
 itp = :chebyshev
 
-grid_dat = [(-1,1,11),(0,5,15),(-7,-1,21)]
-pdf = ProbabilityDensityFunction([GridAxis(start,stop,num; interpolation = itp) for (start, stop, num) in grid_dat]...; f = f)
+grid_dat = [(Float64, -1,1,11),(Float64, 0,5,15),(Float64, -7,-1,21)]
+pdf = ProbabilityDensityFunction(Float64,[GridAxis(et,start,stop,num; interpolation = itp) for (et, start, stop, num) in grid_dat]...; f = f)
 xs = [LinRange(start,stop, 2(num - 1)) for (start,stop,num) in grid_dat]
 
 
@@ -32,3 +32,4 @@ sum(abs2, f_true2 .- f_interpolated2) < sum(abs2, f_true2 .- f_interpolated2)
 @btime PathIntegrationMethod.interpolate($pdf.p,$pdf.axes,0.1,1.2,1.1; idx_it = $pdf.idx_it)
 
 @btime PathIntegrationMethod.basefun_vals_safe!.($pdf.axes,(0.1,1.2,1.1))
+
