@@ -26,14 +26,30 @@ axis = GridAxis(-3,3,51,interpolation = :chebyshev)
 dbg_IK, dbg_kwargs = PathIntegration(sde, Euler(), Δt, axis, pre_compute = true, debug_mode = true );
 @time dbg_stepMX = PathIntegrationMethod.initialize_stepMX(eltype(dbg_IK.pdf.p), dbg_IK.t, length(dbg_IK.pdf))
 @btime PathIntegrationMethod.compute_stepMX($dbg_IK, $dbg_kwargs...)
+
+@btime PathIntegrationMethod.update()
+
+
 function fx(dbg_IK)
     PathIntegrationMethod.basefun_vals_safe!.(dbg_IK.temp.itpVs,dbg_IK.pdf.axes,dbg_IK.sdestep.x0 )
     nothing
 end
-@btime PathIntegrationMethod.basefun_vals_safe!.($dbg_IK.temp.itpVs,$dbg_IK.pdf.axes,$dbg_IK.sdestep.x0 )
-@btime PathIntegrationMethod.fill_vals!($dbg_IK.temp.itpM,$dbg_IK,1.)
+@btime fx($dbg_IK)
+@btime PathIntegrationMethod.fill_vals!($dbg_IK.temp.itpM,$dbg_IK,1.,$dbg_IK.temp.idx_it)
 dbg_zp = zip(dbg_IK.temp.itpVs,(1,))
 @btime PathIntegrationMethod.reduce_tempprod($dbg_zp...)
+
+@btime PathIntegrationMethod.get_IK_weights!($dbg_IK, $dbg_IK.kwargs...)
+dbg_intlimits = PathIntegrationMethod.get_int_limits(dbg_IK);
+dbg_kwargs = PathIntegrationMethod.cleanup_quadgk_keywords(;dbg_IK.kwargs...);
+@btime quadgk!($dbg_IK, $dbg_IK.temp.itpM, $dbg_intlimits...; $dbg_kwargs...)
+
+global myint = 0
+function foo(val,x)
+    global myint +=1
+    dbg_IK(val,x)
+end
+quadgk!(foo, dbg_IK.temp.itpM, -3.,3.)
 
 @btime dbg_IK($dbg_IK.temp.itpM, 0.)
 # @time begin

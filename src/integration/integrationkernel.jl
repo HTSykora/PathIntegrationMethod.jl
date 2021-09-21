@@ -38,8 +38,9 @@ function update_relevant_states!(IK::IntegrationKernel{dk,sdeT},x::AbstractVecto
 end
 
 function basefun_vals_safe!(IK::IntegrationKernel{dk,sdeT}) where sdeT<:SDEStep{d} where {dk,d}
-    
-    basefun_vals_safe!.(IK.temp.itpVs, IK.pdf.axes,IK.sdestep.x0)
+    for (it,ax,x0) in zip(IK.temp.itpVs,IK.pdf.axes,IK.sdestep.x0)
+        basefun_vals_safe!(it,ax,x0)
+    end
     nothing
 end
 
