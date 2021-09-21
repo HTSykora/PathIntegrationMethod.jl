@@ -18,10 +18,10 @@ function p_AN(xs, ε=1.)
     _p_AN.(xs,Ref(ε)) ./ itg
 end
 sde = SDE(f,g)
-axis = GridAxis(-3,3,101,interpolation = :chebyshev)
+gridaxis = GridAxis(-3,3,51,interpolation = :chebyshev)
 
-Δt = 0.001
-@time pi = PathIntegration(sde, Euler(), Δt, axis, pre_compute = true);
+Δt = 0.01
+@time pi = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true);
 
 @time for _ in 1:1000
     advance!(pi)

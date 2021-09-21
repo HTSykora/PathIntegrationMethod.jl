@@ -8,8 +8,8 @@ using QuadGK, Arpack
 ##
 
 # 1D problem:
-f(x,p,t) = 2.5x-x^3
-g(x,p,t) = 0.5;sqrt(2)
+f(x,p,t) = x-x^3
+g(x,p,t) = sqrt(2)
 
 # Analytic form of the 
 _p_AN(x,ε = 1.) = exp(x^2/2 - ε*x^4/4)
@@ -18,7 +18,7 @@ function p_AN(xs, ε=1.)
     _p_AN.(xs,Ref(ε)) ./ itg
 end
 sde = SDE(f,g)
-xs = Axis(-3,3,71,interpolation = :chebyshev)
+xs = Axis(-3,3,51,interpolation = :chebyshev)
 
 Δt = 0.01
 @time pip = PathIntegrationProblem(sde,Δt,xs, precompute=true)#, method = RKMaruyama());
