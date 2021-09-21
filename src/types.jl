@@ -105,19 +105,21 @@ struct InterpolatedFunction{T,N,axesT,pT,idx_itT} <: AbstractArray{T,N}
     p::pT
     idx_it::idx_itT
 end
-struct PathIntegration{dynT, pdT, tsT, tpdMX_type, Tstp_idx, IKT, kwargT}
+struct PathIntegration{dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,kwargT}
     step_dynamics::dynT # SDEStep
     pdf::pdT
+    p_temp::ptempT
     ts::tsT
-    step_MX::tpdMX_type
+    step_MX::stepmxT
     step_idx::Tstp_idx
     IK::IKT
     kwargs::kwargT
 end
 
 # Utility types
-struct IntegrationKernel{kd,sdeT,xT,fT,pdfT, tT,tempT,kwargT}
+struct IntegrationKernel{kd,sdeT,x1T,xT,fT,pdfT, tT,tempT,kwargT}
     sdestep::sdeT
+    x1::x1T
     f::fT # function to integrate over
     int_axes::xT # integration axes
     t::tT
@@ -137,7 +139,7 @@ end
 #     Q_atwall::BitArray{1}
 # end
 
-struct DiagonalNormalPDF{uT, sT}
+struct DiagonalNormalPDF{uT, sT} <: Function
     μ::uT
     σ²::sT
 end

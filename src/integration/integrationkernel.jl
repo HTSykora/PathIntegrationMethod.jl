@@ -1,5 +1,6 @@
 function IntegrationKernel(sdestep, f, int_axes, ts, pdf, ikt, kwargs = nothing)
-    IntegrationKernel{length(int_axes), typeof(sdestep), typeof(int_axes), typeof(f), typeof(pdf), typeof(ts), typeof(ikt), typeof(kwargs)}(sdestep, f, int_axes, ts, pdf, ikt, kwargs)
+    x1 = similar(sdestep.x1)
+    IntegrationKernel{length(int_axes), typeof(sdestep), typeof(x1), typeof(int_axes), typeof(f), typeof(pdf), typeof(ts), typeof(ikt), typeof(kwargs)}(sdestep,x1, f, int_axes, ts, pdf, ikt, kwargs)
 end
 
 # Evaluating the integrals
@@ -16,7 +17,7 @@ function (IK::IntegrationKernel{dk,sdeT})(vals,x) where sdeT<:SDEStep{d,k,m} whe
     compute_missing_states_driftstep!(IK.sdestep)
 
     # * if m ≠ 1 and d ≠ k: figure out a rework
-    fx = transitionprobability(IK.sdestep,x)
+    fx = transitionprobability(IK.sdestep,IK.x1)
 
     ## Get interpolation values
     basefun_vals_safe!(IK)

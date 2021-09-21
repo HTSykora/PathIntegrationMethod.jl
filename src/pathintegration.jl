@@ -13,7 +13,7 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
     else
         _f = nothing
     end
-    pdf = InterpolatedFunction(axes...; f = f, kwargs...)
+    pdf = InterpolatedFunction(axes...; f = _f, kwargs...)
 
     step_idx = [0]
 
@@ -31,14 +31,14 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
         step_MX = nothing
         IK = nothing
     end
-
-    PathIntegration(sdestep, pdf, ts, step_MX, step_idx, IK, kwargs)
+    p_temp = similar(pdf.p);
+    PathIntegration(sdestep, pdf, p_temp,ts, step_MX, step_idx, IK, kwargs)
 end
 
 # PathIntegration{dynT, pdT, tsT, tpdMX_type, Tstp_idx, IKT, kwargT}
 function advance!(pi::PathIntegration)
-    mul!(vec(pi.pdf.p_temp), next_stepMX(pi), vec(pi.pdf.p))
-    pi.pdf.p .= pi.pdf.p_temp ./_integrate(pi.pdf.p_temp, pi.pdf.axes...)
+    mul!(vec(pi.p_temp), next_stepMX(pi), vec(pi.pdf.p))
+    pi.pdf.p .= pi.p_temp ./_integrate(pi.p_temp, pi.pdf.axes...)
     nothing
 end
 

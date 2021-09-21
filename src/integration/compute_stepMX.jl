@@ -8,26 +8,32 @@ end
 @inline initialize_stepMX(T, ts::AbstractVector{eT}, l) where eT<:Number = [zeros(T,l,l) for _ in 1:(length(ts)-1)]
 @inline initialize_stepMX(T, ts::Number, l) = zeros(T, l, l)
 
-function fill_stepMX_ts!(stepMX, IK::IntegrationKernel{kd, sdeT,xT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,xT,fT,pdfT, tT<:AbstractArray}
-    for jₜ in 1:length(ts)-1
+function fill_stepMX_ts!(stepMX, IK::IntegrationKernel{kd, sdeT,x1T, xT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, xT,fT,pdfT, tT<:AbstractArray}
+    for jₜ in 1:length(IK.ts)-1
         IK.sdestep.t0[1] = IK.t[jₜ]
         IK.sdestep.t1[1] = IK.t[jₜ+1]
         fill_stepMX!(stepMX, IK)
     end
 end
-function fill_stepMX_ts!(stepMX, IK::IntegrationKernel{kd, sdeT,xT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,xT,fT,pdfT, tT<:Number}
+function fill_stepMX_ts!(stepMX, IK::IntegrationKernel{kd, sdeT,x1T, xT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, xT,fT,pdfT, tT<:Number}
     fill_stepMX!(stepMX, IK)
 end
 
 function fill_stepMX!(stepMX, IK::IntegrationKernel)
     for (i, idx) in enumerate(_idx_it(IK))
-        update_state_x1!(IK.sdestep, IK.pdf.axes, idx)
+        update_IK_state_x1!(IK,idx)
+        update_dyn_state_x1!(IK, idx)
         get_IK_weights!(IK; IK.kwargs...)
         fill_to_stepMX!(stepMX,IK,i)
     end
 end
-function update_state_x1!(sdestep::SDEStep{d,k,m}, axes, idx) where {d,k,m}
-    sdestep.x1 .=  getindex.(axes,idx) # ? check allocations
+
+function update_IK_state_x1!(IK::IntegrationKernel{kd,dyn}, idx) where dyn <:SDEStep{d,k,m} where {kd,d,k,m}
+    IK.x1 .=  getindex.(IK.pdf.axes,idx)
+end
+
+function update_dyn_state_x1!(IK::IntegrationKernel{kd,dyn}, idx) where dyn <:SDEStep{d,k,m} where {kd, d,k,m}
+    IK.sdestep.x1 .=  getindex.(IK.pdf.axes,idx) # ? check allocations
     # view(sdestep.x1, 1:k-1) .=  getindex.(view(axes,1:k-1),view(idx,1:k-1)) # ? check allocations
 end
 
