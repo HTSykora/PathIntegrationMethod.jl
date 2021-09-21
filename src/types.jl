@@ -116,17 +116,17 @@ struct PathIntegration{dynT, pdT, tsT, tpdMX_type, Tstp_idx, IKT, kwargT}
 end
 
 # Utility types
-struct IntegrationKernel{kd,sdeT,xT,fT,pdfT, tT,x1idxT,tempT}
+struct IntegrationKernel{kd,sdeT,xT,fT,pdfT, tT,tempT,kwargT}
     sdestep::sdeT
     f::fT # function to integrate over
-    xs::xT # integration axes
-    x1_idx::x1idxT
+    int_axes::xT # integration axes
     t::tT
     pdf::pdfT
     temp::tempT
+    kwargs::kwargT
 end
-struct IK_temp{VT,MT}
-    idx_it# = Base.Iterators.product(eachindex.(IK.temp.itpVs)...)
+struct IK_temp{VT,MT,idxT}
+    idx_it::idxT# = Base.Iterators.product(eachindex.(IK.temp.itpVs)...)
     itpVs::VT
     itpM::MT
     # impactinterval::iiT

@@ -13,7 +13,7 @@ function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pcl
     SDEStep{d,k,m,sdeT,typeof(_method),typeof(steptracer),typeof(x0),typeof(x1),typeof(t0)}(sde, _method, x0, x1, t0, t1, steptracer)
 end
 
-function (pcl::PreComputeLevel)(sde::AbstractSDE{1,1,1}, method::DiscreteTimeSteppingMethod, x0, x1, _t0, _t1)
+function (pcl::Union{PreComputeNewtonStep})(sde::AbstractSDE{1,1,1}, method::DiscreteTimeSteppingMethod, x0, x1, _t0, _t1)
     nothing
 end
 function (pcl::PreComputeNewtonStep)(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMethod, x0, x1, _t0, _t1) where {d,k,m}

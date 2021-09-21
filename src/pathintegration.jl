@@ -1,6 +1,8 @@
-function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d}, initialise_pdf = true, f = nothing, pre_compute = false; kwargs...) where {d,k,m}
+function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d}; initialise_pdf = true, f = nothing, pre_compute = false, debug_mode = false, kwargs...) where {d,k,m}
     if method isa DiscreteTimeSteppingMethod
-        sdestep = SDEStep(sde, method, ts; kwargs)
+        x0 = zeros(d) # * not type safe for autodiff
+        x1 = similar(x0)
+        sdestep = SDEStep(sde, method, x0, x1, ts; kwargs)
     end
     if initialise_pdf
         if f isa Nothing
@@ -16,11 +18,14 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
     step_idx = [0]
 
     if pre_compute
-        # TODO: for CPU parallelisation extend this
+        # * for CPU parallelisation extend this
         ikt = IK_temp(pdf.idx_it, # = idx_it
-                    [similar(axis.temp) for axis in axes], # = itpVs
+                    Tuple(similar(axis.temp) for axis in axes), # = itpVs
                     similar(pdf.p)) # = itpM
-        IK = IntegrationKernel(sdestep, nothing, axes[k:end], zeros(Int, d), ts, pdf, ikt)
+        IK = IntegrationKernel(sdestep, nothing, axes[k:end], ts, pdf, ikt, kwargs)
+        if debug_mode
+            return IK, kwargs
+        end
         step_MX = compute_stepMX(IK; kwargs...)
     else
         step_MX = nothing
@@ -30,6 +35,20 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
     PathIntegration(sdestep, pdf, ts, step_MX, step_idx, IK, kwargs)
 end
 
+# PathIntegration{dynT, pdT, tsT, tpdMX_type, Tstp_idx, IKT, kwargT}
+function advance!(pi::PathIntegration)
+    mul!(vec(pi.pdf.p_temp), next_stepMX(pi), vec(pi.pdf.p))
+    pi.pdf.p .= pi.pdf.p_temp ./_integrate(pi.pdf.p_temp, pi.pdf.axes...)
+    nothing
+end
+
+@inline function next_stepMX(pi::PathIntegration{dynT, pdT,tsT}) where {dynT, pdT,tsT<:Number}
+    pi.step_MX
+end
+@inline function next_stepMX(pi::PathIntegration{dynT, pdT,tsT}) where {dynT, pdT,tsT<:AbstractArray}
+    pi.step_idx[1] =  mod1(pi.step_idx[1] + 1, length(pi.step_MX))
+    pi.stepMX[pi.step_idx[1]]
+end
 
 # Computations utilites
 function init_DiagonalNormalPDF(axes...; μ_init = nothing, σ_init = nothing, kwargs...)
@@ -55,3 +74,4 @@ function init_DiagonalNormalPDF(axes...; μ_init = nothing, σ_init = nothing, k
 end
 
 (f::DiagonalNormalPDF)(x) = prod(normal1D_σ2(μ, σ²,x) for (μ, σ²) in zip(f.μ, f.σ²))
+

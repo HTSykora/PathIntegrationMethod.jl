@@ -8,10 +8,13 @@ using Symbolics
 export SDE, DriftTerm, DiffusionTerm,
     Euler, RK4, Maruyama,
     SDEStep, 
-    GridAxis, InterpolatedFunction
+    GridAxis, InterpolatedFunction,
+    PathIntegration,
+    advance!
     
 
 include("types.jl")
+include("pathintegration.jl")
 include("pdf_representation/gridaxis.jl")
 include("pdf_representation/interpolatedfunction.jl")
 include("pdf_representation/gridinterpolations/interpolations_base.jl")

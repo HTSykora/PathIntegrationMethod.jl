@@ -51,9 +51,11 @@ end
 
 function basefun_vals_safe!(vals,axis::GridAxis,x)
     basefun_vals_safe!(vals,axis.itp,axis.xs,x)
+    nothing
 end
 function basefun_vals_safe!(axis::GridAxis,x)
     basefun_vals_safe!(axis.temp, axis,x)
+    nothing
 end
 function basefun_vals_safe(axis,x) where Vx<:AbstractVector{Tx} where Tx<:Number
     # i = 0... N
