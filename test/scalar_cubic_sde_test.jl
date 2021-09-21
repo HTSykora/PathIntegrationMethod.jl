@@ -41,24 +41,24 @@ end
 ######################
 # Performance tests
 
-dbg_IK, dbg_kwargs = PathIntegration(sde, Euler(), Δt, axis, pre_compute = true, debug_mode = true );
-@time dbg_stepMX = PathIntegrationMethod.initialize_stepMX(eltype(dbg_IK.pdf.p), dbg_IK.t, length(dbg_IK.pdf))
-@btime PathIntegrationMethod.compute_stepMX($dbg_IK, $dbg_kwargs...)
+# dbg_IK, dbg_kwargs = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true, debug_mode = true );
+# @time dbg_stepMX = PathIntegrationMethod.initialize_stepMX(eltype(dbg_IK.pdf.p), dbg_IK.t, length(dbg_IK.pdf))
+# @btime PathIntegrationMethod.compute_stepMX($dbg_IK, $dbg_kwargs...)
 
 
-dbg_zp = zip(dbg_IK.temp.itpVs,(1,))
-@btime PathIntegrationMethod.reduce_tempprod($dbg_zp...)
+# dbg_zp = zip(dbg_IK.temp.itpVs,(1,))
+# @btime PathIntegrationMethod.reduce_tempprod($dbg_zp...)
 
-@btime PathIntegrationMethod.get_IK_weights!($dbg_IK, $dbg_IK.kwargs...)
-dbg_intlimits =(first(dbg_IK.int_axes)[1],first(dbg_IK.int_axes)[end]);
-dbg_kwargs = PathIntegrationMethod.cleanup_quadgk_keywords(;dbg_IK.kwargs...);
-@btime quadgk!($dbg_IK, $dbg_IK.temp.itpM, $dbg_intlimits...; $dbg_kwargs...)
+# @btime PathIntegrationMethod.get_IK_weights!($dbg_IK, $dbg_IK.kwargs...)
+# dbg_intlimits =(first(dbg_IK.int_axes)[1],first(dbg_IK.int_axes)[end]);
+# dbg_kwargs = PathIntegrationMethod.cleanup_quadgk_keywords(;dbg_IK.kwargs...);
+# @btime quadgk!($dbg_IK, $dbg_IK.temp.itpM, $dbg_intlimits...; $dbg_kwargs...)
 
-global myint = 0
-function foo(val,x)
-    global myint +=1
-    dbg_IK(val,x)
-end
-quadgk!(foo, dbg_IK.temp.itpM, -3.,3.)
+# global myint = 0
+# function foo(val,x)
+#     global myint +=1
+#     dbg_IK(val,x)
+# end
+# quadgk!(foo, dbg_IK.temp.itpM, -3.,3.)
 
-@btime dbg_IK($dbg_IK.temp.itpM, 0.)
+# @btime dbg_IK($dbg_IK.temp.itpM, 0.)
