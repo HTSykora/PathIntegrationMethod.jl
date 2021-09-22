@@ -60,7 +60,7 @@ function (pcl::PreComputeJacobian)(sde::AbstractSDE{d,k,m}, method::DiscreteTime
 end
 # Update xI
 
-function iterate_xI!(step::SDEStep{1,1,1, sdeT, methodT,tracerT}) where {sdeT, methodT,tracerT<:SymbolicNewtonStep}
+function iterate_xI!(step::SDEStep{d,k,m, sdeT, methodT,tracerT}) where {d, k,m, sdeT, methodT,tracerT<:SymbolicNewtonStep}
     step.steptracer.xI_0!(step.steptracer.temp, step.x0,step.x1,_par(step),_t0(step),_t1(step))
 end
 
