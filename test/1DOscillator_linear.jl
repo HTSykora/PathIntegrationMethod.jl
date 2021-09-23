@@ -23,13 +23,14 @@ function g2(x,p,t)
 end
 
 # ! Szétesik. :(
-par = [0.1, 1.]; # ζ, σ = p
+par = [0.02, 0.1]; # ζ, σ = p
 sde = SDE((f1,f2),g2,par)
-axes = (GridAxis(-10,10,31,interpolation=:chebyshev),GridAxis(-15,15,31,interpolation=:chebyshev))#,Axis(-6,6,25)]
-Δt = 0.002
+axes = (GridAxis(-3,3,31,interpolation=:chebyshev),
+        GridAxis(-3,3,31,interpolation=:chebyshev))
+Δt = 0.0005
 @time PI = PathIntegration(sde, Euler(), Δt,axes...; pre_compute=true);
 
-@time for _ in 1:10000
+@time for _ in 1:100
     advance!(PI)
 end
 
@@ -45,7 +46,7 @@ begin
     P_AN = [p_AN(x,v; σ2 = σ2) for x in res.axes[1], v in res.axes[2]]
     # Data for a three-dimensional line
     scatter3D(X, V, res.p)
-    scatter3D(X,V,P_AN)
+    # scatter3D(X,V,P_AN)
 
     # X_itp = LinRange(-1.,1.,11)
     # V_itp = [1. for _ in X_itp]
