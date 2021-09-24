@@ -2,7 +2,7 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
     if method isa DiscreteTimeSteppingMethod
         x0 = zeros(d) # * not type safe for autodiff
         x1 = similar(x0)
-        sdestep = SDEStep(sde, method, x0, x1, ts; kwargs)
+        sdestep = SDEStep(sde, method, x0, x1, ts; kwargs...)
     end
     if initialise_pdf
         if f isa Nothing

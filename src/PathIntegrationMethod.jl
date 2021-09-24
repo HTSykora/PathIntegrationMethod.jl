@@ -10,7 +10,7 @@ export SDE, DriftTerm, DiffusionTerm,
     SDEStep, 
     GridAxis, InterpolatedFunction,
     PathIntegration,
-    advance!
+    advance!, integrate
     
 
 include("types.jl")
@@ -19,6 +19,7 @@ include("pdf_representation/gridaxis.jl")
 include("pdf_representation/interpolatedfunction.jl")
 include("pdf_representation/gridinterpolations/interpolations_base.jl")
 include("pdf_representation/gridinterpolations/chebyshevinterpolation.jl")
+include("pdf_representation/gridinterpolations/linearinterpolation.jl")
 include("pdf_representation/gridinterpolations/integrations_base.jl")
 include("sde/drift.jl")
 include("sde/diffusion.jl")

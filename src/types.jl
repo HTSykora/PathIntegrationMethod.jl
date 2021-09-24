@@ -99,6 +99,11 @@ struct TrapezoidalWeights{T,ΔT} <: AbstractVector{T}
     l::Int64
     Δ::ΔT
 end
+struct LinearBaseFunVals{vT, iT, lT}
+    val::vT
+    idxs::iT
+    l::lT
+end
 
 struct InterpolatedFunction{T,N,axesT,pT,idx_itT} <: AbstractArray{T,N}
     axes::axesT
@@ -138,7 +143,10 @@ end
 #     wallID::wT
 #     Q_atwall::BitArray{1}
 # end
-
+struct Quadrature{xT,wT}
+    x::xT
+    w::wT
+end
 struct DiagonalNormalPDF{uT, sT} <: Function
     μ::uT
     σ²::sT

@@ -20,7 +20,7 @@ function find_idx(xs::Vx,x::xT; allow_extrapolation::Bool = false, zero_extrapol
         else
             @inbounds i = searchsortedlast(xs, x - 10eps(xT))
         end
-        if i==0  # it can happen if t ≈ t0
+        if i==zero(i)  # it can happen if t ≈ t0
             needsinterpolation = false
             i = one(i)
         elseif isapprox(xs[i+1], x, atol = 100eps(xT))

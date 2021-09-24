@@ -22,18 +22,18 @@ function g2(x,p,t)
     p[2] # = σ
 end
 
-# ! Szétesik. :(
+# ! TODO: find a convergent version :(
 par = [0.02, 0.1]; # ζ, σ = p
 sde = SDE((f1,f2),g2,par)
-axes = (GridAxis(-3,3,31,interpolation=:chebyshev),
+gridaxes = (GridAxis(-3,3,31,interpolation=:chebyshev),
         GridAxis(-3,3,31,interpolation=:chebyshev))
 Δt = 0.0005
-@time PI = PathIntegration(sde, Euler(), Δt,axes...; pre_compute=true);
+@time PI = PathIntegration(sde, Euler(), Δt,gridaxes...; pre_compute=true);
+
 
 @time for _ in 1:100
     advance!(PI)
 end
-
 # pev1 = ev[2][:,1] .|> real; pev1 ./= sum(pev1)
 # pev2 = ev[2][:,2] .|> real; pev2 ./= sum(pev2)
 begin
@@ -62,12 +62,3 @@ begin
     # scatter3D([1.1515], [-0.5], ttc.pdgrid(1.1515,-0.5))
 end
 
-
-tt.idx₁ .= [16,16]
-vs = LinRange(-6,6,1001)
-_tps = [tt(tt.temp,v) for v in vs]
-
-begin
-    figure(1); clf();
-    plot(vs,_tps)
-end

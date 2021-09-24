@@ -2,7 +2,7 @@ Base.getindex(p::InterpolatedFunction,idx...) = p.p[idx...]
 Base.size(p::InterpolatedFunction) = size(p.p)
 
 # Assuming interpolation
-function InterpolatedFunction(T::DataType, axes::Vararg{Any,N}; f = nothing) where N
+function InterpolatedFunction(T::DataType, axes::Vararg{Any,N}; f = nothing, kwargs...) where N
     psize = length.(axes)
     p = zeros(T,psize...)
     idx_it = Base.Iterators.product(eachindex.(axes)...)

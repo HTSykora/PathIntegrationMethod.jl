@@ -2,20 +2,21 @@ Base.getindex(a::GridAxis,idx...) = a.xs[idx...]
 Base.size(a::GridAxis) = size(a.xs)
 
 GridAxis(start,stop,num; kwargs...) = GridAxis(Float64, start,stop,num; kwargs...)
-function GridAxis(T, start,stop,num::Int; interpolation = :chebyshev)
+function GridAxis(T, start,stop,num::Int; wT = Float64, interpolation = :chebyshev)
     if interpolation == :linear
+        Δ = T((stop-start)/(num-1));
         xs = LinRange{T}(start,stop,num)
-        Δ = (stop-start)/(num-1);
         wts = TrapezoidalWeights{eltype(xs),typeof(Δ)}(num,Δ)
-        itp = LinearInterpolation(Δ);
+        itp = LinearInterpolation(wT(Δ));
+        temp = LinearBaseFunVals(T,num)
     elseif interpolation == :chebyshev
         xs = chebygrid(T, start,stop,num)
-        wts = clenshawcurtisweights(T, start,stop,num)
+        wts = clenshawcurtisweights(wT, start,stop,num)
         itp = ChebyshevInterpolation(num);
+        temp = similar(xs)
     else
         error("Interpolation should be `:linear` or `:chebyshev`.")
     end
-    temp = similar(xs)
     return GridAxis{typeof(itp),typeof(wts),typeof(xs),eltype(xs),typeof(temp)}(itp,xs,wts,temp)
 end
 
