@@ -35,8 +35,8 @@ sum(abs2, f_true1 .- f_interpolated1)/length(f_true1) > sum(abs2, f_true2 .- f_i
 @btime PathIntegrationMethod.basefun_vals_safe!.($f_itp.axes,(0.1,1.2,1.1))
 
 # Visual checks
-# using PyPlot
-# pygui(true)
+using PyPlot
+pygui(true)
 function f3(x) 
     sin(x)
 end
@@ -45,7 +45,7 @@ f_itp3 = InterpolatedFunction(Float64,[GridAxis(et,start,stop,num; interpolation
 
 xs = [LinRange(start,stop, 2(num-1)) for (et,start,stop,num) in grid_dat3]
 x_ref = [LinRange(start,stop, 100(num-1)) for (et,start,stop,num) in grid_dat3]
-@time f_interpolated3 = f_itp3.(xs[1])
+@btime f_interpolated3 = f_itp3.(xs[1])
 
 begin
     figure(1); clf()

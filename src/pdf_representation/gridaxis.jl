@@ -1,5 +1,7 @@
 Base.getindex(a::GridAxis,idx...) = a.xs[idx...]
 Base.size(a::GridAxis) = size(a.xs)
+_eachindex(axis::GridAxis) = eachindex(axis)
+
 
 GridAxis(start,stop,num; kwargs...) = GridAxis(Float64, start,stop,num; kwargs...)
 function GridAxis(T, start,stop,num::Int; wT = Float64, interpolation = :chebyshev)

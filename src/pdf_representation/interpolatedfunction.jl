@@ -5,7 +5,7 @@ Base.size(p::InterpolatedFunction) = size(p.p)
 function InterpolatedFunction(T::DataType, axes::Vararg{Any,N}; f = nothing, kwargs...) where N
     psize = length.(axes)
     p = zeros(T,psize...)
-    idx_it = Base.Iterators.product(eachindex.(axes)...)
+    idx_it = Base.Iterators.product(_eachindex.(axes)...)
     if f isa Function
         _it = Base.Iterators.product(axes...)
         for (i,x) in enumerate(_it)
