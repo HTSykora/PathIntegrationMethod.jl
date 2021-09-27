@@ -105,10 +105,11 @@ struct LinearBaseFunVals{vT, iT, lT}
     l::lT
 end
 
-struct InterpolatedFunction{T,N,axesT,pT,idx_itT} <: AbstractArray{T,N}
+struct InterpolatedFunction{T,N,axesT,pT,idx_itT,val_itT} <: AbstractArray{T,N}
     axes::axesT
     p::pT
     idx_it::idx_itT
+    val_it::val_itT
 end
 struct PathIntegration{dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,kwargT}
     step_dynamics::dynT # SDEStep

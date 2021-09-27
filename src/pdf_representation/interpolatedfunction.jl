@@ -6,13 +6,14 @@ function InterpolatedFunction(T::DataType, axes::Vararg{Any,N}; f = nothing, kwa
     psize = length.(axes)
     p = zeros(T,psize...)
     idx_it = Base.Iterators.product(_eachindex.(axes)...)
+    val_it = Base.Iterators.product(_gettempvals.(axes))
     if f isa Function
         _it = Base.Iterators.product(axes...)
         for (i,x) in enumerate(_it)
             p[i] = f(x...)
         end
     end
-    InterpolatedFunction{eltype(T),length(psize),typeof(axes),typeof(p),typeof(idx_it)}(axes,p,idx_it)
+    InterpolatedFunction{eltype(T),length(psize),typeof(axes),typeof(p),typeof(idx_it),typeof(val_it)}(axes,p,idx_it,val_it)
 end
 InterpolatedFunction(T::DataType,axes::aT; kwargs...) where aT<:Tuple = InterpolatedFunction(T,axes...; kwargs...)
 
