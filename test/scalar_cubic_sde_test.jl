@@ -59,22 +59,24 @@ abs(get_errconv(err_Δt,Δts) -1.) < 0.1
 ##
 1
 ##
-# # # Single test run
-# Δt = 0.0001
-# gridaxis = GridAxis(-3,3,101,interpolation = :chebyshev)
-# @time PI = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true);
-# @time for _ in 1:100000
-#     advance!(PI)
-# end
-# # sum(abs, PI.pdf.(_x) .- p_AN(_x)) * ((_x[end] - _x[1])/length(_x))
+# # Single test run
+Δt = 0.0001
+Δt = 0.00002875
+Tmax = 10.0
+gridaxis = GridAxis(-3,3,35,interpolation = :chebyshev)
+@time PI = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true);
+@time for _ in 1:Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
+    advance!(PI)
+end
+# sum(abs, PI.pdf.(_x) .- p_AN(_x)) * ((_x[end] - _x[1])/length(_x))
 
-# begin
-#     figure(1); clf()
-#     _x = LinRange(gridaxis[1], gridaxis[end], 10001)
-#     plot(_x,PI.pdf.(_x),label="Iteration" )
-#     plot(_x,p_AN(_x), label = "Reference")
-#     legend()
-# end
+begin
+    figure(1); clf()
+    _x = LinRange(gridaxis[1], gridaxis[end], 10001)
+    plot(_x,PI.pdf.(_x),label="Iteration" )
+    plot(_x,p_AN(_x), label = "Reference")
+    legend()
+end
 
 ######################
 # # Performance tests
@@ -99,4 +101,4 @@ abs(get_errconv(err_Δt,Δts) -1.) < 0.1
 # end
 # quadgk!(foo, dbg_IK.temp.itpM, -3.,3.)
 
-# @btime dbg_IK($dbg_IK.temp.itpM, 0.)
+# @btime dbg_IK($dbg_IK.temp.itpM, 0.)  
