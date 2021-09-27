@@ -19,9 +19,11 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
 
     if pre_compute
         # * for CPU parallelisation extend this
+        itpVs = Tuple(similar(axis.temp) for axis in axes); # = itpVs;
         ikt = IK_temp(pdf.idx_it, # = idx_it
-                    Tuple(similar(axis.temp) for axis in axes), # = itpVs
-                    similar(pdf.p)) # = itpM
+                        Base.Iterators.product(itpVs...),
+                        itpVs, # = itpVs
+                        similar(pdf.p)) # = itpM
         IK = IntegrationKernel(sdestep, nothing, axes[k:end], ts, pdf, ikt, kwargs)
         if debug_mode
             return IK, kwargs

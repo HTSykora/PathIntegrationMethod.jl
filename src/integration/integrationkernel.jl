@@ -20,10 +20,10 @@ function (IK::IntegrationKernel{dk,sdeT})(vals,x) where sdeT<:SDEStep{d,k,m} whe
     fx = transitionprobability(IK.sdestep,IK.x1)
 
     ## Get interpolation values
+    set_oldvals_tozero!(vals, IK)
     basefun_vals_safe!(IK)
-
     ## Summarise
-    fill_vals!(vals,IK,fx,_idx_it(IK))
+    fill_vals!(vals,IK,fx,_idx_it(IK), _val_it(IK))
 
     vals
 end
@@ -38,6 +38,14 @@ function update_relevant_states!(IK::IntegrationKernel{dk,sdeT},x::AbstractVecto
     end
 end
 
+function set_oldvals_tozero!(vals, IK::IntegrationKernel)
+end
+# function set_oldvals_tozero!(vals, IK::IntegrationKernel{kd,sdeT,x1T,xT,fT,pdfT})
+#     for idx in _idx_it(IK)
+#         vals[idx...] = zero(eltype(vals))
+#     end
+# end
+
 function basefun_vals_safe!(IK::IntegrationKernel{dk,sdeT}) where sdeT<:SDEStep{d} where {dk,d}
     for (it,ax,x0) in zip(IK.temp.itpVs,IK.pdf.axes,IK.sdestep.x0)
         basefun_vals_safe!(it,ax,x0)
@@ -48,10 +56,13 @@ end
 _idx_it(IK::IntegrationKernel) = _idx_it(IK.temp)
 _idx_it(IKT::IK_temp) = IKT.idx_it
 
-get_tempval(str::AbstractVector, i) = str[i]
-function fill_vals!(vals::AbstractArray{T,d}, IK::IntegrationKernel{dk,sdeT}, fx, idx_it;) where {T,sdeT<:SDEStep{d}} where {dk,d}
-    for idx in idx_it
-        vals[idx...] = fx * reduce_tempprod(zip(IK.temp.itpVs,idx)...)
+_val_it(IK::IntegrationKernel) = _val_it(IK.temp)
+_val_it(IKT::IK_temp) = IKT.val_it
+
+# get_tempval(str::AbstractVector, i) = str[i]
+function fill_vals!(vals::AbstractArray{T,d}, IK::IntegrationKernel{dk,sdeT}, fx, idx_it, val_it;) where {T,sdeT<:SDEStep{d}} where {dk,d}
+    for idx in zip(idx_it, val_it)
+        vals[idx...] = fx * prod(val_it)# reduce_tempprod(zip(IK.temp.itpVs,idx)...)
         # prod(IK.temp.itpVs[i][idx[i]] for (i,idx) in enumerate(idxs))
     end
     nothing

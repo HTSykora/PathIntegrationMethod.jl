@@ -133,8 +133,9 @@ struct IntegrationKernel{kd,sdeT,x1T,xT,fT,pdfT, tT,tempT,kwargT}
     temp::tempT
     kwargs::kwargT
 end
-struct IK_temp{VT,MT,idxT}
+struct IK_temp{VT,MT,idxT,valT}
     idx_it::idxT# = Base.Iterators.product(eachindex.(IK.temp.itpVs)...)
+    val_it::valT# = Base.Iterators.product(eachindex.(IK.temp.itpVs)...)
     itpVs::VT
     itpM::MT
     # impactinterval::iiT
