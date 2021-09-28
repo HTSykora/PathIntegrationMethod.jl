@@ -60,11 +60,16 @@ function basefun_vals_safe!(vals::LinearBaseFunVals{vT},itp::LinearInterpolation
         vals.idxs[1] = i
         vals.idxs[2] = i+1
         linearinterpolation_weights!(vals.val, xs[i], xs[i+1], x, itp.Δ)
-    else
+    elseif i==1
         vals.val[1] = one(eltype(vT))
         vals.val[2] = zero(eltype(vT))
-        vals.idxs[1] = i
-        vals.idxs[2] = i+1
+        vals.idxs[1] = 1
+        vals.idxs[2] = 2
+    else
+        vals.val[1] = zero(eltype(vT))
+        vals.val[2] = one(eltype(vT))
+        vals.idxs[1] = i-1
+        vals.idxs[2] = i
     end
         
     nothing

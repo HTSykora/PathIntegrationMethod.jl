@@ -20,7 +20,7 @@ function fill_stepMX_ts!(stepMX, IK::IntegrationKernel{kd, sdeT,x1T, xT,fT,pdfT,
 end
 
 function fill_stepMX!(stepMX, IK::IntegrationKernel)
-    for (i, idx) in enumerate(_idx_it(IK))
+    for (i, idx) in enumerate(dense_idx_it(IK))
         update_IK_state_x1!(IK,idx)
         update_dyn_state_x1!(IK, idx)
         get_IK_weights!(IK; IK.kwargs...)

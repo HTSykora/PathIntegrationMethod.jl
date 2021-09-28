@@ -64,9 +64,9 @@ abs(get_errconv(err_Δt,Δts) -1.) < 0.1
 Δt = 0.0001
 Δt = 0.00002875
 Tmax = 10.0
-gridaxis = GridAxis(-3,3,101,interpolation = :linear)
+gridaxis = GridAxis(-3,3,21,interpolation = :linear)
 @time PI = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true);
-@time for _ in 1:Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
+@time for _ in 1:1#Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
     advance!(PI)
 end
 # sum(abs, PI.pdf.(_x) .- p_AN(_x)) * ((_x[end] - _x[1])/length(_x))

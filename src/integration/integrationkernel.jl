@@ -55,6 +55,7 @@ end
 
 _idx_it(IK::IntegrationKernel) = _idx_it(IK.temp)
 _idx_it(IKT::IK_temp) = IKT.idx_it
+dense_idx_it(IK::IntegrationKernel) = Base.Iterators.product(eachindex.(IK.pdf.axes)...)
 
 _val_it(IK::IntegrationKernel) = _val_it(IK.temp)
 _val_it(IKT::IK_temp) = IKT.val_it
