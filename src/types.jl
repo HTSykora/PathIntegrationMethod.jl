@@ -87,12 +87,14 @@ struct GridAxis{itpT,wT,xT,xeT,tmpT} <: AbstractGridAxis{xeT}
 end
 
 abstract type AbstractInterpolationType end
-struct ChebyshevInterpolation{NT,_1T} <: AbstractInterpolationType 
+abstract type DenseInterpolationType <: AbstractInterpolationType end
+abstract type SparseInterpolationType <: AbstractInterpolationType end
+struct ChebyshevInterpolation{NT,_1T} <: DenseInterpolationType 
     N::NT
     _1::_1T
 end
-struct FourierInterpolation{N} <: AbstractInterpolationType end
-struct LinearInterpolation{ΔT} <: AbstractInterpolationType
+struct FourierInterpolation{N} <: DenseInterpolationType end
+struct LinearInterpolation{ΔT} <: SparseInterpolationType
     Δ::ΔT
 end
 struct TrapezoidalWeights{T,ΔT} <: AbstractVector{T}
@@ -105,7 +107,7 @@ struct LinearBaseFunVals{vT, iT, lT}
     l::lT
 end
 
-struct InterpolatedFunction{T,N,axesT,pT,idx_itT,val_itT} <: AbstractArray{T,N}
+struct InterpolatedFunction{T,N,itp_type,axesT,pT,idx_itT,val_itT} <: AbstractArray{T,N}
     axes::axesT
     p::pT
     idx_it::idx_itT

@@ -10,6 +10,7 @@ py_colors=PyPlot.PyDict(PyPlot.matplotlib."rcParams")["axes.prop_cycle"].by_key(
 # 1D problem:
 f(x,p,t) = x[1]-x[1]^3
 g(x,p,t) = sqrt(2)
+sde = SDE(f,g)
 
 # Analytic form
 _p_AN(x,ε = 1.) = exp(x^2/2 - ε*x^4/4)
@@ -17,7 +18,6 @@ function p_AN(xs, ε=1.)
     itg = quadgk(x->_p_AN(x,ε) ,xs[1],xs[end])[1]
     _p_AN.(xs,Ref(ε)) ./ itg
 end
-sde = SDE(f,g)
 
 function get_PI_err(N, Δt; interpolation = :chebyshev, xmin = -3.0, xmax = 3.0, _testN = 10001, _x = LinRange(xmin, xmax, _testN), Tmax = 10.0, method = Euler())
     gridaxis = GridAxis(_x[1],_x[end],N,interpolation = interpolation)
@@ -31,7 +31,8 @@ end
 
 get_div(x) = 10 .^(diff(log10.(x)))
 get_errconv(err,Δ) = mean(log10.(get_div(err))./ log10.(get_div(Δ)))
-## 
+
+##
 
 @time begin
     Δts = [0.1, 0.01, 0.001, 0.0001, 0.00002875]
@@ -63,7 +64,7 @@ abs(get_errconv(err_Δt,Δts) -1.) < 0.1
 Δt = 0.0001
 Δt = 0.00002875
 Tmax = 10.0
-gridaxis = GridAxis(-3,3,35,interpolation = :chebyshev)
+gridaxis = GridAxis(-3,3,101,interpolation = :linear)
 @time PI = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true);
 @time for _ in 1:Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
     advance!(PI)

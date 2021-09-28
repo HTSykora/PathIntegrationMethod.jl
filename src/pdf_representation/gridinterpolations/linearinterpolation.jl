@@ -25,8 +25,14 @@ function Base.getindex(vals::LinearBaseFunVals{vT}, idx) where vT
     return zero(eltype(vT))
 end
 Base.size(vals::LinearBaseFunVals) = (vals.l,)
+Base.size(vals::LinearBaseFunVals,i) = i==1 ? vals.l : one(vals.l)
+Base.length(vals::LinearBaseFunVals) = vals.l
+_val(vals::LinearBaseFunVals) = vals.val
+
 _eachindex(axis::GridAxis{itpT}) where itpT<:LinearInterpolation = axis.temp.idxs
 _gettempvals(axis::GridAxis{itpT}) where itpT<:LinearInterpolation = axis.temp.val
+Base.similar(lbfv::LinearBaseFunVals) = LinearBaseFunVals(similar(lbfv.val),similar(lbfv.idxs),lbfv.l)
+Base.zero(lbfv::LinearBaseFunVals) = LinearBaseFunVals(deepcopy(lbfv.val),zero(lbfv.idxs),lbfv.l)
 
 function linearinterpolation_weights!(vals,x1,x2, x, Δx)
     if Δx isa Nothing

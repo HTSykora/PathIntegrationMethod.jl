@@ -13,7 +13,9 @@ function InterpolatedFunction(T::DataType, axes::Vararg{Any,N}; f = nothing, kwa
             p[i] = f(x...)
         end
     end
-    InterpolatedFunction{eltype(T),length(psize),typeof(axes),typeof(p),typeof(idx_it),typeof(val_it)}(axes,p,idx_it,val_it)
+
+    itp_type = get_itp_type(axes)
+    InterpolatedFunction{eltype(T),length(psize),itp_type,typeof(axes),typeof(p),typeof(idx_it),typeof(val_it)}(axes,p,idx_it,val_it)
 end
 InterpolatedFunction(T::DataType,axes::aT; kwargs...) where aT<:Tuple = InterpolatedFunction(T,axes...; kwargs...)
 
@@ -22,4 +24,10 @@ InterpolatedFunction(axes::Vararg{Any,N}; kwargs...) where N = InterpolatedFunct
 # Computing interpolated ProbabilityDensityFunction
 function (f::InterpolatedFunction{T,N,axesT})(x::Vararg{Any,N}) where {T,N,axesT} #axesT <: NTuple{<:GridAxis}
     interpolate(f.p,f.axes,x...; idx_it = f.idx_it)
+end
+
+function get_itp_type(axes)
+    mapreduce(|,axes) do axis
+        axis.itp isa SparseInterpolationType 
+    end ? SparseInterpolationType : DenseInterpolationType
 end

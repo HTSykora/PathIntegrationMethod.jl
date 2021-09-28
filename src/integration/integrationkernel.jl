@@ -40,11 +40,11 @@ end
 
 function set_oldvals_tozero!(vals, IK::IntegrationKernel)
 end
-# function set_oldvals_tozero!(vals, IK::IntegrationKernel{kd,sdeT,x1T,xT,fT,pdfT})
-#     for idx in _idx_it(IK)
-#         vals[idx...] = zero(eltype(vals))
-#     end
-# end
+function set_oldvals_tozero!(vals, IK::IntegrationKernel{kd,sdeT,x1T,xT,fT,pdfT}) where {kd,sdeT,x1T,xT,fT,pdfT<:InterpolatedFunction{T,N, itp_type}} where {T,N,itp_type <: SparseInterpolationType}
+    for idx in _idx_it(IK)
+        vals[idx...] = zero(eltype(vals))
+    end
+end
 
 function basefun_vals_safe!(IK::IntegrationKernel{dk,sdeT}) where sdeT<:SDEStep{d} where {dk,d}
     for (it,ax,x0) in zip(IK.temp.itpVs,IK.pdf.axes,IK.sdestep.x0)
@@ -61,8 +61,8 @@ _val_it(IKT::IK_temp) = IKT.val_it
 
 # get_tempval(str::AbstractVector, i) = str[i]
 function fill_vals!(vals::AbstractArray{T,d}, IK::IntegrationKernel{dk,sdeT}, fx, idx_it, val_it;) where {T,sdeT<:SDEStep{d}} where {dk,d}
-    for idx in zip(idx_it, val_it)
-        vals[idx...] = fx * prod(val_it)# reduce_tempprod(zip(IK.temp.itpVs,idx)...)
+    for (idx, val) in zip(idx_it, val_it)
+        vals[idx...] = fx * prod(val)# reduce_tempprod(zip(IK.temp.itpVs,idx)...)
         # prod(IK.temp.itpVs[i][idx[i]] for (i,idx) in enumerate(idxs))
     end
     nothing
