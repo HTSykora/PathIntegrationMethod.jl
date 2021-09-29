@@ -1,15 +1,14 @@
-function IntegrationKernel(sdestep, f, int_axes, ts, pdf, ikt, kwargs = nothing)
+function IntegrationKernel(sdestep, f, discreteintegrator, ts, pdf, ikt, kwargs = nothing)
     x1 = similar(sdestep.x1)
-    IntegrationKernel{length(int_axes), typeof(sdestep), typeof(x1), typeof(int_axes), typeof(f), typeof(pdf), typeof(ts), typeof(ikt), typeof(kwargs)}(sdestep,x1, f, int_axes, ts, pdf, ikt, kwargs)
+    IntegrationKernel{length(int_axes), typeof(sdestep), typeof(x1), typeof(discreteintegrator), typeof(f), typeof(pdf), typeof(ts), typeof(ikt), typeof(kwargs),typeof()}(sdestep,x1, f, discreteintegrator, ts, pdf, ikt, kwargs)
 end
 
 # Evaluating the integrals
-@inline function cleanup_quadgk_keywords(;σ_init = nothing, μ_init = nothing, kwargs...)
-    (;kwargs...)
-end
-function get_IK_weights!(IK::IntegrationKernel{1}; integ_limits = (first(IK.int_axes)[1],first(IK.int_axes)[end]), kwargs...)
+
+function get_IK_weights!(IK::IntegrationKernel{1})
 # function get_IK_weights!(IK::IntegrationKernel{1}; integ_limits = first(IK.int_axes), kwargs...)
-    quadgk!(IK, IK.temp.itpM, integ_limits...; cleanup_quadgk_keywords(;kwargs...)...)
+    IK.discreteintegrator(IK, IK.temp.itpM)
+    # quadgk!(IK, IK.temp.itpM, integ_limits...; cleanup_quadgk_keywords(;kwargs...)...)
 end
 
 # multivariate smooth problem

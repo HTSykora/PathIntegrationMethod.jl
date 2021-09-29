@@ -97,7 +97,7 @@ struct FourierInterpolation{N} <: DenseInterpolationType end
 struct LinearInterpolation{ΔT} <: SparseInterpolationType
     Δ::ΔT
 end
-struct TrapezoidalWeights{T,ΔT} <: AbstractVector{T}
+struct TrapezoidalWeights{ΔT} <: AbstractVector{ΔT}
     l::Int64
     Δ::ΔT
 end
@@ -125,11 +125,11 @@ struct PathIntegration{dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,kwargT}
 end
 
 # Utility types
-struct IntegrationKernel{kd,sdeT,x1T,xT,fT,pdfT, tT,tempT,kwargT}
+struct IntegrationKernel{kd,sdeT,x1T,diT,fT,pdfT, tT,tempT,kwargT}
     sdestep::sdeT
     x1::x1T
     f::fT # function to integrate over
-    int_axes::xT # integration axes
+    discreteintegrator::diT
     t::tT
     pdf::pdfT
     temp::tempT
@@ -147,9 +147,19 @@ end
 #     wallID::wT
 #     Q_atwall::BitArray{1}
 # end
-struct Quadrature{xT,wT}
+abstract type AbstractDiscreteIntegratorType end
+struct ClenshawCurtisIntegrator <:AbstractDiscreteIntegratorType end
+struct TrapezoidalIntegrator <: AbstractDiscreteIntegratorType end
+struct DiscreteIntegrator{IType,xT,wT,resT,tempT} <:AbstractDiscreteIntegratorType
     x::xT
     w::wT
+    res::resT
+    temp::tempT
+end
+struct QuadGKIntegrator{it,rT,kT} <:AbstractDiscreteIntegratorType
+    int_limits::iT
+    res::rT
+    kwargs::kT
 end
 struct DiagonalNormalPDF{uT, sT} <: Function
     μ::uT

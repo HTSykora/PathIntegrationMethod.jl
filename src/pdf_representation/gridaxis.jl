@@ -1,18 +1,18 @@
 Base.getindex(a::GridAxis,idx...) = a.xs[idx...]
 Base.size(a::GridAxis) = size(a.xs)
 _eachindex(axis::GridAxis) = eachindex(axis)
+_eachindex(V::AbstractVector) = eachindex(V)
 _gettempvals(axis::GridAxis) = axis.temp
 
-GridAxis(start,stop,num; kwargs...) = GridAxis(Float64, start,stop,num; kwargs...)
-function GridAxis(T, start,stop,num::Int; wT = Float64, interpolation = :chebyshev)
+function GridAxis(start,stop,num::Int; xT = Float64, wT = Float64, interpolation = :chebyshev, kwargs...)
     if interpolation == :linear
-        Δ = T((stop-start)/(num-1));
-        xs = LinRange{T}(start,stop,num)
-        wts = TrapezoidalWeights{eltype(xs),typeof(Δ)}(num,Δ)
+        Δ = wT((stop-start)/(num-1));
+        xs = LinRange{xT}(start,stop,num)
+        wts = TrapezoidalWeights{wT}(num,Δ)
         itp = LinearInterpolation(wT(Δ));
-        temp = LinearBaseFunVals(T,num)
+        temp = LinearBaseFunVals(xT,num)
     elseif interpolation == :chebyshev
-        xs = chebygrid(T, start,stop,num)
+        xs = chebygrid(xT, start,stop,num)
         wts = clenshawcurtisweights(wT, start,stop,num)
         itp = ChebyshevInterpolation(num);
         temp = similar(xs)

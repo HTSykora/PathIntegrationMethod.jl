@@ -61,12 +61,12 @@ abs(get_errconv(err_Δt,Δts) -1.) < 0.1
 1
 ##
 # # Single test run
-Δt = 0.0001
+Δt = 0.001
 Δt = 0.00002875
 Tmax = 10.0
-gridaxis = GridAxis(-3, 3, 101, interpolation = :linear)
-@time PI = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true);
-@time for _ in 1:1#Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
+gridaxis = GridAxis(-3, 3, 101, interpolation = :chebyshev)
+@time PI = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true, maxevals=1000);
+@time for _ in 1:Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
     advance!(PI)
 end
 # sum(abs, PI.pdf.(_x) .- p_AN(_x)) * ((_x[end] - _x[1])/length(_x))
@@ -114,18 +114,42 @@ dbg_IK, dbg_kwargs = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = 
 # ERROR: LoadError: DomainError with -0.234375:
 # integrand produced Inf in the interval (-0.28125, -0.1875)
 
-gridaxis = GridAxis(-3, 3, 21, interpolation = :linear)
-@time dbg_IK, dbg_kwargs = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true, debug_mode = true );
-@time dbg_stepMX = PathIntegrationMethod.initialize_stepMX(eltype(dbg_IK.pdf.p), dbg_IK.t, length(dbg_IK.pdf))
+ID = 550
+gridaxis1 = GridAxis(-3, 3, 1001, interpolation = :linear)
+@time dbg_IK1, dbg_kwargs1 = PathIntegration(sde, Euler(), Δt, gridaxis1, pre_compute = true, debug_mode = true );
+@time dbg_stepMX1 = PathIntegrationMethod.initialize_stepMX(eltype(dbg_IK1.pdf.p), dbg_IK1.t, length(dbg_IK1.pdf))
 
-@time PathIntegrationMethod.update_IK_state_x1!(dbg_IK,(2,))
-@time PathIntegrationMethod.update_dyn_state_x1!(dbg_IK, (2,))
+@time PathIntegrationMethod.update_IK_state_x1!(dbg_IK1,(ID,))
+@time PathIntegrationMethod.update_dyn_state_x1!(dbg_IK1, (ID,))
 
-@run dbg_IK(dbg_IK.temp.itpM,-0.234375)
-@btime dbg_IK($dbg_IK.temp.itpM,-2.7)
-@btime dbg_IK($dbg_IK.temp.itpM,$(gridaxis[2] + 0.01))
-dbg_intlimits =(first(dbg_IK.int_axes)[1],first(dbg_IK.int_axes)[end]);
-dbg_kwargs = PathIntegrationMethod.cleanup_quadgk_keywords(;dbg_IK.kwargs...);
+@btime dbg_IK1($dbg_IK1.temp.itpM,gridaxis1[ID] + 0.001)
+dbg_IK1.temp.itpM .* dbg_IK1.pdf.p |> sum
+@btime dbg_IK1($dbg_IK1.temp.itpM,-2.7)
+@btime dbg_IK1($dbg_IK1.temp.itpM,$(gridaxis[2] + 0.01))
+dbg_intlimits =(first(dbg_IK1.int_axes)[1],first(dbg_IK1.int_axes)[end]);
+dbg_kwargs = PathIntegrationMethod.cleanup_quadgk_keywords(;dbg_IK1.kwargs...);
+
+gridaxis2 = GridAxis(-3, 3, 1001, interpolation = :chebyshev)
+@time dbg_IK2, dbg_kwargs2 = PathIntegration(sde, Euler(), Δt, gridaxis2, pre_compute = true, debug_mode = true );
+@time dbg_stepMX2 = PathIntegrationMethod.initialize_stepMX(eltype(dbg_IK2.pdf.p), dbg_IK2.t, length(dbg_IK2.pdf))
+
+dbg_IK2.x1 .= dbg_IK1.x1
+dbg_IK2.sdestep.x1 .= dbg_IK1.sdestep.x1 
+
+@btime dbg_IK2($dbg_IK2.temp.itpM,gridaxis1[ID] + 0.001)
+dbg_IK2.temp.itpM .* dbg_IK2.pdf.p |> sum
+
+@run dbg_IK2(dbg_IK2.temp.itpM,1.875)
+@btime dbg_IK2($dbg_IK2.temp.itpM,-2.7)
+@btime dbg_IK2($dbg_IK2.temp.itpM,$(gridaxis[2] + 0.01))
+dbg_intlimits =(first(dbg_IK2.int_axes)[1],first(dbg_IK2.int_axes)[end]);
+dbg_kwargs = PathIntegrationMethod.cleanup_quadgk_keywords(;dbg_IK2.kwargs...);
+
+
+
+
+
+
 
 global myint = 0
 function foo(val,x)
@@ -133,5 +157,7 @@ function foo(val,x)
     dbg_IK(val,x)
 end
 quadgk!(foo, dbg_IK.temp.itpM, -3.,3.)
-@time quadgk!(dbg_IK, dbg_IK.temp.itpM, dbg_intlimits...; dbg_kwargs...)
+@time quadgk!(dbg_IK, dbg_IK.temp.itpM, dbg_intlimits...; dbg_kwargs..., maxevals=1000)
 @btime quadgk!($dbg_IK, $dbg_IK.temp.itpM, $dbg_intlimits...; $dbg_kwargs...)
+
+g_IK, $dbg_IK.temp.itpM, $dbg_intlimits...; $dbg_kwargs...)

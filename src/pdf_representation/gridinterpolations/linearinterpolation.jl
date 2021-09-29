@@ -2,9 +2,9 @@ function LinearInterpolation()
     LinearInterpolation(nothing)
 end
 
-function Base.getindex(tw::TrapezoidalWeights, idx) 
+function Base.getindex(tw::TrapezoidalWeights{wT}, idx) where wT
     if idx == 1 || idx == tw.l
-        return eltype(tw.Δ)(0.5)*tw.Δ
+        return wT(0.5)*tw.Δ
     else
         return tw.Δ
     end

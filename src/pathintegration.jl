@@ -1,4 +1,7 @@
-function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d}; initialise_pdf = true, f = nothing, pre_compute = false, debug_mode = false, kwargs...) where {d,k,m}
+function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d};
+    discreteintegrator = d==k ? QuadGKIntegrator() : ClenshawCurtisIntegrator(),
+    di_N::NTuple{d-k+1,Int} = Tuple(10length(ax) for ax in axes[k:end]),
+    initialise_pdf = true, f = nothing, pre_compute = false, debug_mode = Val{false}, kwargs...) where {d,k,m}
     if method isa DiscreteTimeSteppingMethod
         x0 = zeros(d) # * not type safe for autodiff
         x1 = similar(x0)
@@ -25,8 +28,9 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
                         BI_product(_val.(itpVs)...), # = val_it
                         itpVs, # = itpVs
                         zero(pdf.p)) # = itpM
-        IK = IntegrationKernel(sdestep, nothing, duplicate.(axes[k:end]), ts, pdf, ikt, kwargs)
-        if debug_mode
+        di = DiscreteIntegrator(discreteintegrator, axes[k:end],di_N, pdf.p; kwargs...)
+        IK = IntegrationKernel(sdestep, nothing, di, ts, pdf, ikt, kwargs)
+        if debug_mode in (Val{true},true)
             return IK, kwargs
         end
         step_MX = compute_stepMX(IK; kwargs...)

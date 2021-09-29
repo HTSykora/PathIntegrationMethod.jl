@@ -8,14 +8,14 @@ end
 @inline initialize_stepMX(T, ts::AbstractVector{eT}, l) where eT<:Number = [zeros(T,l,l) for _ in 1:(length(ts)-1)]
 @inline initialize_stepMX(T, ts::Number, l) = zeros(T, l, l)
 
-function fill_stepMX_ts!(stepMX, IK::IntegrationKernel{kd, sdeT,x1T, xT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, xT,fT,pdfT, tT<:AbstractArray}
+function fill_stepMX_ts!(stepMX, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, tT<:AbstractArray}
     for jₜ in 1:length(IK.ts)-1
         IK.sdestep.t0[1] = IK.t[jₜ]
         IK.sdestep.t1[1] = IK.t[jₜ+1]
         fill_stepMX!(stepMX, IK)
     end
 end
-function fill_stepMX_ts!(stepMX, IK::IntegrationKernel{kd, sdeT,x1T, xT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, xT,fT,pdfT, tT<:Number}
+function fill_stepMX_ts!(stepMX, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, tT<:Number}
     fill_stepMX!(stepMX, IK)
 end
 
@@ -24,7 +24,7 @@ function fill_stepMX!(stepMX, IK::IntegrationKernel)
         println(idx)
         update_IK_state_x1!(IK,idx)
         update_dyn_state_x1!(IK, idx)
-        get_IK_weights!(IK; IK.kwargs...)
+        get_IK_weights!(IK)
         fill_to_stepMX!(stepMX,IK,i)
     end
 end
