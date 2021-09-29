@@ -22,6 +22,7 @@ end
 
 # Evaluating the integrals
 function get_IK_weights!(IK::IntegrationKernel{sdeT}; integ_limits = (IK.xs[1],IK.xs[end]), kwargs...) where sdeT<:AbstractSDE{N,N} where N 
+# function get_IK_weights!(IK::IntegrationKernel{sdeT}; integ_limits = IK.xs, kwargs...) where sdeT<:AbstractSDE{N,N} where N 
     # integ_limits = IK.xs -> # old version
     quadgk!(IK,IK.temp,integ_limits...; cleanup_quadgk_keywords(;kwargs...)...)
 end

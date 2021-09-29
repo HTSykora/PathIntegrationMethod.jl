@@ -8,6 +8,7 @@ end
     (;kwargs...)
 end
 function get_IK_weights!(IK::IntegrationKernel{1}; integ_limits = (first(IK.int_axes)[1],first(IK.int_axes)[end]), kwargs...)
+# function get_IK_weights!(IK::IntegrationKernel{1}; integ_limits = first(IK.int_axes), kwargs...)
     quadgk!(IK, IK.temp.itpM, integ_limits...; cleanup_quadgk_keywords(;kwargs...)...)
 end
 
@@ -55,7 +56,7 @@ end
 
 _idx_it(IK::IntegrationKernel) = _idx_it(IK.temp)
 _idx_it(IKT::IK_temp) = IKT.idx_it
-dense_idx_it(IK::IntegrationKernel) = Base.Iterators.product(eachindex.(IK.pdf.axes)...)
+dense_idx_it(IK::IntegrationKernel) = BI_product(eachindex.(IK.pdf.axes)...)
 
 _val_it(IK::IntegrationKernel) = _val_it(IK.temp)
 _val_it(IKT::IK_temp) = IKT.val_it

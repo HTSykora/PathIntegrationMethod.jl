@@ -13,7 +13,7 @@ Base.size(tw::TrapezoidalWeights) = (tw.l,)
 
 function LinearBaseFunVals(T::DataType, l)
     idxs = [one(l), one(l)]
-    val = Vector{T}(undef,2)
+    val = zeros(T,2)
     LinearBaseFunVals(val,idxs,l)
 end
 function Base.getindex(vals::LinearBaseFunVals{vT}, idx) where vT
@@ -28,11 +28,16 @@ Base.size(vals::LinearBaseFunVals) = (vals.l,)
 Base.size(vals::LinearBaseFunVals,i) = i==1 ? vals.l : one(vals.l)
 Base.length(vals::LinearBaseFunVals) = vals.l
 _val(vals::LinearBaseFunVals) = vals.val
+_eachindex(vals::LinearBaseFunVals) where itpT<:LinearInterpolation = vals.idxs
 
-_eachindex(axis::GridAxis{itpT}) where itpT<:LinearInterpolation = axis.temp.idxs
+_eachindex(axis::GridAxis{itpT}) where itpT<:LinearInterpolation = _eachindex(axis.temp)
 _gettempvals(axis::GridAxis{itpT}) where itpT<:LinearInterpolation = axis.temp.val
 Base.similar(lbfv::LinearBaseFunVals) = LinearBaseFunVals(similar(lbfv.val),similar(lbfv.idxs),lbfv.l)
-Base.zero(lbfv::LinearBaseFunVals) = LinearBaseFunVals(deepcopy(lbfv.val),zero(lbfv.idxs),lbfv.l)
+Base.zero(lbfv::LinearBaseFunVals) = LinearBaseFunVals(zero(lbfv.val),one.(lbfv.idxs),lbfv.l)
+
+function duplicate(a::GridAxis{itpT,wT,xT,xeT,tmpT}) where {itpT<:SparseInterpolationType,wT,xT,xeT,tmpT<:LinearBaseFunVals} 
+    GridAxis{itpT,wT,xT,xeT,tmpT}(deepcopy(a.itp), deepcopy(a.xs), deepcopy(a.wts), zero(a.temp))
+end
 
 function linearinterpolation_weights!(vals,x1,x2, x, Δx)
     if Δx isa Nothing

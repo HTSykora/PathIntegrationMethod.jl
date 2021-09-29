@@ -64,7 +64,7 @@ abs(get_errconv(err_Δt,Δts) -1.) < 0.1
 Δt = 0.0001
 Δt = 0.00002875
 Tmax = 10.0
-gridaxis = GridAxis(-3,3,21,interpolation = :linear)
+gridaxis = GridAxis(-3, 3, 101, interpolation = :linear)
 @time PI = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true);
 @time for _ in 1:1#Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
     advance!(PI)
@@ -82,9 +82,9 @@ end
 ######################
 # # Performance tests
 
-# dbg_IK, dbg_kwargs = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true, debug_mode = true );
-# @time dbg_stepMX = PathIntegrationMethod.initialize_stepMX(eltype(dbg_IK.pdf.p), dbg_IK.t, length(dbg_IK.pdf))
-# @btime PathIntegrationMethod.compute_stepMX($dbg_IK, $dbg_kwargs...)
+dbg_IK, dbg_kwargs = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true, debug_mode = true );
+@time dbg_stepMX = PathIntegrationMethod.initialize_stepMX(eltype(dbg_IK.pdf.p), dbg_IK.t, length(dbg_IK.pdf))
+@btime PathIntegrationMethod.compute_stepMX($dbg_IK, $dbg_kwargs...)
 
 
 # dbg_zp = zip(dbg_IK.temp.itpVs,(1,))
@@ -102,4 +102,36 @@ end
 # end
 # quadgk!(foo, dbg_IK.temp.itpM, -3.,3.)
 
-# @btime dbg_IK($dbg_IK.temp.itpM, 0.)  
+# @btime dbg_IK($dbg_IK.temp.itpM, 0.) 
+
+### Debugging
+
+# (5,)
+# ERROR: LoadError: DomainError with -2.056640625:
+# integrand produced Inf in the interval (-2.0625, -2.05078125)
+
+# (2,)
+# ERROR: LoadError: DomainError with -0.234375:
+# integrand produced Inf in the interval (-0.28125, -0.1875)
+
+gridaxis = GridAxis(-3, 3, 21, interpolation = :linear)
+@time dbg_IK, dbg_kwargs = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true, debug_mode = true );
+@time dbg_stepMX = PathIntegrationMethod.initialize_stepMX(eltype(dbg_IK.pdf.p), dbg_IK.t, length(dbg_IK.pdf))
+
+@time PathIntegrationMethod.update_IK_state_x1!(dbg_IK,(2,))
+@time PathIntegrationMethod.update_dyn_state_x1!(dbg_IK, (2,))
+
+@run dbg_IK(dbg_IK.temp.itpM,-0.234375)
+@btime dbg_IK($dbg_IK.temp.itpM,-2.7)
+@btime dbg_IK($dbg_IK.temp.itpM,$(gridaxis[2] + 0.01))
+dbg_intlimits =(first(dbg_IK.int_axes)[1],first(dbg_IK.int_axes)[end]);
+dbg_kwargs = PathIntegrationMethod.cleanup_quadgk_keywords(;dbg_IK.kwargs...);
+
+global myint = 0
+function foo(val,x)
+    global myint +=1
+    dbg_IK(val,x)
+end
+quadgk!(foo, dbg_IK.temp.itpM, -3.,3.)
+@time quadgk!(dbg_IK, dbg_IK.temp.itpM, dbg_intlimits...; dbg_kwargs...)
+@btime quadgk!($dbg_IK, $dbg_IK.temp.itpM, $dbg_intlimits...; $dbg_kwargs...)

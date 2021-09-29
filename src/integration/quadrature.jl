@@ -10,3 +10,4 @@ function (q::Quadrature)(f, vals)
     end
     sum(fx*w for (fx,w) in zip(vals,q.w))
 end
+
