@@ -48,7 +48,7 @@ function clenshawcurtisweights(T::DataType,n1::Integer)
     # bma=(b-a);
     N=n1-1; 
     Ns = 2:2:N;
-    _w=zeros(T,2(n1-1));
+    _w= zeros(T,2*(n1-1));
     w = zeros(T,n1);
 
     _w[1] = T(2);
@@ -67,14 +67,17 @@ function clenshawcurtisweights(T::DataType,n1::Integer)
     end
     w
 end
-function clenshawcurtisweights(T::DataType,n1::Integer,xa,xb)
+function clenshawcurtisweights(T::DataType,xa,xb,n1::Integer)
     bma2 = T(0.5)*(T(xb)-T(xa))
     w = clenshawcurtisweights(T,n1)
     w .*= bma2
     w
 end
-function clenshawcurtisweights(n1::Integer,args::Vararg{Any,N}) where N
-    clenshawcurtisweights(Float64,n1,args...)
+function clenshawcurtisweights(n1::Integer) where {N}
+    clenshawcurtisweights(Float64,n1)
+end
+function clenshawcurtisweights(xa::Ta,xb::Tb,n1::Integer) where {N,Ta<:Number,Tb<:Number}
+    clenshawcurtisweights(Float64,xa,xb,n1)
 end
 
 function basefun_vals!(vals,itp::ChebyshevInterpolation,xs::Vx,x) where {Vx<:AbstractVector{Tx}} where Tx<:Number

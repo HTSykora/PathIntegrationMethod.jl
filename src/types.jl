@@ -147,19 +147,23 @@ end
 #     wallID::wT
 #     Q_atwall::BitArray{1}
 # end
+abstract type AbstractDiscreteIntegratorMethod end
 abstract type AbstractDiscreteIntegratorType end
-struct ClenshawCurtisIntegrator <:AbstractDiscreteIntegratorType end
-struct TrapezoidalIntegrator <: AbstractDiscreteIntegratorType end
+struct ClenshawCurtisIntegrator <:AbstractDiscreteIntegratorMethod end
+struct GaussLegendreIntegrator <:AbstractDiscreteIntegratorMethod end
+struct GaussRadauIntegrator <:AbstractDiscreteIntegratorMethod end
+struct GaussLobattoIntegrator <:AbstractDiscreteIntegratorMethod end
+struct TrapezoidalIntegrator <: AbstractDiscreteIntegratorMethod end
+struct QuadGKIntegrator{iT,rT,kT} <:AbstractDiscreteIntegratorType
+    int_limits::iT
+    res::rT
+    kwargs::kT
+end
 struct DiscreteIntegrator{IType,xT,wT,resT,tempT} <:AbstractDiscreteIntegratorType
     x::xT
     w::wT
     res::resT
     temp::tempT
-end
-struct QuadGKIntegrator{iT,rT,kT} <:AbstractDiscreteIntegratorType
-    int_limits::iT
-    res::rT
-    kwargs::kT
 end
 struct DiagonalNormalPDF{uT, sT} <: Function
     μ::uT

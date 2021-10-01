@@ -21,13 +21,41 @@ end
 function (::ClenshawCurtisIntegrator)(xT, wT, start, stop, num) 
     chebygrid(xT, start, stop, num), clenshawcurtisweights(wT, start, stop, num)
 end
+function (::GaussLegendreIntegrator)(xT, wT, start, stop, num)
+    x0,w0 = gausslegendre(num)
+    x = rescale_x(x0, xT, start, stop)
+    w = rescale_w(w0, wT, start, stop)
+    x, w
+end
+function (::GaussRadauIntegrator)(xT, wT, start, stop, num)
+    x0,w0 = gaussradau(num)
+    x = rescale_x(x0, xT, start, stop)
+    w = rescale_w(w0, wT, start, stop)
+    x, w
+end
+function (::GaussLobattoIntegrator)(xT, wT, start, stop, num)
+    x0,w0 = gausslobatto(num)
+    x = rescale_x(x0, xT, start, stop)
+    w = rescale_w(w0, wT, start, stop)
+    x, w
+end
+function rescale_x(x,T,start,stop)
+    bma2 = (T(stop)- T(start))/2
+    _start = T(start)
+    _x = T.(x)
+    _x .= (_x .+ one(T)) .* bma2 .+ _start 
+end
+function rescale_w(w,T,start,stop)
+    bma2 = (T(stop)- T(start))/2
+    _x = T.(w)
+    _x .= _x .* bma2
+end
 function (::TrapezoidalIntegrator)(xT, wT, start, stop, num) 
     x = LinRange{xT}(start,stop,num)
     Δ = wT((stop-start)/(num-1));
     w = collect(TrapezoidalWeights{wT}(num,Δ))
     x, w
 end
-
 
 function (q::DiscreteIntegrator{intT, xT,wT})(f!, res, temp) where {intT, xT<:AbstractVector{T1}, wT<:AbstractVector{T2}} where {T1<:Number, T2<:Number}
     # f!(temp, q.x[1])
