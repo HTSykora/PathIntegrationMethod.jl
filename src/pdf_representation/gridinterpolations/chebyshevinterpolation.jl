@@ -43,22 +43,38 @@ end
     clenshawcurtisweights([T,],n)
 Create an array of `n` weights corresponding to the `n` chebyshev nodes in [-1,1] with type T or Float64
 """
-clenshawcurtisweights(n1::Integer) = clenshawcurtisweights(Float64,n1::Integer)
-function clenshawcurtisweights(T, n1::Integer)
-    n = n1-1
-    _n = 1/n
+function clenshawcurtisweights(T::DataType,n1::Integer)
+    # N1 = 10001; b = 1; a = -1;
+    # bma=(b-a);
+    N=n1-1; 
+    Ns = 2:2:N;
+    _w=zeros(T,2(n1-1));
     w = zeros(T,n1);
-    w[1] = (1-sum(_b(T,n,j)/(4j^2-1) for j in 1:n÷2))*_n
-    w[end] = w[1]#_w0(n1)#(1-sum(_b(Float64,n,j)/(4j^2-1) for j in 1:n÷2))*_n
-    @inbounds for k in 1:n-1
-        ϑk = k*_n
-        w[k+1] = 2*(1-sum(_b(T,n,j)/(4j^2-1)*cospi(2j*ϑk) for j in 1:n÷2))*_n
+
+    _w[1] = T(2);
+    for (i,ic) in enumerate(3:2:n1)
+        _w[ic] = T(2)/(one(T)-T(Ns[i])^2)
+    end
+    for ic in 3:2:n1-1
+        _w[end-ic+2] = _w[ic]
+    end
+    _iw = real.(ifft(_w))
+    
+    w[1] = _iw[1]
+    w[end] = _iw[n1]
+    for i in 2:length(w)-1
+        w[i] = T(2)*_iw[i]
     end
     w
 end
-clenshawcurtisweights(xa::Number,xb::Number,n1::Integer) = clenshawcurtisweights(Float64,xa,xb,n1)
-function clenshawcurtisweights(T,xa::Number,xb::Number,n1::Integer)
-    T(0.5)*(T(xb)-T(xa)) .* clenshawcurtisweights(T,n1)
+function clenshawcurtisweights(T::DataType,n1::Integer,xa,xb)
+    bma2 = T(0.5)*(T(xb)-T(xa))
+    w = clenshawcurtisweights(T,n1)
+    w .*= bma2
+    w
+end
+function clenshawcurtisweights(n1::Integer,args::Vararg{Any,N}) where N
+    clenshawcurtisweights(Float64,n1,args...)
 end
 
 function basefun_vals!(vals,itp::ChebyshevInterpolation,xs::Vx,x) where {Vx<:AbstractVector{Tx}} where Tx<:Number

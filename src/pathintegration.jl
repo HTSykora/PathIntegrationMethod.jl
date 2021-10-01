@@ -1,6 +1,6 @@
 function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d};
     discreteintegrator = d==k ? QuadGKIntegrator() : ClenshawCurtisIntegrator(),
-    di_N::NTuple{d-k+1,Int} = Tuple(10length(ax) for ax in axes[k:end]),
+    di_N = nothing, di_mul = 10, # discrete integration resolution
     initialise_pdf = true, f = nothing, pre_compute = false, debug_mode = Val{false}, kwargs...) where {d,k,m}
     if method isa DiscreteTimeSteppingMethod
         x0 = zeros(d) # * not type safe for autodiff
@@ -28,7 +28,18 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
                         BI_product(_val.(itpVs)...), # = val_it
                         itpVs, # = itpVs
                         zero(pdf.p)) # = itpM
-        di = DiscreteIntegrator(discreteintegrator, axes[k:end],di_N, pdf.p; kwargs...)
+        if di_N isa Nothing
+            if di_mul isa Number
+                di_res = Tuple(di_mul*length(ax) for ax in axes[k:end])
+            elseif length(di_mul) == k-d+1
+                di_res = Tuple(di_mul*length(ax) for ax in axes[k:end])
+            else
+                error("Incorrect di_mul: should be a `Number` or an `Array`/`Tuple` with length $(d-k+1)")
+            end
+        else
+            di_res = di_N
+        end
+        di = DiscreteIntegrator(discreteintegrator, pdf.p, di_res, axes[k:end]...; kwargs...)
         IK = IntegrationKernel(sdestep, nothing, di, ts, pdf, ikt, kwargs)
         if debug_mode in (Val{true},true)
             return IK, kwargs

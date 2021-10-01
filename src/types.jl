@@ -156,7 +156,7 @@ struct DiscreteIntegrator{IType,xT,wT,resT,tempT} <:AbstractDiscreteIntegratorTy
     res::resT
     temp::tempT
 end
-struct QuadGKIntegrator{it,rT,kT} <:AbstractDiscreteIntegratorType
+struct QuadGKIntegrator{iT,rT,kT} <:AbstractDiscreteIntegratorType
     int_limits::iT
     res::rT
     kwargs::kT

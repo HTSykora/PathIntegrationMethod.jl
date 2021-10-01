@@ -4,13 +4,16 @@ using Reexport
 @reexport using LinearAlgebra
 @reexport using QuadGK
 using Symbolics
+using FFTW
+using FastGaussQuadrature
 
 export SDE, DriftTerm, DiffusionTerm,
     Euler, RK4, Maruyama,
     SDEStep, 
     GridAxis, InterpolatedFunction,
     PathIntegration,
-    advance!, integrate
+    advance!, integrate,
+    DiscreteIntegrator, QuadGKIntegrator, ClenshawCurtisIntegrator, TrapezoidalIntegrator
     
 
 include("types.jl")
