@@ -1,3 +1,4 @@
+using Pkg; Pkg.activate();
 using Revise, BenchmarkTools
 using PathIntegrationMethod
 using PyPlot, LaTeXStrings; pygui(true);
@@ -64,8 +65,8 @@ abs(get_errconv(err_Δt,Δts) -1.) < 0.1
 Δt = 0.001
 Δt = 0.00002875
 Tmax = 10.0
-gridaxis = GridAxis(-3, 3, 101, interpolation = :chebyshev)
-@time PI = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true, maxevals=1000);
+gridaxis = GridAxis(-3, 3, 51, interpolation = :chebyshev)
+@time PI = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator());
 @time for _ in 1:Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
     advance!(PI)
 end

@@ -1,3 +1,4 @@
+using Pkg; Pkg.activate()
 using Revise, BenchmarkTools
 using PathIntegrationMethod
 using PyPlot, LaTeXStrings; pygui(true);
@@ -23,16 +24,16 @@ function g2(x,p,t)
 end
 
 # ! TODO: find a convergent version :(
-par = [0.02, 0.1]; # ζ, σ = p
+par = [0.02, 0.2]; # ζ, σ = p
 sde = SDE((f1,f2),g2,par)
-gridaxes = (GridAxis(-3,3,31,interpolation=:chebyshev),
-        GridAxis(-3,3,31,interpolation=:chebyshev))
-Δt = 0.0005
-@time PI = PathIntegration(sde, Euler(), Δt,gridaxes...; pre_compute=true);
+gridaxes = (GridAxis(-3,3,71,interpolation=:chebyshev),
+        GridAxis(-3,3,71,interpolation=:chebyshev))
+Δt = 0.0025
+@time PI = PathIntegration(sde, Euler(), Δt,gridaxes...; pre_compute=true, discreteintegrator = ClenshawCurtisIntegrator());
 
 
-@time for _ in 1:100
-    advance!(PI)
+@time for _ in 1:20000
+        advance!(PI)
 end
 # pev1 = ev[2][:,1] .|> real; pev1 ./= sum(pev1)
 # pev2 = ev[2][:,2] .|> real; pev2 ./= sum(pev2)
@@ -46,7 +47,7 @@ begin
     P_AN = [p_AN(x,v; σ2 = σ2) for x in res.axes[1], v in res.axes[2]]
     # Data for a three-dimensional line
     scatter3D(X, V, res.p)
-    # scatter3D(X,V,P_AN)
+    scatter3D(X,V,P_AN)
 
     # X_itp = LinRange(-1.,1.,11)
     # V_itp = [1. for _ in X_itp]

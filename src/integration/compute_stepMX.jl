@@ -21,7 +21,6 @@ end
 
 function fill_stepMX!(stepMX, IK::IntegrationKernel)
     for (i, idx) in enumerate(dense_idx_it(IK))
-        println(idx)
         update_IK_state_x1!(IK,idx)
         update_dyn_state_x1!(IK, idx)
         get_IK_weights!(IK)

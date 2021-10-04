@@ -4,7 +4,7 @@ using PyPlot, LaTeXStrings; pygui(true);
 PyPlot.rc("text", usetex=true);
 py_colors=PyPlot.PyDict(PyPlot.matplotlib."rcParams")["axes.prop_cycle"].by_key()["color"];
 
-using QuadGK, Arpack
+# using QuadGK, Arpack
 ##
 function _p_an(x,v,p)
     ζ, λ, σ = p    
@@ -32,10 +32,10 @@ function g2(u,p,t)
 end
 
 ## 
-xmin, xmax, Nx = -10, 10, 51
-vmin, vmax, Nv = -10, 10, 51
+xmin, xmax, Nx = -10, 10, 101
+vmin, vmax, Nv = -10, 10, 101
 
-gridaxes = [GridAxis(xmin,xmax,Nx,interpolation = :chebyshev),GridAxis(vmin,vmax,Nv,interpolation = :chebyshev)]
+gridaxes = [GridAxis(xmin,xmax,Nx,interpolation = :linear),GridAxis(vmin,vmax,Nv,interpolation = :linear)]
 # 
 par = [0.15, 0.25, sqrt(0.5)];
 # par = [0.2, 0.1, sqrt(0.2)];
@@ -44,7 +44,7 @@ par = [0.15, 0.25, sqrt(0.5)];
 
 sde = SDE((f1, f2), g2, par)
 Δt = 0.001;
-@time PI = PathIntegration(sde, Euler(), Δt, gridaxes..., pre_compute = true, σ_init = 0.5, μ_init = [0.0, 0.]);
+@time PI = PathIntegration(sde, Euler(), Δt, gridaxes..., pre_compute = true, σ_init = 0.5, μ_init = [0.0, 0.], discreteintegrator = ClenshawCurtisIntegrator());
 # @btime PathIntegrationProblem($sde,$Δt,$xvs..., precompute = $true, σ_init = $0.5);
 
 @time for _ in 1:10000
@@ -61,9 +61,9 @@ begin
     X = [res.axes[1][i] for i in eachindex(res.axes[1]), j in eachindex(res.axes[2])]
     Y = [res.axes[2][j] for i in eachindex(res.axes[1]), j in eachindex(res.axes[2])]
    
-    scatter3D(X, Y, abs.(PI.pdf.p) .|> log10)
-    # scatter3D(X, Y, PI.pdf.p)
-    # scatter3D(X, Y, pd_analytic.p)
+    # scatter3D(X, Y, abs.(PI.pdf.p) .|> log10)
+    scatter3D(X, Y, PI.pdf.p)
+    scatter3D(X, Y, pd_analytic.p)
     # scatter3D(xvs[1],-1 .+ 0.25*xvs[1].^3,zero(xvs[1]))
     # xlim(left=-6,right=6)
     # ylim(bottom=-6,top=6)

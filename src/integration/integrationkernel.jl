@@ -1,6 +1,11 @@
 function IntegrationKernel(sdestep, f, discreteintegrator, ts, pdf, ikt, kwargs = nothing)
     x1 = similar(sdestep.x1)
-    IntegrationKernel{length(int_axes), typeof(sdestep), typeof(x1), typeof(discreteintegrator), typeof(f), typeof(pdf), typeof(ts), typeof(ikt), typeof(kwargs),typeof()}(sdestep,x1, f, discreteintegrator, ts, pdf, ikt, kwargs)
+    if discreteintegrator isa QuadGKIntegrator
+        kd = 1
+    else
+        kd = length(first(discreteintegrator.x))
+    end
+    IntegrationKernel{kd, typeof(sdestep), typeof(x1), typeof(discreteintegrator), typeof(f), typeof(pdf), typeof(ts), typeof(ikt), typeof(kwargs)}(sdestep,x1, f, discreteintegrator, ts, pdf, ikt, kwargs)
 end
 
 # Evaluating the integrals
@@ -21,9 +26,12 @@ function (IK::IntegrationKernel{dk,sdeT})(vals,x) where sdeT<:SDEStep{d,k,m} whe
 
     ## Get interpolation values
     set_oldvals_tozero!(vals, IK)
-    basefun_vals_safe!(IK)
-    ## Summarise
-    fill_vals!(vals,IK,fx,_idx_it(IK), _val_it(IK))
+    if isapprox(fx,zero(fx),atol=1e-8)
+        all_zero!(vals, IK)
+    else
+        basefun_vals_safe!(IK)
+        fill_vals!(vals,IK,fx,_idx_it(IK), _val_it(IK))
+    end
 
     vals
 end
@@ -44,6 +52,12 @@ function set_oldvals_tozero!(vals, IK::IntegrationKernel{kd,sdeT,x1T,xT,fT,pdfT}
     for idx in _idx_it(IK)
         vals[idx...] = zero(eltype(vals))
     end
+end
+function all_zero!(vals::AbstractArray{<:T}, IK::IntegrationKernel) where T
+    vals .= zero(T)
+    nothing
+end
+function all_zero!(vals, IK::IntegrationKernel{kd,sdeT,x1T,xT,fT,pdfT}) where {kd,sdeT,x1T,xT,fT,pdfT<:InterpolatedFunction{T,N, itp_type}} where {T,N,itp_type <: SparseInterpolationType}
 end
 
 function basefun_vals_safe!(IK::IntegrationKernel{dk,sdeT}) where sdeT<:SDEStep{d} where {dk,d}

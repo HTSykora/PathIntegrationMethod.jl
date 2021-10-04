@@ -8,14 +8,20 @@ function DiscreteIntegrator(discreteintegrator,res_prototype, N::Union{NTuple{1,
     DiscreteIntegrator{typeof(discreteintegrator), typeof(x), typeof(w), typeof(res_prototype), typeof(res_prototype)}(x,w,zero(res_prototype),zero(res_prototype))
 end
 
-QuadGKIntegrator() = QuadGKIntegrator(nothing,nothing,nothing)
+# QuadGKIntegrator() = QuadGKIntegrator(nothing,nothing,nothing)
+QuadGKIntegrator(;kwargs...) = QuadGKIntegrator(nothing,nothing,cleanup_quadgk_keywords(kwargs...))
 @inline function cleanup_quadgk_keywords(;σ_init = nothing, μ_init = nothing, kwargs...)
-    (;kwargs...)
+    kwargs
 end
-function DiscreteIntegrator(discreteintegrator::QuadGKIntegrator,res_prototype, N::Union{NTuple{1,<:Integer},<:Integer}, axes::GA; xT = Float64, wT = Float64, kwargs...) where GA<:GridAxis
+function DiscreteIntegrator(discreteintegrator::QuadGKIntegrator{T1,T2,Tkwarg},res_prototype, N::Union{NTuple{1,<:Integer},<:Integer}, axes::GA; xT = Float64, wT = Float64, kwargs...) where {GA<:GridAxis, T1, T2, Tkwarg}
     start = axes[1]
     stop = axes[end]
-    QuadGKIntegrator((start, stop),zero(res_prototype),cleanup_quadgk_keywords(;kwargs...))
+    # if Tkwargs <: Nothing
+    #     qgkkwargs = cleanup_quadgk_keywords(;kwargs...)
+    # else
+    qgkkwargs = (discreteintegrator.kwargs..., cleanup_quadgk_keywords(;kwargs...)...)
+    # end
+    QuadGKIntegrator((start, stop), zero(res_prototype), qgkkwargs)
 end
 
 function (::ClenshawCurtisIntegrator)(xT, wT, start, stop, num) 
@@ -87,10 +93,11 @@ end
 function (q::QuadGKIntegrator)(f!)
     q(f!,q.res)
 end
+
 # Integration schemes for ∫f(x)dx with generic f(x):
 # Clenshaw-Curtis (chebyshev with endpoints included)
 # Gauss-Legendre (no endpoint is included)
 # Gauss-Radau (one endpoint is included)
 # Gauss-Lobato (both endpoints are included)
-# Romberg iteration
 # Newton-Cotes: Trapezoidal vs Simpson rule
+# Romberg iteration
