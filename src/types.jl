@@ -101,12 +101,14 @@ struct TrapezoidalWeights{ΔT} <: AbstractVector{ΔT}
     l::Int64
     Δ::ΔT
 end
-struct LinearBaseFunVals{vT, iT, lT}
+struct SparseInterpolationBaseVals{Order,vT, iT, lT}
     val::vT
     idxs::iT
     l::lT
 end
-
+struct CubicInterpolation{ΔT} <: SparseInterpolationType
+    Δ::ΔT
+end
 struct InterpolatedFunction{T,N,itp_type,axesT,pT,idx_itT,val_itT} <: AbstractArray{T,N}
     axes::axesT
     p::pT

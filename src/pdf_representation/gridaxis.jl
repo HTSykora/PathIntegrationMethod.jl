@@ -4,20 +4,29 @@ _eachindex(axis::GridAxis) = eachindex(axis)
 _eachindex(V::AbstractVector) = eachindex(V)
 _gettempvals(axis::GridAxis) = axis.temp
 
+
+_eachindex(axis::GridAxis{itpT}) where itpT<:SparseInterpolationType = _eachindex(axis.temp)
+_gettempvals(axis::GridAxis{itpT}) where itpT<:SparseInterpolationType = axis.temp.val
+
 function GridAxis(start,stop,num::Int; xT = Float64, wT = Float64, interpolation = :chebyshev, kwargs...)
-    if interpolation == :linear
-        Δ = wT((stop-start)/(num-1));
-        xs = LinRange{xT}(start,stop,num)
-        wts = TrapezoidalWeights{wT}(num,Δ)
-        itp = LinearInterpolation(wT(Δ));
-        temp = LinearBaseFunVals(xT,num)
-    elseif interpolation == :chebyshev
+    @assert interpolation in [:chebyshev, :linear, :cubic]
+    if interpolation == :chebyshev
         xs = chebygrid(xT, start,stop,num)
         wts = clenshawcurtisweights(wT, start,stop,num)
         itp = ChebyshevInterpolation(num);
         temp = similar(xs)
-    else
-        error("Interpolation should be `:linear` or `:chebyshev`.")
+    else 
+        Δ = wT((stop-start)/(num-1));
+        xs = LinRange{xT}(start,stop,num)
+        wts = TrapezoidalWeights{wT}(num,Δ)
+        if interpolation == :linear
+            itp = LinearInterpolation(wT(Δ));
+            order = 1
+        elseif interpolation == :cubic
+            itp = CubicInterpolation(wT(Δ));
+            order = 3
+        end
+        temp = SparseInterpolationBaseVals(xT,num, order)
     end
     return GridAxis{typeof(itp),typeof(wts),typeof(xs),eltype(xs),typeof(temp)}(itp,xs,wts,temp)
 end
@@ -29,4 +38,8 @@ end
 
 function duplicate(a::GridAxis{itpT,wT,xT,xeT,tmpT}) where {itpT,wT,xT,xeT,tmpT} 
     GridAxis{itpT,wT,xT,xeT,tmpT}(deepcopy(a.itp), deepcopy(a.xs), deepcopy(a.wts), deepcopy(a.temp))
+end
+
+function duplicate(a::GridAxis{itpT,wT,xT,xeT,tmpT}) where {itpT<:SparseInterpolationType,wT,xT,xeT,tmpT<:SparseInterpolationBaseVals} 
+    GridAxis{itpT,wT,xT,xeT,tmpT}(deepcopy(a.itp), deepcopy(a.xs), deepcopy(a.wts), zero(a.temp))
 end

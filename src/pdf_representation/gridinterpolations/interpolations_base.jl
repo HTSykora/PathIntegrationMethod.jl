@@ -65,3 +65,21 @@ function basefun_vals_safe(axis,x) where Vx<:AbstractVector{Tx} where Tx<:Number
     basefun_vals_safe!(vals,axis,x)
     return vals
 end
+
+
+# Sparse interpolation
+# Getindex: define at sparse interpolation
+function SparseInterpolationBaseVals(T::DataType, l::lT, order = 1) where lT<:Integer
+    idxs = ones(lT,order +1)
+    val = zeros(T,length(idxs))
+    SparseInterpolationBaseVals{order,typeof(val),typeof(idxs),lT}(val,idxs,l)
+end
+Base.size(vals::SparseInterpolationBaseVals) = (vals.l,)
+Base.size(vals::SparseInterpolationBaseVals,i) = i==1 ? vals.l : one(vals.l)
+Base.length(vals::SparseInterpolationBaseVals) = vals.l
+_val(vals::SparseInterpolationBaseVals) = vals.val
+_eachindex(vals::SparseInterpolationBaseVals) where itpT<:LinearInterpolation = vals.idxs
+
+Base.similar(lbfv::SparseInterpolationBaseVals) = SparseInterpolationBaseVals(similar(lbfv.val),similar(lbfv.idxs),lbfv.l)
+Base.zero(lbfv::SparseInterpolationBaseVals) = SparseInterpolationBaseVals(zero(lbfv.val),one.(lbfv.idxs),lbfv.l)
+

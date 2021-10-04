@@ -1,3 +1,4 @@
+using Pkg; Pkg.activate()
 using Revise
 using PathIntegrationMethod
 using BenchmarkTools
@@ -10,9 +11,10 @@ get_pdf_vals(f_itp, xs) = [f_itp(x...) for x in Iterators.product(xs...)]
 
 itp = :chebyshev
 itp = :linear
+itp = :cubic
 
 grid_dat = [(Float64, -1,1,11),(Float64, 0,5,15),(Float64, -7,-1,21)]
-f_itp = InterpolatedFunction(Float64,[GridAxis(et,start,stop,num; interpolation = itp) for (et, start, stop, num) in grid_dat]...; f = f)
+f_itp = InterpolatedFunction(Float64,[GridAxis(start,stop,num; interpolation = itp, xT = et, wT = et) for (et, start, stop, num) in grid_dat]...; f = f)
 xs = [LinRange(start,stop, 2(num - 1)) for (et,start,stop,num) in grid_dat]
 
 
@@ -34,23 +36,26 @@ sum(abs2, f_true1 .- f_interpolated1)/length(f_true1) > sum(abs2, f_true2 .- f_i
 
 @btime PathIntegrationMethod.basefun_vals_safe!.($f_itp.axes,(0.1,1.2,1.1))
 
+##
 # Visual checks
 using PyPlot
 pygui(true)
 function f3(x) 
     sin(x)
 end
-grid_dat3 = [(Float64, -1,5,101)]
-f_itp3 = InterpolatedFunction(Float64,[GridAxis(et,start,stop,num; interpolation = :chebyshev) for (et, start, stop, num) in grid_dat3]...; f = f3)
+grid_dat3 = (-1,5,11)
+f_itp3 = InterpolatedFunction(Float64,GridAxis(grid_dat3...; interpolation = :cubic, xT = Float64); f = f3)
 
-xs = [LinRange(start,stop, 2(num-1)) for (et,start,stop,num) in grid_dat3]
-x_ref = [LinRange(start,stop, 100(num-1)) for (et,start,stop,num) in grid_dat3]
-@btime f_interpolated3 = f_itp3.(xs[1])
-f_interpolated3 = f_itp3.(xs[1])
+start,stop,num = grid_dat3
+xs = LinRange(start,stop, 5(num-1))
+x_ref = LinRange(start,stop, 100(num-1))
+@btime f_interpolated3 = f_itp3.(xs)
+f_interpolated3 = f_itp3.(xs)
 begin
     figure(1); clf()
-    plot(f_itp3.axes[1],f_itp3,color="red","-o")
-    plot(xs[1],f_interpolated3,"-o")
-    plot(x_ref[1],f3.(x_ref[1]))
-    plot(f_itp3.axes[1],f3.(f_itp3.axes[1]))
+    plot(f_itp3.axes[1],f_itp3,color="red","o", label = "Itp points")
+    plot(xs,f_interpolated3,"-o", markersize=4, label = "Itp full")
+    plot(x_ref,f3.(x_ref), label = "Ref")
+    plot(f_itp3.axes[1],f3.(f_itp3.axes[1]), label= "Ref Itp grid")
+    legend()
 end
