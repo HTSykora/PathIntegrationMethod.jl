@@ -43,7 +43,7 @@ pygui(true)
 function f3(x) 
     sin(x)
 end
-grid_dat3 = (-1,5,101)
+grid_dat3 = (-1,5,11)
 f_itp3 = InterpolatedFunction(Float64,GridAxis(grid_dat3...; interpolation = :chebyshev, xT = Float64); f = f3)
 
 start,stop,num = grid_dat3

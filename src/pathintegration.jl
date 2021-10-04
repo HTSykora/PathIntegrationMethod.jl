@@ -93,3 +93,4 @@ end
 
 (f::DiagonalNormalPDF)(x...) = prod(normal1D_σ2(μ, σ², _x) for (μ, σ², _x) in zip(f.μ, f.σ², x))
 
+(PI::PathIntegration)(x...) = PI.pdf(x...)
