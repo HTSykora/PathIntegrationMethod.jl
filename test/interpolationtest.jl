@@ -43,13 +43,12 @@ pygui(true)
 function f3(x) 
     sin(x)
 end
-grid_dat3 = (-1,5,11)
-f_itp3 = InterpolatedFunction(Float64,GridAxis(grid_dat3...; interpolation = :cubic, xT = Float64); f = f3)
+grid_dat3 = (-1,5,101)
+f_itp3 = InterpolatedFunction(Float64,GridAxis(grid_dat3...; interpolation = :chebyshev, xT = Float64); f = f3)
 
 start,stop,num = grid_dat3
 xs = LinRange(start,stop, 5(num-1))
 x_ref = LinRange(start,stop, 100(num-1))
-@btime f_interpolated3 = f_itp3.(xs)
 f_interpolated3 = f_itp3.(xs)
 begin
     figure(1); clf()
@@ -59,3 +58,4 @@ begin
     plot(f_itp3.axes[1],f3.(f_itp3.axes[1]), label= "Ref Itp grid")
     legend()
 end
+

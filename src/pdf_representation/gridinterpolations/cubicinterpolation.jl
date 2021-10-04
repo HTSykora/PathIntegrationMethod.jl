@@ -33,16 +33,16 @@ function cubicinterpolation_weights_1!(vals, dx, Δ)
     δ³ = δ²*δ
 
     ## Assuming explicit derivative in the beginning
-    # vals[1] = 0.5δ³ - 0.5δ² - δ + one(δ)
-    # vals[2] = -δ³ + δ² + δ
+    vals[1] = 0.5δ³ - 0.5δ² - δ + one(δ)
+    vals[2] = -δ³ + δ² + δ
 
-    ## Extending the last value
+    ## Midpoint approximated with the same end value
     # vals[1] = δ³ - 1.5δ² - 0.5δ + one(δ)
     # vals[2] = -1.5δ³ + 2δ² + 0.5δ
 
     ## Mean of the 2 approaches
-    vals[1] = (2.5δ³ - 3.5δ² - 2δ)/3 + one(δ)
-    vals[2] = (-4δ³ + 5δ² + 2δ)/3
+    # vals[1] = (2.5δ³ - 3.5δ² - 2δ)/3 + one(δ)
+    # vals[2] = (-4δ³ + 5δ² + 2δ)/3
     vals[3] = 0.5δ³ - 0.5δ²
     vals[4] = zero(δ)
     nothing
@@ -55,8 +55,17 @@ function cubicinterpolation_weights_end!(vals, dx, Δ)
 
     vals[1] = zero(δ)
     vals[2] = -0.5δ³ + δ² - 0.5δ
-    vals[3] = 1.5δ³ - 2.5δ² + one(δ)
-    vals[4] = -δ³ + 1.5δ² + 0.5δ
+    ## Mean of the 2 approaches
+    # vals[3] = (4δ³ - 7δ²)/3 + one(δ)
+    # vals[4] = (-2.5δ³ + 4δ²)/3 + 0.5δ
+
+    ## Assuming explicit derivative in the beginning
+    vals[3] = δ³ - 2δ² + one(δ)
+    vals[4] = -0.5δ³ + δ² + 0.5δ
+
+    ## Midpoint approximated with the same end value
+    # vals[3] = 1.5δ³ - 2.5δ² + one(δ)
+    # vals[4] = -δ³ + 1.5δ² + 0.5δ
     nothing
 end
 
@@ -83,7 +92,7 @@ function basefun_vals_safe!(vals::SparseInterpolationBaseVals{vT},itp::CubicInte
             vals.idxs[2] = i-1
             vals.idxs[3] = i
             vals.idxs[4] = i+1
-            cubicinterpolation_weights_1!(vals.val, x - xs[i], itp.Δ)
+            cubicinterpolation_weights_end!(vals.val, x - xs[i], itp.Δ)
         else
             vals.idxs[1] = i-1
             vals.idxs[2] = i
