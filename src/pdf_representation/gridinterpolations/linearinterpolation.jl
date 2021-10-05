@@ -2,15 +2,6 @@ function LinearInterpolation()
     LinearInterpolation(nothing)
 end
 
-function Base.getindex(tw::TrapezoidalWeights{wT}, idx) where wT
-    if idx == 1 || idx == tw.l
-        return wT(0.5)*tw.Δ
-    else
-        return tw.Δ
-    end
-end
-Base.size(tw::TrapezoidalWeights) = (tw.l,)
-
 function Base.getindex(vals::SparseInterpolationBaseVals{1,vT}, idx) where vT
     if idx == vals.idxs[1]
         return vals.val[1]

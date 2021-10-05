@@ -59,7 +59,14 @@ end
 function (::TrapezoidalIntegrator)(xT, wT, start, stop, num) 
     x = LinRange{xT}(start,stop,num)
     Δ = wT((stop-start)/(num-1));
-    w = collect(TrapezoidalWeights{wT}(num,Δ))
+    w = collect(TrapezoidalWeights(num,Δ))
+    x, w
+end
+NewtonCotesIntegrator(N) = NewtonCotesIntegrator{N}()
+function (::NewtonCotesIntegrator{N})(xT, wT, start, stop, num)  where N
+    x = LinRange{xT}(start,stop,num)
+    Δ = wT((stop-start)/(num-1));
+    w = collect(NewtonCotesWeights(N,num,Δ))
     x, w
 end
 
@@ -87,11 +94,11 @@ function (q::DiscreteIntegrator)(f!,res)
 end
 
 function (q::QuadGKIntegrator)(f!,res)
-    quadgk!(f!,res,q.int_limits...; q.kwargs...)
+    quadgk!(f!, res, q.int_limits...; q.kwargs...)
     nothing
 end
 function (q::QuadGKIntegrator)(f!)
-    q(f!,q.res)
+    q(f!, q.res)
 end
 
 # Integration schemes for ∫f(x)dx with generic f(x):

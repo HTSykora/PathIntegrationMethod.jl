@@ -8,7 +8,7 @@ _gettempvals(axis::GridAxis) = axis.temp
 _eachindex(axis::GridAxis{itpT}) where itpT<:SparseInterpolationType = _eachindex(axis.temp)
 _gettempvals(axis::GridAxis{itpT}) where itpT<:SparseInterpolationType = axis.temp.val
 
-function GridAxis(start,stop,num::Int; xT = Float64, wT = Float64, interpolation = :chebyshev, kwargs...)
+function GridAxis(start,stop,num::Int; xT = Float64, wT = Float64, interpolation = :chebyshev, newton_cotes_order = 2; kwargs...)
     @assert interpolation in [:chebyshev, :linear, :cubic]
     if interpolation == :chebyshev
         xs = chebygrid(xT, start,stop,num)
@@ -18,7 +18,6 @@ function GridAxis(start,stop,num::Int; xT = Float64, wT = Float64, interpolation
     else 
         Δ = wT((stop-start)/(num-1));
         xs = LinRange{xT}(start,stop,num)
-        wts = TrapezoidalWeights{wT}(num,Δ)
         if interpolation == :linear
             itp = LinearInterpolation(wT(Δ));
             order = 1
@@ -26,6 +25,7 @@ function GridAxis(start,stop,num::Int; xT = Float64, wT = Float64, interpolation
             itp = CubicInterpolation(wT(Δ));
             order = 3
         end
+        wts = NewtonCotesWeights(newton_cotes_order,num,Δ) |> collect
         temp = SparseInterpolationBaseVals(xT,num, order)
     end
     return GridAxis{typeof(itp),typeof(wts),typeof(xs),eltype(xs),typeof(temp)}(itp,xs,wts,temp)

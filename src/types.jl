@@ -97,10 +97,16 @@ struct FourierInterpolation{N} <: DenseInterpolationType end
 struct LinearInterpolation{ΔT} <: SparseInterpolationType
     Δ::ΔT
 end
-struct TrapezoidalWeights{ΔT} <: AbstractVector{ΔT}
-    l::Int64
+# struct TrapezoidalWeights{ΔT} <: AbstractVector{ΔT}
+#     l::Int64
+#     Δ::ΔT
+# end
+struct NewtonCotesWeights{N,ΔT,remainder,lT} <: AbstractVector{ΔT}
+    # remainder: mod(l-1,N) can be handled by only a pure Newton Cotes formula (e.g. compatible length with the integration scheme)
+    l::lT
     Δ::ΔT
 end
+
 struct SparseInterpolationBaseVals{Order,vT, iT, lT}
     val::vT
     idxs::iT
@@ -156,6 +162,7 @@ struct GaussLegendreIntegrator <:AbstractDiscreteIntegratorMethod end
 struct GaussRadauIntegrator <:AbstractDiscreteIntegratorMethod end
 struct GaussLobattoIntegrator <:AbstractDiscreteIntegratorMethod end
 struct TrapezoidalIntegrator <: AbstractDiscreteIntegratorMethod end
+struct NewtonCotesIntegrator{N} <: AbstractDiscreteIntegratorMethod end
 struct QuadGKIntegrator{iT,rT,kT} <:AbstractDiscreteIntegratorType
     int_limits::iT
     res::rT

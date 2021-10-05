@@ -13,7 +13,7 @@ export SDE, DriftTerm, DiffusionTerm,
     GridAxis, InterpolatedFunction,
     PathIntegration,
     advance!, integrate,
-    DiscreteIntegrator, QuadGKIntegrator, ClenshawCurtisIntegrator, GaussLegendreIntegrator, GaussRadauIntegrator, GaussLobattoIntegrator, TrapezoidalIntegrator
+    DiscreteIntegrator, QuadGKIntegrator, ClenshawCurtisIntegrator, GaussLegendreIntegrator, GaussRadauIntegrator, GaussLobattoIntegrator, TrapezoidalIntegrator, NewtonCotesIntegrator
     
 
 include("types.jl")
