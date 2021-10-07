@@ -1,10 +1,24 @@
-function DiscreteTimeStepping(drift)
+function DiscreteTimeStepping(drift<:DiscreteTimeSteppingMethod)
     DiscreteTimeStepping(drift,Maruyama())
 end
 
 DiscreteTimeStepping(method::DiscreteTimeStepping) = method
 
+function DiscreteTimeStepping(sde, drift<:DiscreteTimeSteppingMethod)
+    _method = DiscreteTimeStepping(drift,Maruyama())
+    DiscreteTimeStepping(sde,_method)
+end
 
+function DiscreteTimeStepping(sde, method::DiscreteTimeStepping)
+    resize_tempstates!(sde,method)
+    method
+end
+resize_tempstates!(sde,method) = nothing
+function resize_tempstates!(sde::AbstractSDE{d,k,m},method::DiscreteTimeStepping{RK}) where {d,k,m,RK<:RungeKutta}
+    resize!.(method.drift.ks,d)
+    resize!(method.drift.temp,d)
+    method
+end
 
 # Evaluate time stepping
 

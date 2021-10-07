@@ -16,7 +16,7 @@ end
 function (pcl::Union{PreComputeNewtonStep})(sde::AbstractSDE{1,1,1}, method::DiscreteTimeSteppingMethod, x0, x1, _t0, _t1)
     nothing
 end
-function (pcl::PreComputeNewtonStep)(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMethod, x0, x1, _t0, _t1) where {d,k,m}
+function (pcl::PreComputeNewtonStep)(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStepping{<:ExplicitDriftMethod}, x0, x1, _t0, _t1) where {d,k,m}
 
     @variables x[1:d] y[1:k-1] par[1:length(_par(sde))] t0 t1
 
@@ -37,7 +37,7 @@ function (pcl::PreComputeNewtonStep)(sde::AbstractSDE{d,k,m}, method::DiscreteTi
     SymbolicNewtonStep(xI_0!, detJ⁻¹, similar(x0,k-1))
 end
 
-function (pcl::PreComputeLU)(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMethod, x0, x1, Δt) where {d,k,m}
+function (pcl::PreComputeLU)(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStepping, x0, x1, Δt) where {d,k,m}
     error("LU precomputation not implemented!")
     # @variables x[1:d] y[1:k-1] par[1:length(getpar(sde))] t0 t1
     # step_sym = eval_driftstep_xI_sym(sde,method,x,par,t0,t1)
@@ -49,7 +49,7 @@ function (pcl::PreComputeLU)(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppi
     # StepJacobianLU(...)
 end
 
-function (pcl::PreComputeJacobian)(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMethod, x0, x1, Δt) where {d,k,m}
+function (pcl::PreComputeJacobian)(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStepping{<:ExplicitDriftMethod}, x0, x1, Δt) where {d,k,m}
     @variables x[1:d] y[1:k-1] par[1:length(getpar(sde))] t0 t1
     step_sym = eval_driftstep_xI_sym(sde,method,x,par,t0,t1)
     yI_eq = y - step_sym

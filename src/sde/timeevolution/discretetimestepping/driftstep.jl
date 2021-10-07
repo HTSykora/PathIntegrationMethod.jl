@@ -4,6 +4,28 @@ function eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT,
         step.x1[i] = step.x0[i] + step.sde.f(i,step.x0,_par(step),_t0(step))*Δt
     end
 end
+function eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord
+    Δt = _Δt(step)
+    for i in 1:d
+        step.method.ks[1][i] = step.x0[i] + step.sde.f(i,step.x0,_par(step),_t0(step))*Δt
+    end
+
+    for j in 1:ord-1
+        step.method.temp .= step.method.x0
+        for a in step.method.BT.a[j]
+            step.method.temp .= step.method.temp .+ a.weight .* a.val
+        end
+        tj = _t0(step)+Δt*(1+step.method.BT.c[j])
+        for i in 1:d
+            step.method.ks[j+1][i] = step.x0[i] + step.sde.f(i,step.method.temp,_par(step),tj)*Δt
+        end
+    end
+    
+    step.x1 .= step.x0
+    for b in step.method.BT.b
+        step.x1[i] .= step.x1[i] .+ b.weight .* b.val
+    end
+end
 
 
 function eval_driftstep_xI_sym(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStepping{<:Euler}, x, par, t0, t1) where {d,k,m}
@@ -13,18 +35,27 @@ function update_drift_x!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT,
     for i in 1:k-1
         step.x0[i] = step.steptracer.temp[i]
     end
-    Δt = _Δt(step)
-    for i in k:d
-        step.x1[i] = step.x0[i] + step.sde.f(i,step.x0,_par(step),_t0(step))*Δt
-    end
+    eval_driftstep!(step)
 end
 
-function eval_driftstep_xI_sym(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStepping{<:RK4},x,par,Δt) where {d,k,m}
-    k1 = [dyn.f[i](x, par) for i in 1:d]
-    k2 = [dyn.f[i](x + Δt*k1*1//2, par) for i in 1:d]
-    k3 = [dyn.f[i](x + Δt*k2*1//2, par) for i in 1:d]
-    k4 = [dyn.f[i](x + Δt*k3, par) for i in 1:d]
-    x + 1//6*Δt*(k1+2k2+2k3+k4)
+function eval_driftstep_xI_sym(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStepping{<:RungeKutta{ord}},x,par,t0,t1) where {d,k,m,ord}
+    Δt = t1 - t0
+    ks = [[x[i] + sde.f(i,x,par,t0)*(t1-t0) for i in 1:d]]
+
+    temp = similar(x)
+    for j in 1:ord-1
+        temp .= x
+        for a in method.BT.a[j]
+            temp .= temp .+ a._weight .* ks[a.idx]
+        end
+        tj = t0 + Δt*(1+step.method.BT._c[j])
+        push!(ks,[x[i] + sde.f(i,method.temp,par,tj)*Δt for i in 1:d])
+    end
+    
+    temp .= x
+    for b in step.method.BT.b
+        temp .= temp .+ b._weight .* ks[b.idx]
+    end
 end
 
 function compute_missing_states_driftstep!(step::SDEStep{d,1,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}; kwargs...) where {d,m,sdeT,TDrift, TDiff}
@@ -42,4 +73,20 @@ function compute_missing_states_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTime
     end
     # println("iterations: $(i-1)")
     nothing
+end
+
+# Butcher Tableus for Runge Kutta method
+BTElement(T::DataType,idx,_weight,val) = BTElement(idx,_weight,T(weight),val)
+function RungeKutta(order::Integer, BT::btT,ks::ksT, temp::tT) where{btT,ksT,tT}
+    RungeKutta{order,btT,ksT,tT}(BT,ks,temp)
+end
+function RK4(T::DataType = Float64)
+    temp = Vector{T}(undef,0)
+    ks = Tuple(similar(temp) for _ in 1:4)
+    _c = (1//2, 1//2, 1)
+    c = T.(_c)
+    b = (BTElement(T,1, 1//3, ks[1]), BTElement(T,2, 1//6, ks[2]), BTElement(T,3, 1//6, ks[3]), BTElement(T,4, 1//3, ks[4]))
+    a = ((BTElement(T,1,1//2, ks[1]),),(BTElement(T,2,1//2, ks[2]),),(BTElement(T,3,1, ks[3]),))
+    
+    RungeKutta(4, ButcherTableau(a,b,c,_c), ks, temp)
 end

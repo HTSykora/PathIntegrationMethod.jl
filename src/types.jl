@@ -37,12 +37,29 @@ struct DiffusionTerm{d,k,kd,m,gT} <: AbstractSDEComponent
 end
 
 abstract type DiscreteTimeSteppingMethod end
-abstract type DiscreteDriftMethod <: DiscreteTimeSteppingMethod end
-abstract type DiscreteDiffusionMethod <: DiscreteTimeSteppingMethod end
-struct Euler <: DiscreteDriftMethod end
-struct RK4 <: DiscreteDriftMethod end
-struct Maruyama <: DiscreteDiffusionMethod end
-struct Milstein <: DiscreteDiffusionMethod end
+abstract type ExplicitDriftMethod <: DiscreteTimeSteppingMethod end
+abstract type ExplicitDiffusionMethod <: DiscreteTimeSteppingMethod end
+struct Euler <: ExplicitDriftMethod end
+struct RungeKutta{order,btT,ksT,tT} <: ExplicitDriftMethod
+    BT::btT
+    ks::ksT
+    temp::tT
+end
+struct ButcherTableau{aT, bT, cT,_cT}
+    a::aT
+    b::bT
+    c::cT
+    _c::_cT
+end
+struct BTElement{iT,_wT, wT,vT}
+    idx::iT
+    _weight::_wT
+    weight::wT
+    val::vT
+end
+
+struct Maruyama <: ExplicitDiffusionMethod end
+struct Milstein <: ExplicitDiffusionMethod end
 struct DiscreteTimeStepping{TDrift,TDiff} <:DiscreteTimeSteppingMethod
     drift::TDrift
     diffusion::TDiff

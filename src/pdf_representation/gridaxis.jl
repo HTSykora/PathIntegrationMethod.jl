@@ -8,7 +8,7 @@ _gettempvals(axis::GridAxis) = axis.temp
 _eachindex(axis::GridAxis{itpT}) where itpT<:SparseInterpolationType = _eachindex(axis.temp)
 _gettempvals(axis::GridAxis{itpT}) where itpT<:SparseInterpolationType = axis.temp.val
 
-function GridAxis(start,stop,num::Int; xT = Float64, wT = Float64, interpolation = :chebyshev, newton_cotes_order = 2; kwargs...)
+function GridAxis(start,stop,num::Int; xT = Float64, wT = Float64, interpolation = :chebyshev, newton_cotes_order = 2, kwargs...)
     @assert interpolation in [:chebyshev, :linear, :cubic]
     if interpolation == :chebyshev
         xs = chebygrid(xT, start,stop,num)

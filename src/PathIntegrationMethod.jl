@@ -8,7 +8,7 @@ using FFTW
 using FastGaussQuadrature
 
 export SDE, DriftTerm, DiffusionTerm,
-    Euler, RK4, Maruyama,
+    Euler, RungeKutta, Maruyama,
     SDEStep, 
     GridAxis, InterpolatedFunction,
     PathIntegration,
