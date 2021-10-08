@@ -13,44 +13,42 @@ end
 
 function eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord
     _eval_driftstep!(step)
-    fill_to_x1(step)
+    fill_to_x1!(step)
 end
-function _eval_driftstep!(step,x0,x1)
+function _eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord
     Δt = _Δt(step)
     for i in 1:d
-        step.method.ks[1][i] = x0[i] + step.sde.f(i,x0,_par(step),_t0(step))*Δt
+        step.method.drift.ks[1][i] = step.x0[i] + step.sde.f(i,step.x0,_par(step),_t0(step))*Δt
     end
 
     for j in 1:ord-1
-        step.method.temp .= step.method.x0
-        for a in step.method.BT.a[j]
-            step.method.temp .= step.method.temp .+ a.weight .* a.val
+        step.method.drift.temp .= step.x0
+        for a in step.method.drift.BT.a[j]
+            step.method.drift.temp .= step.method.drift.temp .+ a.weight .* a.val
         end
-        tj = _t0(step)+Δt*(1+step.method.BT.c[j])
+        tj = _t0(step)+Δt*(1+step.method.drift.BT.c[j])
         for i in 1:d
-            step.method.ks[j+1][i] = x0[i] + step.sde.f(i,step.method.temp,_par(step),tj)*Δt
+            step.method.drift.ks[j+1][i] = step.x0[i] + step.sde.f(i,step.method.drift.temp,_par(step),tj)*Δt
         end
     end
 end
-function fill_to_x1(step)
+function fill_to_x1!(step)
     step.x1 .= step.x0
-    for b in step.method.BT.b
+    for b in step.method.drift.BT.b
         step.x1 .= step.x1 .+ b.weight .* b.val
     end
 end
-function fill_to_x1(step::SDEStep{d,k,m, sdeT, methodT},i) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord
+function fill_to_x1!(step::SDEStep{d,k,m, sdeT, methodT},i) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord
     step.x1 .= step.x0
-    for b in step.method.BT.b
+    for b in step.method.drift.BT.b
         for j in i:d
             step.x1[j] .= step.x1[j] .+ b.weight .* b.val[j]
         end
     end
 end
 function update_x1_kd!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord
-    _eval_driftstep!(step,step.x0,step.x1_temp)
-    for i in k:d
-        step.x1[i] = step.x1_temp[i]
-    end
+    _eval_driftstep!(step)
+    fill_to_x1!(step,k)
 end
 
 
@@ -61,25 +59,27 @@ function eval_driftstep_xI_sym(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStep
     Δt = t1 - t0
     ks = [[x[i] + sde.f(i,x,par,t0)*(t1-t0) for i in 1:d]]
     
-    temp = similar(x)
+    temp = collect(x)
     for j in 1:ord-1
-        temp .= x
-        for a in method.BT.a[j]
+        for (i,_x) in enumerate(x)
+            temp[i] = _x
+        end
+        for a in method.drift.BT.a[j]
             temp .= temp .+ a._weight .* ks[a.idx]
         end
-        tj = t0 + Δt*(1 + step.method.BT._c[j])
-        push!(ks, [x[i] + sde.f(i,method.temp,par,tj)*Δt for i in 1:d])
+        tj = t0 + Δt*(1 + method.drift.BT._c[j])
+        push!(ks, [x[i] + sde.f(i,temp,par,tj)*Δt for i in 1:d])
     end
     
-    temp .= x
-    for b in step.method.BT.b
+    temp .= collect(x)
+    for b in method.drift.BT.b
         temp .= temp .+ b._weight .* ks[b.idx]
     end
     
     return temp
 end
 
-function update_drift_x!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT,methodT<: DiscreteTimeStepping{TDrift}} where {TDrift}
+function update_drift_x!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT,methodT<:DiscreteTimeStepping{TDrift}} where {TDrift}
     for i in 1:k-1
         step.x0[i] = step.steptracer.temp[i]
     end
@@ -105,7 +105,7 @@ function compute_missing_states_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTime
 end
 
 # Butcher Tableus for Runge Kutta method
-BTElement(T::DataType,idx,_weight,val) = BTElement(idx,_weight,T(weight),val)
+BTElement(T::DataType,idx,_weight,val) = BTElement(idx,_weight,T(_weight),val)
 function RungeKutta(order::Integer, BT::btT,ks::ksT, temp::tT) where{btT,ksT,tT}
     RungeKutta{order,btT,ksT,tT}(BT,ks,temp)
 end

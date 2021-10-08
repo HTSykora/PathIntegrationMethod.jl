@@ -7,7 +7,7 @@ end
 
 function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pclT = PreComputeNewtonStep(), kwargs...) where {sdeT<:AbstractSDE{d,k,m}, methodT <: DiscreteTimeSteppingMethod, pclT <: PreComputeLevel} where {d,k,m}
     
-    _method = DiscreteTimeStepping(method)
+    _method = DiscreteTimeStepping(sde, method)
     steptracer = precomputelevel(sde,_method,x0,x1, t0, t1)
     
     SDEStep{d,k,m,sdeT,typeof(_method),typeof(steptracer),typeof(x0),typeof(x1),typeof(t0)}(sde, _method, x0, x1, t0, t1, steptracer)
