@@ -29,35 +29,36 @@ end
 
 
 function eval_driftstep_xI_sym(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStepping{<:Euler}, x, par, t0, t1) where {d,k,m}
-    [x[i] + sde.f(i,x,par,t0)*(t1-t0) for i in 1:k-1]
+    [x[i] + sde.f(i,x,par,t0)*(t1-t0) for i in 1:d]
 end
-function update_drift_x!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT,methodT<: DiscreteTimeStepping{TDrift}} where {TDrift}
-    for i in 1:k-1
-        step.x0[i] = step.steptracer.temp[i]
-    end
-    eval_driftstep!(step)
-end
-
 function eval_driftstep_xI_sym(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStepping{<:RungeKutta{ord}},x,par,t0,t1) where {d,k,m,ord}
     Δt = t1 - t0
     ks = [[x[i] + sde.f(i,x,par,t0)*(t1-t0) for i in 1:d]]
-
+    
     temp = similar(x)
     for j in 1:ord-1
         temp .= x
         for a in method.BT.a[j]
             temp .= temp .+ a._weight .* ks[a.idx]
         end
-        tj = t0 + Δt*(1+step.method.BT._c[j])
-        push!(ks,[x[i] + sde.f(i,method.temp,par,tj)*Δt for i in 1:d])
+        tj = t0 + Δt*(1 + step.method.BT._c[j])
+        push!(ks, [x[i] + sde.f(i,method.temp,par,tj)*Δt for i in 1:d])
     end
     
     temp .= x
     for b in step.method.BT.b
         temp .= temp .+ b._weight .* ks[b.idx]
     end
+    
+    return temp
 end
 
+function update_drift_x!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT,methodT<: DiscreteTimeStepping{TDrift}} where {TDrift}
+    for i in 1:k-1
+        step.x0[i] = step.steptracer.temp[i]
+    end
+    eval_driftstep!(step)
+end
 function compute_missing_states_driftstep!(step::SDEStep{d,1,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}; kwargs...) where {d,m,sdeT,TDrift, TDiff}
     eval_driftstep!(step)
 end
