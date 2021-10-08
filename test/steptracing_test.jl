@@ -1,3 +1,4 @@
+using Pkg; Pkg.activate()
 using Revise
 using PathIntegrationMethod
 using BenchmarkTools
@@ -18,9 +19,9 @@ end
 
 method = Euler()
 ##
-x0 = [1.,2.,3.]; t0 = 0.6; t1 = t0 + 0.1;
-par = [0.1,1.1]
-sde = SDE((f1,f2,f3), g, par)
+x0 = [1., 2., 3.]; t0 = 0.6; t1 = t0 + 0.1;
+par = [0.1, 1.1]
+sde = SDE((f1, f2, f3), g, par)
 
 @time sdestep = SDEStep(sde, method, x0, similar(x0), t0, t1)
 
@@ -34,5 +35,9 @@ sdestep.x1[3] = sdestep.x0[3]
 
 ##
 @btime PathIntegrationMethod.compute_missing_states_driftstep!($sdestep)
+PathIntegrationMethod.compute_missing_states_driftstep!(sdestep)
 reduce(&, x0_ref .≈ sdestep.x0)
 reduce(&, x1_ref .≈ sdestep.x1)
+
+
+@run PathIntegrationMethod.compute_missing_states_driftstep!(sdestep)
