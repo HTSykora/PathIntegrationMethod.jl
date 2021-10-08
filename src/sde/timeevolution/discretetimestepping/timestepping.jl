@@ -1,15 +1,15 @@
-function DiscreteTimeStepping(drift<:DiscreteTimeSteppingMethod)
+function DiscreteTimeStepping(drift::DiscreteTimeSteppingMethod)
     DiscreteTimeStepping(drift,Maruyama())
 end
 
 DiscreteTimeStepping(method::DiscreteTimeStepping) = method
 
-function DiscreteTimeStepping(sde, drift<:DiscreteTimeSteppingMethod)
+function DiscreteTimeStepping(sde::AbstractSDE, drift::DiscreteTimeSteppingMethod)
     _method = DiscreteTimeStepping(drift,Maruyama())
-    DiscreteTimeStepping(sde,_method)
+    DiscreteTimeStepping(sde, _method)
 end
 
-function DiscreteTimeStepping(sde, method::DiscreteTimeStepping)
+function DiscreteTimeStepping(sde::AbstractSDE, method::DiscreteTimeStepping)
     resize_tempstates!(sde,method)
     method
 end

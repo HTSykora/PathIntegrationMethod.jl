@@ -28,7 +28,7 @@ end
 
 function (F::DriftTerm{d,fT})(du,u,p,t) where {d,fT<:TupleVectorUnion}
     for i in 1:d
-        du[i] = D(i,u,p,t)
+        du[i] = F(i,u,p,t)
     end
     return du
 end
