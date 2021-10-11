@@ -22,26 +22,20 @@ function (pcl::PreComputeNewtonStep)(sde::AbstractSDE{d,k,m}, method::DiscreteTi
     @variables x[1:d] y[1:d] par[1:length(_par(sde))] t0 t1
     
     step_sym = eval_driftstep_xI_sym(sde,method,x,par,t0,t1)
-    yI_eq = [y[i] - step_sym[i] for i in 1:k-1]
-    JI_sym = Symbolics.jacobian(yI_eq, collect(x[1:k-1])) |> lu
-    # JI_sym = simplify(Symbolics.jacobian(yI_eq, collect(x[1:k-1])), expand = true)
-    _corr = JI_sym\yI_eq;
+    y_eq = [y[i] - step_sym[i] for i in 1:d]
+    J_sym = Symbolics.jacobian(y_eq, collect(x)); 
+    JI_sym = collect(J_sym[1:k-1,1:k-1]) |> lu
+    _corr = JI_sym\collect(y_eq[1:k-1]);
     x_new = [x[i] - _corr[i] for i in 1:k-1]
     detJI_inv = (det(JI_sym)^(-1))
-    # x_new = [simplify(x, expand = true) for x in x_new] # expand not working
-    # detJ_inv = (simplify(det(J_sym), expand = true)^(-1)) # expand not working
+    
     detJI⁻¹ = build_function(detJI_inv,x, par, t0, t1, expression = Val{false})
     _, xI_0! = build_function(x_new, x, collect(y[1:k-1]), par, t0, t1, expression = Val{false})
     
-    if true
-        y_eq = [y[i] - step_sym[i] for i in 1:d]
-        J_sym = Symbolics.jacobian(y_eq, collect(x)) |> lu
-        _corr = J_sym\y_eq;
-        x_new = [x[i] - _corr[i] for i in 1:d]
-        _, x_0! = build_function(x_new, x, y, par, t0, t1, expression = Val{false})
-    else
-        x_0! = nothing
-    end
+    _corr = lu(J_sym)\y_eq;
+    x_new = [x[i] - _corr[i] for i in 1:d]
+    _, x_0! = build_function(x_new, x, y, par, t0, t1, expression = Val{false})
+    
     # _, xII_1! = build_function(step_sym[k:d], x, par, dt, expression = Val{false})
     SymbolicNewtonStep(xI_0!, x_0!, detJI⁻¹, similar(x0,k-1), similar(x0))
 end
