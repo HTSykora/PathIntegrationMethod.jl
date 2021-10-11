@@ -18,7 +18,7 @@ end
 function _eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord
     Δt = _Δt(step)
     for i in 1:d
-        step.method.drift.ks[1][i] = step.x0[i] + step.sde.f(i,step.x0,_par(step),_t0(step))*Δt
+        step.method.drift.ks[1][i] = step.sde.f(i,step.x0,_par(step),_t0(step))*Δt
     end
 
     for j in 1:ord-1
@@ -28,7 +28,7 @@ function _eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT
         end
         tj = _t0(step)+Δt*(1+step.method.drift.BT.c[j])
         for i in 1:d
-            step.method.drift.ks[j+1][i] = step.x0[i] + step.sde.f(i,step.method.drift.temp,_par(step),tj)*Δt
+            step.method.drift.ks[j+1][i] = step.sde.f(i,step.method.drift.temp,_par(step),tj)*Δt
         end
     end
 end
@@ -39,10 +39,12 @@ function fill_to_x1!(step)
     end
 end
 function fill_to_x1!(step::SDEStep{d,k,m, sdeT, methodT},i) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord
-    step.x1 .= step.x0
+    for j in i:d
+        step.x1[j] = step.x0[j]
+    end
     for b in step.method.drift.BT.b
         for j in i:d
-            step.x1[j] .= step.x1[j] .+ b.weight .* b.val[j]
+            step.x1[j] = step.x1[j] + b.weight * b.val[j]
         end
     end
 end
@@ -57,7 +59,7 @@ function eval_driftstep_xI_sym(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStep
 end
 function eval_driftstep_xI_sym(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStepping{<:RungeKutta{ord}},x,par,t0,t1) where {d,k,m,ord}
     Δt = t1 - t0
-    ks = [[x[i] + sde.f(i,x,par,t0)*(t1-t0) for i in 1:d]]
+    ks = [[sde.f(i,x,par,t0)*(t1-t0) for i in 1:d]]
     
     temp = collect(x)
     for j in 1:ord-1
@@ -68,7 +70,7 @@ function eval_driftstep_xI_sym(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStep
             temp .= temp .+ a._weight .* ks[a.idx]
         end
         tj = t0 + Δt*(1 + method.drift.BT._c[j])
-        push!(ks, [x[i] + sde.f(i,temp,par,tj)*Δt for i in 1:d])
+        push!(ks, [sde.f(i,temp,par,tj)*Δt for i in 1:d])
     end
     
     temp .= collect(x)
