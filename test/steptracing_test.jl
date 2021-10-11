@@ -21,7 +21,7 @@ method = Euler()
 method = RK4()
 ##
 x0 = [1., 2., 3.]; t0 = 0.6; t1 = t0 + 0.1;
-par = [0.1, 1.1]
+par = [0.1, 0.1]
 sde = SDE((f1, f2, f3), g, par)
 
 @time sdestep = SDEStep(sde, method, x0, similar(x0), t0, t1);
