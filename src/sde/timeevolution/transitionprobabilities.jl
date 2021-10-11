@@ -51,5 +51,6 @@ end
 # Single noise source only on the last coordinate
 function transitionprobability(step::SDEStep{d,d,m,sdeT,method},x) where {d,m,sdeT, method<:DiscreteTimeStepping{TDrift, TDiff}} where {TDrift, TDiff<:Maruyama}
     σ2 = _Δt(step) * (step.sde.g(d, step.x0,_par(step),_t0(step))^ 2)
-    normal1D_σ2(step.x1[d], σ2, x[d])
+    # detJ_correction = _detJ(step, x)
+    normal1D_σ2(step.x1[d], σ2, x[d])*detJ_correction;
 end

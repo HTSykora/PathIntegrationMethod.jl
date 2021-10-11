@@ -83,7 +83,7 @@ end
 
 function update_drift_x!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT,methodT<:DiscreteTimeStepping{TDrift}} where {TDrift}
     for i in 1:k-1
-        step.x0[i] = step.steptracer.temp[i]
+        step.x0[i] = step.steptracer.tempI[i]
     end
     
     update_x1_kd!(step)
@@ -97,9 +97,21 @@ function compute_missing_states_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTime
     i = 1
     x_change = 2atol
     while x_change > atol && i < max_iter
-        iterate_xI!(step)
-        x_change = norm(step.x0[j] - x for (j,x) in enumerate(step.steptracer.temp))
+        iterate_xI0!(step)
+        x_change = norm(step.x0[j] - x for (j,x) in enumerate(step.steptracer.tempI))
         update_drift_x!(step)
+        i = i + 1
+    end
+    # println("iterations: $(i-1)")
+    nothing
+end
+function compute_initial_states_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}; max_iter = 100, atol = sqrt(eps()), kwargs...) where {d,k,m,sdeT,TDrift, TDiff}
+    i = 1
+    x_change = 2atol
+    while x_change > atol && i < max_iter
+        iterate_x0!(step)
+        x_change = norm(step.x0[j] - x for (j,x) in enumerate(step.steptracer.temp))
+        step.x0 .= step.steptracer.temp
         i = i + 1
     end
     # println("iterations: $(i-1)")

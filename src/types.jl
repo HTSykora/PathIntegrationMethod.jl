@@ -79,10 +79,12 @@ abstract type PreComputeLevel end
 struct PreComputeJacobian <: PreComputeLevel end
 struct PreComputeLU <: PreComputeLevel end
 struct PreComputeNewtonStep <: PreComputeLevel end
-struct SymbolicNewtonStep{xIT, detJiT,tempT}
+struct SymbolicNewtonStep{xIT, xT, detJIT,tempIT,tempT}
     xI_0!::xIT
+    x_0!::xT
     # xII_1!::xIIT
-    detJ_inv::detJiT
+    detJI_inv::detJIT
+    tempI::tempIT
     temp::tempT
 end
 # struct StepJacobianLU{JT, JMT}
