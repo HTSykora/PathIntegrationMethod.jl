@@ -45,17 +45,7 @@ function (::GaussLobattoIntegrator)(xT, wT, start, stop, num)
     w = rescale_w(w0, wT, start, stop)
     x, w
 end
-function rescale_x(x,T,start,stop)
-    bma2 = (T(stop)- T(start))/2
-    _start = T(start)
-    _x = T.(x)
-    _x .= (_x .+ one(T)) .* bma2 .+ _start 
-end
-function rescale_w(w,T,start,stop)
-    bma2 = (T(stop)- T(start))/2
-    _x = T.(w)
-    _x .= _x .* bma2
-end
+
 function (::TrapezoidalIntegrator)(xT, wT, start, stop, num) 
     x = LinRange{xT}(start,stop,num)
     Δ = wT((stop-start)/(num-1));
@@ -108,3 +98,34 @@ end
 # Gauss-Lobato (both endpoints are included)
 # Newton-Cotes: Trapezoidal vs Simpson rule
 # Romberg iteration
+
+# Rescaling
+function rescale_to_limits!(di::QuadGKIntegrator,start,stop)
+    di.int_limits[1] = start
+    di.int_limits[2] = stop
+    nothing
+end
+function rescale_to_limits!(di::DiscreteIntegrator,start,stop)
+    rescale_xw!(di.x,di.w,start,stop)
+    nothing
+end
+
+
+function rescale_x(x,T,start,stop)
+    bma2 = (T(stop)- T(start))/2
+    _start = T(start)
+    _x = T.(x)
+    _x .= (_x .+ one(T)) .* bma2 .+ _start 
+end
+function rescale_w(w,T,start,stop)
+    bma2 = (T(stop)- T(start))/2
+    _x = T.(w)
+    _x .= _x .* bma2
+end
+
+function rescale_xw!(x,w,start,stop)
+    scale = (stop- start)/(x[end] - x[1])
+    _start = start
+    x .= (x .+ one(eltype(x))) .* scale .+ _start 
+    w .= w .* scale
+end

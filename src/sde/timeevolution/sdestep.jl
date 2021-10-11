@@ -13,9 +13,25 @@ function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pcl
     SDEStep{d,k,m,sdeT,typeof(_method),typeof(steptracer),typeof(x0),typeof(x1),typeof(t0)}(sde, _method, x0, x1, t0, t1, steptracer)
 end
 
-function (pcl::Union{PreComputeNewtonStep})(sde::AbstractSDE{1,1,1}, method::DiscreteTimeStepping{<:ExplicitDriftMethod}, x0, x1, _t0, _t1)
-    nothing
+function (pcl::Union{PreComputeNewtonStep})(sde::AbstractSDE{d,1,m}, method::DiscreteTimeStepping{<:ExplicitDriftMethod}, x0, x1, _t0, _t1) where {d,m}
+    if _par(sde) isa Nothing
+        pl = 0
+    else
+        pl = length(_par(sde))
+    end
+    @variables x[1:d] y[1:d] par[1:pl] t0 t1
+    
+    step_sym = eval_driftstep_xI_sym(sde,method,x,par,t0,t1)
+    y_eq = [y[i] - step_sym[i] for i in 1:d]
+    J_sym = Symbolics.jacobian(y_eq, collect(x)); 
+
+    _corr = lu(J_sym)\y_eq;
+    x_new = [x[i] - _corr[i] for i in 1:d]
+    _, x_0! = build_function(x_new, x, y, par, t0, t1, expression = Val{false})
+    SymbolicNewtonStep(nothing, x_0!, nothing, nothing, similar(x0))
+
 end
+
 function (pcl::PreComputeNewtonStep)(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStepping{<:ExplicitDriftMethod}, x0, x1, _t0, _t1) where {d,k,m}
 
     # @variables x[1:d] y[1:k-1] par[1:length(_par(sde))] t0 t1

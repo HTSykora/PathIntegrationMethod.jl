@@ -81,7 +81,7 @@ end
 Δt = 0.000002875
 Tmax = 10.0
 gridaxis = GridAxis(-3, 3, 51, interpolation = :chebyshev)
-@time PI = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(),di_mul = 100);
+@time PI = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(),di_N = 1000);
 @time for _ in 1:Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
     advance!(PI)
 end

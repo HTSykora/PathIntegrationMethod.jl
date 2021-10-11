@@ -21,20 +21,27 @@ end
 
 function fill_stepMX!(stepMX, IK::IntegrationKernel)
     for (i, idx) in enumerate(dense_idx_it(IK))
-        update_IK_state_x1!(IK,idx)
+        update_IK_state_x1!(IK, idx)
         update_dyn_state_x1!(IK, idx)
+        rescale_discreteintegrator!(IK)
         get_IK_weights!(IK)
         fill_to_stepMX!(stepMX,IK,i)
     end
 end
 
 function update_IK_state_x1!(IK::IntegrationKernel{kd,dyn}, idx) where dyn <:SDEStep{d,k,m} where {kd,d,k,m}
-    IK.x1 .=  getindex.(IK.pdf.axes,idx)
+    for i in 1:d
+        IK.x1[i] = getindex(IK.pdf.axes[i],idx[i])
+    end
 end
 
 function update_dyn_state_x1!(IK::IntegrationKernel{kd,dyn}, idx) where dyn <:SDEStep{d,k,m} where {kd, d,k,m}
-    IK.sdestep.x1 .=  getindex.(IK.pdf.axes,idx) # ? check allocations
-    # view(sdestep.x1, 1:k-1) .=  getindex.(view(axes,1:k-1),view(idx,1:k-1)) # ? check allocations
+
+    IK.sdestep.x1 .= IK.x1
+    # IK.sdestep.x1 .=  getindex.(IK.pdf.axes,idx) # ? check allocations
+    # for i in 1:d
+    #     IK.sdestep.x1[i] = getindex(IK.pdf.axes[i],idx[i])
+    # end
 end
 
 @inline function fill_to_stepMX!(stepMX,IK,i)
@@ -43,4 +50,13 @@ end
         # ? fill by rows and multiply from the right when advancing time
     end
     nothing
+end
+
+function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; σ_mult = 10, kwargs...) where dyn <:SDEStep{d,k,m} where {kd,d,k,m}
+    compute_initial_states_driftstep!(IK.sdestep)
+    σ = sqrt(_Δt(IK.sdestep))*abs(IK.sdestep.sde.g(d, IK.sdestep.x0,_par(IK.sdestep),_t0(IK.sdestep)))
+    mn = max(IK.pdf.axes[d][1],IK.sdestep.x0[d] - σ_mult*σ)
+    mx = min(IK.pdf.axes[d][end],IK.sdestep.x0[d] + σ_mult*σ)
+
+    rescale_to_limits!(IK.discreteintegrator,mn,mx)
 end

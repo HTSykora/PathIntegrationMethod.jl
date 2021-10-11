@@ -40,7 +40,7 @@ end
 function update_relevant_states!(IK::IntegrationKernel{dk,sdeT},x::Number) where sdeT<:SDEStep{d,d,m} where {dk,d,m}
     IK.sdestep.x0[d] = x
 end
-function update_relevant_states!(IK::IntegrationKernel{dk,sdeT},x::AbstractVector) where sdeT<:SDEStep{d,k,m} where {dk,d,k,m}
+function update_relevant_states!(IK::IntegrationKernel{dk,sdeT},x::Vararg{Any,N}) where sdeT<:SDEStep{d,k,m} where {dk,d,k,m,N}
     for (i,j) in enumerate(k:d)
         IK.sdestep.x0[j] = x[i]
     end
