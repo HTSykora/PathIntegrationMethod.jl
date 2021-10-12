@@ -26,7 +26,7 @@ function (IK::IntegrationKernel{dk,sdeT})(vals,x) where sdeT<:SDEStep{d,k,m} whe
 
     ## Get interpolation values
     set_oldvals_tozero!(vals, IK)
-    if isapprox(fx,zero(fx),atol=1e-8)
+    if isapprox(fx,zero(fx), atol=1e-8)
         all_zero!(vals, IK)
     else
         basefun_vals_safe!(IK)

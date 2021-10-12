@@ -23,7 +23,7 @@ function fill_stepMX!(stepMX, IK::IntegrationKernel)
     for (i, idx) in enumerate(dense_idx_it(IK))
         update_IK_state_x1!(IK, idx)
         update_dyn_state_x1!(IK, idx)
-        rescale_discreteintegrator!(IK)
+        rescale_discreteintegrator!(IK; IK.kwargs...)
         get_IK_weights!(IK)
         fill_to_stepMX!(stepMX,IK,i)
     end
@@ -52,11 +52,18 @@ end
     nothing
 end
 
-function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; σ_mult = 10, kwargs...) where dyn <:SDEStep{d,k,m} where {kd,d,k,m}
-    compute_initial_states_driftstep!(IK.sdestep)
-    σ = sqrt(_Δt(IK.sdestep))*abs(IK.sdestep.sde.g(d, IK.sdestep.x0,_par(IK.sdestep),_t0(IK.sdestep)))
-    mn = max(IK.pdf.axes[d][1],IK.sdestep.x0[d] - σ_mult*σ)
-    mx = min(IK.pdf.axes[d][end],IK.sdestep.x0[d] + σ_mult*σ)
+function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thickness_multiplier = 10, smart_integration = true, kwargs...) where dyn <:SDEStep{d,k,m} where {kd,d,k,m}
+    if smart_integration
+        compute_initial_states_driftstep!(IK.sdestep)
+        σ = sqrt(_Δt(IK.sdestep)*IK.sdestep.sde.g(d, IK.sdestep.x0,_par(IK.sdestep),_t0(IK.sdestep))^2) # ! 1D Maruyama step -> Milstein?
+        mn = min(IK.pdf.axes[d][end], max(IK.pdf.axes[d][1],IK.sdestep.x0[d] - int_limit_thickness_multiplier*σ))
+        mx = max(IK.pdf.axes[d][1],min(IK.pdf.axes[d][end],IK.sdestep.x0[d] + int_limit_thickness_multiplier*σ))
 
-    rescale_to_limits!(IK.discreteintegrator,mn,mx)
+        if mn ≈ mx
+            mn = IK.pdf.axes[d][1]
+            mx = IK.pdf.axes[d][end]
+        end
+
+        rescale_to_limits!(IK.discreteintegrator,mn,mx)
+    end
 end

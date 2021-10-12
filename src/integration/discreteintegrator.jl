@@ -125,7 +125,7 @@ end
 
 function rescale_xw!(x,w,start,stop)
     scale = (stop- start)/(x[end] - x[1])
-    _start = start
-    x .= (x .+ one(eltype(x))) .* scale .+ _start 
+    old_start = x[1];
+    x .= (x .- old_start) .* scale .+ start 
     w .= w .* scale
 end
