@@ -65,7 +65,7 @@ end
 end
 @inline function next_stepMX(PI::PathIntegration{dynT, pdT,tsT}) where {dynT, pdT,tsT<:AbstractArray}
     PI.step_idx[1] =  mod1(PI.step_idx[1] + 1, length(PI.step_MX))
-    PI.stepMX[PI.step_idx[1]]
+    PI.step_MX[PI.step_idx[1]]
 end
 
 # Computations utilites

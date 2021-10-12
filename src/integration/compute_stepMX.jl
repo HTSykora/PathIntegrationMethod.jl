@@ -8,11 +8,11 @@ end
 @inline initialize_stepMX(T, ts::AbstractVector{eT}, l) where eT<:Number = [zeros(T,l,l) for _ in 1:(length(ts)-1)]
 @inline initialize_stepMX(T, ts::Number, l) = zeros(T, l, l)
 
-function fill_stepMX_ts!(stepMX, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, tT<:AbstractArray}
-    for jₜ in 1:length(IK.ts)-1
+function fill_stepMX_ts!(stepMX::AbstractVector{aT}, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, aT<:AbstractMatrix{T},tT<:AbstractArray} where T<:Number
+    for jₜ in 1:length(IK.t)-1
         IK.sdestep.t0[1] = IK.t[jₜ]
         IK.sdestep.t1[1] = IK.t[jₜ+1]
-        fill_stepMX!(stepMX, IK)
+        fill_stepMX!(stepMX[jₜ], IK)
     end
 end
 function fill_stepMX_ts!(stepMX, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, tT<:Number}
