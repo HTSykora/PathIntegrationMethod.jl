@@ -46,8 +46,8 @@ get_errconv(err,Δ) = mean(log10.(get_div(err))./ log10.(get_div(Δ)))
 
 ##
 
-xmin = -2; xmax = 2; xN = 31;
-vmin = -2; vmax = 2; vN = 31;
+xmin = -2; xmax = 2; xN = 51;
+vmin = -2; vmax = 2; vN = 51;
 gridaxes = (GridAxis(xmin,xmax,xN,interpolation=:chebyshev),
         GridAxis(vmin,vmax,vN,interpolation=:chebyshev))
 Δt = 0.025
@@ -63,7 +63,7 @@ errF = InterpolatedFunction(gridaxes...);
 
 ##
 @time begin
-    Δts = [1., 1/4, 1/64, 1/256, 1/1024,1/4096]#0.00002875]
+    Δts = [4.,2.,1., 1/4, 1/64, 1/256, 1/1024,1/4096,1/8192]#0.00002875]
 
     err_Δt_euler = Vector{Float64}(undef,0)
     err_Δt_rk4 = Vector{Float64}(undef,0)
