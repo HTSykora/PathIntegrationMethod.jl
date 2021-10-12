@@ -94,3 +94,47 @@ end
 (f::DiagonalNormalPDF)(x...) = prod(normal1D_σ2(μ, σ², _x) for (μ, σ², _x) in zip(f.μ, f.σ², x))
 
 (PI::PathIntegration)(x...) = PI.pdf(x...)
+
+## Recompute functions
+function reinit_PI_pdf!(PI,f = nothing)
+    if f isa Nothing
+        _f = init_DiagonalNormalPDF(PI.pdf.axes...)
+    elseif f isa Function
+        _f = f
+    end
+    recycle_interpolatedfunction!(PI.pdf, _f)
+end
+
+
+function recompute_step_MX!(PI::PathIntegration; par = nothing, t = nothing, f = nothing, Q_reinit = false)
+    if !(par isa Nothing)
+        PI.IK.sdestep.sde.par .= par;
+    end
+
+    if t isa AbstractVector
+        if length(PI.IK.t) != length(t)
+            resize!(PI.IK.t,length(t))
+        end
+        PI.IK.t .= t
+    elseif t isa Number
+        resize!(PI.IK.t,2);
+        PI.IK.t[1] = zero(eltype(PI.IK.t))
+        PI.IK.t[2] = t
+    end
+    if Q_reinit
+        reinit_PI_pdf!(PI)
+    elseif f isa Function
+        reinit_PI_pdf!(PI,f)
+    end
+
+    reinit_stepMX!(PI.step_MX)
+    fill_stepMX_ts!(PI.step_MX, PI.IK; PI.IK.kwargs...)
+    nothing
+end
+
+function reinit_stepMX!(step_MX::AbstractMatrix{T}) where T
+    fill!(step_MX,zero(T))
+end
+function reinit_stepMX!(step_MX::AbstractVector{amT}) where amT<:AbstractMatrix{T} where T
+    fill!.(step_MX,zero(T))
+end

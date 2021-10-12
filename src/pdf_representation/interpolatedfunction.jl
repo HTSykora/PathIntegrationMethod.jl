@@ -31,3 +31,11 @@ function get_itp_type(axes)
         axis.itp isa SparseInterpolationType 
     end ? SparseInterpolationType : DenseInterpolationType
 end
+
+function recycle_interpolatedfunction!(itp_f::InterpolatedFunction, f)
+    @assert f isa Function "f is not a function!"
+    _it = BI_product(itp_f.axes...)
+    for (i,x) in enumerate(_it)
+        itp_f.p[i] = f(x...)
+    end
+end

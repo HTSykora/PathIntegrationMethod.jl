@@ -11,8 +11,9 @@ export SDE, DriftTerm, DiffusionTerm,
     Euler, RungeKutta, RK4, Maruyama,
     SDEStep, 
     GridAxis, InterpolatedFunction,
-    PathIntegration,
-    advance!, integrate,
+    recycle_interpolatedfunction!,
+    PathIntegration, 
+    advance!, recompute_step_MX!, reinit_PI_pdf!, integrate,
     DiscreteIntegrator, QuadGKIntegrator, ClenshawCurtisIntegrator, GaussLegendreIntegrator, GaussRadauIntegrator, GaussLobattoIntegrator, TrapezoidalIntegrator, NewtonCotesIntegrator
     
 
