@@ -8,46 +8,72 @@ py_colors=PyPlot.PyDict(PyPlot.matplotlib."rcParams")["axes.prop_cycle"].by_key(
 ##
 
 # 1D problem:
-f(x,p,t) = x[1]-x[1]^3
-g(x,p,t) = sqrt(2)
-
-# Analytic form
-_p_AN(x,ε = 1.) = exp(x^2/2 - ε*x^4/4)
-function p_AN(xs, ε=1.)
-    itg = quadgk(x->_p_AN(x,ε) ,xs[1],xs[end])[1]
-    _p_AN.(xs,Ref(ε)) ./ itg
+f1(x,p,t) = x[2]
+function f2(x,p,t)
+    ζ, _ = p # ζ, σ
+    -2ζ*x[2] - x[1]
+end
+function g2(x,p,t)
+    p[2] # = σ
 end
 
-function get_PI_err(N, Δt; interpolation = :chebyshev, xmin = -3.0, xmax = 3.0, _testN = 10001, _x = LinRange(xmin, xmax, _testN), Tmax = 10.0, method = Euler(), kwargs...)
-    gridaxis = GridAxis(_x[1],_x[end],N,interpolation = interpolation)
-    PI = PathIntegration(sde, method, Δt, gridaxis, pre_compute = true;kwargs...);
+par = [0.05, 0.1]; # ζ, σ = p
+sde = SDE((f1,f2),g2,par)
+
+# Analytic form
+function stM2(p)
+    ζ, σ = p
+    σ^2 / (4ζ)
+end
+function p_AN(x,v; σ2 = 1.)
+    PathIntegrationMethod.normal1D_σ2(0.,σ2, x)*PathIntegrationMethod.normal1D_σ2(0.,σ2, v)
+end
+function get_PI_err_Δt!(PI,Δt, errF; Tmax = 100., Q_reinit = false) 
+    recompute_step_MX!(PI, t=Δt, Q_reinit = Q_reinit)
     for _ in 1:Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
         advance!(PI)
     end
-    err = sum(abs, PI.pdf.(_x) .- p_AN(_x)) * ((_x[end] - _x[1])/length(_x));
-    PI, err
+    
+    recycle_interpolatedfunction!(errF, (x,v) -> p_AN(x,v,σ2 = stM2(PI.IK.sdestep.sde.par)))
+    errF.p .= abs.(errF.p .- PI.pdf.p)
+    PI, integrate(errF)
+
 end
+
 
 get_div(x) = 10 .^(diff(log10.(x)))
 get_errconv(err,Δ) = mean(log10.(get_div(err))./ log10.(get_div(Δ)))
 
 ##
-euler = Euler()
-rk4 = RK4()
+
+xmin = -2; xmax = 2; xN = 31;
+vmin = -2; vmax = 2; vN = 31;
+gridaxes = (GridAxis(xmin,xmax,xN,interpolation=:chebyshev),
+        GridAxis(vmin,vmax,vN,interpolation=:chebyshev))
+Δt = 0.025
+euler = Euler();
+rk4  = RK4();
+@time PI_euler = PathIntegration(sde, euler, [0.,Δt],gridaxes...; pre_compute=true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 21, smart_integration = true,int_limit_thickness_multiplier = 6);
+@time PI_rk4 = PathIntegration(sde, rk4, [0.,Δt],gridaxes...; pre_compute=true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 21, smart_integration = true,int_limit_thickness_multiplier = 6);
+
+errF = InterpolatedFunction(gridaxes...);
+
+@time recompute_step_MX!(PI_euler,t=0.02)
+@time recompute_step_MX!(PI_rk4,t=0.02)
+
+##
 @time begin
-    Δts = [0.1, 0.01, 0.001, 0.0001, 0.00001]#0.00002875]
-    itp_ords = 11:2:51
+    Δts = [1., 1/4, 1/64, 1/256, 1/1024,1/4096]#0.00002875]
 
     err_Δt_euler = Vector{Float64}(undef,0)
     err_Δt_rk4 = Vector{Float64}(undef,0)
-    _x = LinRange(-3.0, 3.0, 10001)
 
     for Δt in Δts
-        _, err = get_PI_err(itp_ords[end], Δt; method = euler, interpolation = :chebyshev, _x =_x, Tmax = 10.0,discreteintegrator = ClenshawCurtisIntegrator(),di_mul = 100)
+        _, err = get_PI_err_Δt!(PI_euler, Δt, errF; Tmax = 100., Q_reinit = false) 
         push!(err_Δt_euler, err)
     end
     for Δt in Δts
-        _, err = get_PI_err(itp_ords[end], Δt; method = rk4, interpolation = :chebyshev, _x =_x, Tmax = 10.0,discreteintegrator = ClenshawCurtisIntegrator(),di_mul = 100)
+        _, err = get_PI_err_Δt!(PI_rk4, Δt, errF; Tmax = 100., Q_reinit = false)
         push!(err_Δt_rk4, err)
     end
 
@@ -63,8 +89,8 @@ abs(get_errconv(err_Δt_rk4,Δts) -1.) < 0.1
 
 begin
     figure(1); clf()
-    plot(Δts, err_Δt_euler, label = "Euler, \$N = $(itp_ords[end])\$")
-    plot(Δts, err_Δt_rk4, label = "RK4, \$N = $(itp_ords[end])\$")
+    plot(Δts, err_Δt_euler, label = "Euler, \$N_x = $(xN), N_v = $(vN)\$")
+    plot(Δts, err_Δt_rk4, label = "RK4, \$N_x = $(xN), N_v = $(vN)\$")
 
     plot(Δts, Δts,"-",c = py_colors[8],alpha = 0.5, label=L"\Delta t^{-1}")
     xscale(:log); yscale(:log)

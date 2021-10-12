@@ -23,17 +23,20 @@ function g2(x,p,t)
     p[2] # = σ
 end
 
-# ! TODO: find a convergent version :(
 par = [0.05, 0.1]; # ζ, σ = p
 sde = SDE((f1,f2),g2,par)
-gridaxes = (GridAxis(-3,3,41,interpolation=:chebyshev),
-        GridAxis(-3,3,41,interpolation=:chebyshev))
+xmin = -2; xmax = 2; xN = 31;
+vmin = -2; vmax = 2; vN = 31;
+gridaxes = (GridAxis(xmin,xmax,xN,interpolation=:chebyshev),
+        GridAxis(vmin,vmax,vN,interpolation=:chebyshev))
 Δt = 0.025
 method = Euler(); method  = RK4()
 @time PI = PathIntegration(sde, method, [0.,Δt],gridaxes...; pre_compute=true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 21, smart_integration = true,int_limit_thickness_multiplier = 6);
 
+@time recompute_step_MX!(PI,t=0.02)
 
-@time for _ in 1:10000#000
+Tmax = 100.;
+@time for _ in 1:Int((Tmax + sqrt(eps())) ÷ Δt)
         advance!(PI)
 end
 # pev1 = ev[2][:,1] .|> real; pev1 ./= sum(pev1)
