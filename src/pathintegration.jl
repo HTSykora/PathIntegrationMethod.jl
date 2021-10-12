@@ -1,17 +1,33 @@
+"""
+    PathIntegration(sde, method, ts, axes...; kwargs...)
+    
+Compute a `PathIntegration` object for computing the response probability density function evolution of the stochastic dynamical system defined by `sde`.
+
+# Arguments
+- `sde::AbstractSDE{d,k,m}`: ``d``-dimensional dynamic system which is subjected to an ``m``-dimensional Wiener process acting on the ``k...d`` coordinates.
+- `method::`
+# Keyword Arguments
+
+# Examples
+```julia-repl
+julia> bar([1, 2], [1, 2])
+1
+```
+"""
 function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d};
     discreteintegrator = d==k ? QuadGKIntegrator() : ClenshawCurtisIntegrator(),
     di_N = nothing, di_mul = 10, # discrete integration resolution
-    initialise_pdf = true, f = nothing, pre_compute = false, debug_mode = Val{false}, kwargs...) where {d,k,m}
+    initialise_pdf = true, f_init = nothing, pre_compute = false, debug_mode = Val{false}, kwargs...) where {d,k,m}
     if method isa DiscreteTimeSteppingMethod
         x0 = zeros(d) # * not type safe for autodiff
         x1 = similar(x0)
         sdestep = SDEStep(sde, method, x0, x1, ts; kwargs...)
     end
     if initialise_pdf
-        if f isa Nothing
+        if f_init isa Nothing
             _f = init_DiagonalNormalPDF(axes...; kwargs...)
         else
-            _f = f
+            _f = f_init
         end
     else
         _f = nothing
