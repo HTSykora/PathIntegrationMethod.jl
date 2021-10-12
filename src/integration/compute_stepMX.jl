@@ -52,7 +52,7 @@ end
     nothing
 end
 
-function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thickness_multiplier = 10, smart_integration = true, kwargs...) where dyn <:SDEStep{d,k,m} where {kd,d,k,m}
+function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thickness_multiplier = 6, smart_integration = true, kwargs...) where dyn <:SDEStep{d,k,m} where {kd,d,k,m}
     if smart_integration
         compute_initial_states_driftstep!(IK.sdestep)
         σ = sqrt(_Δt(IK.sdestep)*IK.sdestep.sde.g(d, IK.sdestep.x0,_par(IK.sdestep),_t0(IK.sdestep))^2) # ! 1D Maruyama step -> Milstein?
