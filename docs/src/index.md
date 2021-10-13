@@ -1,7 +1,9 @@
 # PathIntegrationMethod.jl
 
-Path integration method to compute the response probability density functions of SDEs.
+*Path integration method to compute the response probability density functions of SDEs.*
 
-```@docs
-PathIntegration
-```
+# Package features
+
+# Path integration method
+
+# Citing
