@@ -34,7 +34,7 @@ method = Euler(); method  = RK4()
 @time PI = PathIntegration(sde, method, [0.,Δt],gridaxes...; pre_compute=true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 21, smart_integration = true,int_limit_thickness_multiplier = 6);
 
 @time recompute_step_MX!(PI,t=0.02)
-
+##
 Tmax = 100.;
 @time for _ in 1:Int((Tmax + sqrt(eps())) ÷ Δt)
         advance!(PI)

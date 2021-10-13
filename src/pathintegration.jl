@@ -5,19 +5,34 @@ Compute a `PathIntegration` object for computing the response probability densit
 
 # Arguments
 - `sde::AbstractSDE{d,k,m}`: ``d``-dimensional dynamic system which is subjected to an ``m``-dimensional Wiener process acting on the ``k...d`` coordinates.
-- `method::`
-# Keyword Arguments
+- `method::DiscreteTimeSteppingMethod`: method used for the time-discretisation of the dynamical system described by `sde`. 
+- `ts::Union{Number,AbstractArray{<:Number}}`: If `AbstractArray{<:Number}` is provided then the `step_MX`-s between the times in `ts` are computed. If `Number` is provided, then it computes a single `step_MX` is computed between 0 and `ts`.
+- `axes::Vararg{aT,d} where aT<:GridAxis`: The axes spanning the space where the transitional PDF is computed for the dynamical system `sde`.
 
-# Examples
-```julia-repl
-julia> bar([1, 2], [1, 2])
-1
-```
+# Keyword Arguments
+- `discreteintegrator = d==k ? QuadGKIntegrator() : ClenshawCurtisIntegrator()`: Discrete integrator to evaluate the Chapman-Kolmogorov equation
+- `di_N = 21`: Resolution of the discrete integrator. Can be an `NTuple{d-k+1,<:Integer}` or an `AbstractArray{<:Integer}` to define resolution to each integration variable
+- `smart_integration = true`: Only integrate where the transitional PDF has nonzero elements. It is approximated with the step function. Use `false` if (time step * diffusion) results in a wide TPDF. Usually `true` is the better choice.
+- `int_limit_thickness_multiplier = 6`: The "thickness" scaling of the TPDF during smart integration.
+- `initialise_pdf = true`: Initialize the response probability density function. If false, then the RPDF is initialzed as p(x) ≡ 0.
+- `f_init = nothing`: Initial RPDF as a function. If `f_init` is a `Nothing` and `initialise_pdf = true` then a diagonal Gaussian distribution is used as initial distribution
+- `μ_init = nothing`: Mean of the initial Gaussian distribution. 
+    - `Nothing`: Uses the middle of the range defined by the axis
+    - `Number`: Uses the single value `μ_init` for each axis direction
+    - `Union{NTuple{d,<:Number},AbstractVector{<:Number}}`: Individual means for each axis.
+- `σ_init = nothing`: Standard deviation of the initial diagonal Gaussian distribution. 
+    - `Nothing`: Uses the 1/12th of the range width in each direction defined by the `axes`.
+    - `Number`: Uses the single value `σ_init` for each axis direction
+    - `Union{NTuple{d,<:Number},AbstractVector{<:Number}}`: Individual standard deviations for each axis.
+- `pre_compute = true`: Compute the `step_MX`. This should be left unchanged if the RPDF computation is the goal.
+
+----
+For methods, discrete integrators, interpolators, and examples please refer to the documentation. 
 """
 function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d};
     discreteintegrator = d==k ? QuadGKIntegrator() : ClenshawCurtisIntegrator(),
-    di_N = nothing, di_mul = 10, # discrete integration resolution
-    initialise_pdf = true, f_init = nothing, pre_compute = false, debug_mode = Val{false}, kwargs...) where {d,k,m}
+    di_N = 21,  # discrete integration resolution
+    initialise_pdf = true, f_init = nothing, pre_compute = true,  kwargs...) where {d,k,m}
     if method isa DiscreteTimeSteppingMethod
         x0 = zeros(d) # * not type safe for autodiff
         x1 = similar(x0)
@@ -44,22 +59,23 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
                         BI_product(_val.(itpVs)...), # = val_it
                         itpVs, # = itpVs
                         zero(pdf.p)) # = itpM
-        if di_N isa Nothing
-            if di_mul isa Number
-                di_res = Tuple(di_mul*length(ax) for ax in axes[k:end])
-            elseif length(di_mul) == k-d+1
-                di_res = Tuple(di_mul*length(ax) for ax in axes[k:end])
-            else
-                error("Incorrect di_mul: should be a `Number` or an `Array`/`Tuple` with length $(d-k+1)")
+        if di_N isa Number
+            di_res = Tuple(di_N for _ in 1:k-d+1)
+        elseif di_N isa NTuple{d-k+1,<:Integer}
+            di_res = di_N
+        elseif di_N isa AbstractArray{<:Integer}
+            if length(di_res) == d-k+1
+                di_res = di_N
             end
         else
-            di_res = di_N
+            error("di_N is not a Union{Number, NTuple{M,Integer}, AbstractArray{Integer}} with length $(d-k+1)")
         end
         di = DiscreteIntegrator(discreteintegrator, pdf.p, di_res, axes[k:end]...; kwargs...)
         IK = IntegrationKernel(sdestep, nothing, di, ts, pdf, ikt, kwargs)
-        if debug_mode in (Val{true},true)
-            return IK, kwargs
-        end
+        # put debug_mode = Val{false} to kwargs if needed
+        # if debug_mode in (Val{true},true)
+        #     return IK, kwargs
+        # end
         step_MX = compute_stepMX(IK; kwargs...)
     else
         step_MX = nothing
@@ -90,7 +106,7 @@ function init_DiagonalNormalPDF(axes...; μ_init = nothing, σ_init = nothing, k
         μs = [(axis[end]+axis[1])/2 for axis in axes]
     elseif μ_init isa Number
         μs = [μ_init for _ in axes]
-    elseif μ_init isa Vector
+    elseif μ_init isa Union{NTuple{length(axes),<:Number},AbstractVector{<:Number}}
         @assert length(μ_init) == length(axes) "Wrong number of initial μ values are given"
         μs = μ_init
     end
@@ -99,7 +115,7 @@ function init_DiagonalNormalPDF(axes...; μ_init = nothing, σ_init = nothing, k
         σ²s = [((axis[end]-axis[1])/12)^2 for axis in axes]
     elseif σ_init isa Number
         σ²s = [σ_init^2 for _ in axes]
-    elseif σ_init isa Vector
+    elseif σ_init isa Union{NTuple{length(axes),<:Number},AbstractVector{<:Number}}
         @assert length(σ_init) == length(axes) "Wrong number of initial σ values are given"
         σ²s = σ_init.^2
     end
