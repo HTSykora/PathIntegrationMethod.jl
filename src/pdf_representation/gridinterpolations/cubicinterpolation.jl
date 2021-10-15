@@ -30,20 +30,26 @@ end
 function cubicinterpolation_weights_1!(vals, dx, Δ)
     δ = dx / Δ;
     δ² = δ*δ
-    δ³ = δ²*δ
+    # δ³ = δ²*δ
 
-    ## Assuming explicit derivative in the beginning
-    vals[1] = 0.5δ³ - 0.5δ² - δ + one(δ)
-    vals[2] = -δ³ + δ² + δ
+    # ## Assuming explicit derivative in the beginning
+    # vals[1] = 0.5δ³ - 0.5δ² - δ + one(δ)
+    # vals[2] = -δ³ + δ² + δ
 
-    ## Midpoint approximated with the same end value
-    # vals[1] = δ³ - 1.5δ² - 0.5δ + one(δ)
-    # vals[2] = -1.5δ³ + 2δ² + 0.5δ
+    # ## Midpoint approximated with the same end value
+    # # vals[1] = δ³ - 1.5δ² - 0.5δ + one(δ)
+    # # vals[2] = -1.5δ³ + 2δ² + 0.5δ
 
-    ## Mean of the 2 approaches
-    # vals[1] = (2.5δ³ - 3.5δ² - 2δ)/3 + one(δ)
-    # vals[2] = (-4δ³ + 5δ² + 2δ)/3
-    vals[3] = 0.5δ³ - 0.5δ²
+    # ## Mean of the 2 approaches
+    # # vals[1] = (2.5δ³ - 3.5δ² - 2δ)/3 + one(δ)
+    # # vals[2] = (-4δ³ + 5δ² + 2δ)/3
+    # vals[3] = 0.5δ³ - 0.5δ²
+    # vals[4] = zero(δ)
+
+    # not enforcing unknown boundary conditions
+    vals[1] = 0.5δ² - 1.5δ + one(δ)
+    vals[2] = 2δ - δ²
+    vals[3] = 0.5δ² - 0.5δ
     vals[4] = zero(δ)
     nothing
 end
@@ -51,21 +57,26 @@ end
 function cubicinterpolation_weights_end!(vals, dx, Δ)
     δ = dx / Δ;
     δ² = δ*δ
-    δ³ = δ²*δ
+    # δ³ = δ²*δ
 
-    vals[1] = zero(δ)
-    vals[2] = -0.5δ³ + δ² - 0.5δ
+    # vals[1] = zero(δ)
+    # vals[2] = -0.5δ³ + δ² - 0.5δ
     ## Mean of the 2 approaches
     # vals[3] = (4δ³ - 7δ²)/3 + one(δ)
     # vals[4] = (-2.5δ³ + 4δ²)/3 + 0.5δ
 
     ## Assuming explicit derivative in the beginning
-    vals[3] = δ³ - 2δ² + one(δ)
-    vals[4] = -0.5δ³ + δ² + 0.5δ
+    # vals[3] = δ³ - 2δ² + one(δ)
+    # vals[4] = -0.5δ³ + δ² + 0.5δ
 
     ## Midpoint approximated with the same end value
     # vals[3] = 1.5δ³ - 2.5δ² + one(δ)
     # vals[4] = -δ³ + 1.5δ² + 0.5δ
+    # not enforcing unknown boundary conditions
+    vals[1] = zero(δ)
+    vals[2] = 0.5δ² - 0.5δ
+    vals[4] = one(δ) - δ² 
+    vals[3] = 0.5δ² + 0.5δ
     nothing
 end
 
@@ -74,7 +85,7 @@ function basefun_vals!(vals,itp::CubicInterpolation,xs::Vx,x) where {Vx<:Abstrac
     nothing
 end
 
-function basefun_vals_safe!(vals::SparseInterpolationBaseVals{vT},itp::CubicInterpolation,xs::Vx,x; allow_extrapolation = false, kwargs...) where {vT, Vx<:AbstractVector{Tx}} where Tx<:Number
+function basefun_vals_safe!(vals::SparseInterpolationBaseVals{ord,vT},itp::CubicInterpolation,xs::Vx,x; allow_extrapolation = false, kwargs...) where {ord,vT, Vx<:AbstractVector{Tx}} where Tx<:Number
     needsinterpolation, i = find_idx(xs, x, allow_extrapolation = allow_extrapolation; kwargs...)
     for j in eachindex(vals.val)
         vals.val[j] = zero(eltype(vT))

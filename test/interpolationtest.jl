@@ -12,6 +12,7 @@ get_pdf_vals(f_itp, xs) = [f_itp(x...) for x in Iterators.product(xs...)]
 itp = :chebyshev
 itp = :linear
 itp = :cubic
+itp = :quintic
 
 grid_dat = [(Float64, -1,1,11),(Float64, 0,5,15),(Float64, -7,-1,21)]
 f_itp = InterpolatedFunction(Float64,[GridAxis(start,stop,num; interpolation = itp, xT = et, wT = et) for (et, start, stop, num) in grid_dat]...; f = f)
@@ -44,10 +45,10 @@ function f3(x)
     sin(x)
 end
 grid_dat3 = (-1,5,11)
-f_itp3 = InterpolatedFunction(Float64,GridAxis(grid_dat3...; interpolation = :chebyshev, xT = Float64); f = f3)
+f_itp3 = InterpolatedFunction(Float64,GridAxis(grid_dat3...; interpolation = :cubic, xT = Float64); f = f3)
 
 start,stop,num = grid_dat3
-xs = LinRange(start,stop, 5(num-1))
+xs = LinRange(start,stop, 5(num-1)+1)
 x_ref = LinRange(start,stop, 100(num-1))
 f_interpolated3 = f_itp3.(xs)
 begin
@@ -55,7 +56,7 @@ begin
     plot(f_itp3.axes[1],f_itp3,color="red","o", label = "Itp points")
     plot(xs,f_interpolated3,"-o", markersize=4, label = "Itp full")
     plot(x_ref,f3.(x_ref), label = "Ref")
-    plot(f_itp3.axes[1],f3.(f_itp3.axes[1]), label= "Ref Itp grid")
+    # plot(f_itp3.axes[1],f3.(f_itp3.axes[1]), label= "Ref Itp grid")
     legend()
 end
 

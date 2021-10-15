@@ -27,7 +27,7 @@ function basefun_vals!(vals,itp::LinearInterpolation,xs::Vx,x) where {Vx<:Abstra
     nothing
 end
 
-function basefun_vals_safe!(vals::SparseInterpolationBaseVals{vT},itp::LinearInterpolation,xs::Vx,x; allow_extrapolation = false, kwargs...) where {vT, Vx<:AbstractVector{Tx}} where Tx<:Number
+function basefun_vals_safe!(vals::SparseInterpolationBaseVals{ord,vT},itp::LinearInterpolation,xs::Vx,x; allow_extrapolation = false, kwargs...) where {ord,vT, Vx<:AbstractVector{Tx}} where Tx<:Number
     needsinterpolation, i = find_idx(xs, x, allow_extrapolation = allow_extrapolation; kwargs...)
     for j in eachindex(vals.val)
         vals.val[j] = zero(eltype(vT))

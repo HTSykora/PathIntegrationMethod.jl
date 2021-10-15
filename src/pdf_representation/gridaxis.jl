@@ -9,7 +9,7 @@ _eachindex(axis::GridAxis{itpT}) where itpT<:SparseInterpolationType = _eachinde
 _gettempvals(axis::GridAxis{itpT}) where itpT<:SparseInterpolationType = axis.temp.val
 
 function GridAxis(start,stop,num::Int; xT = Float64, wT = Float64, interpolation = :chebyshev, newton_cotes_order = 2, kwargs...)
-    @assert interpolation in [:chebyshev, :linear, :cubic]
+    @assert interpolation in [:chebyshev, :linear, :cubic, :quintic]
     if interpolation == :chebyshev
         xs = chebygrid(xT, start,stop,num)
         wts = clenshawcurtisweights(wT, start,stop,num)
@@ -24,6 +24,9 @@ function GridAxis(start,stop,num::Int; xT = Float64, wT = Float64, interpolation
         elseif interpolation == :cubic
             itp = CubicInterpolation(wT(Δ));
             order = 3
+        elseif interpolation == :quintic
+            itp = QuinticInterpolation(wT(Δ));
+            order = 5
         end
         wts = NewtonCotesWeights(newton_cotes_order,num,Δ) |> collect
         temp = SparseInterpolationBaseVals(xT,num, order)
