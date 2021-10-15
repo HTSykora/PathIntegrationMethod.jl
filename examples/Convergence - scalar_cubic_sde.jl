@@ -32,9 +32,9 @@ end
 get_div(x) = 10 .^(diff(log10.(x)))
 get_errconv(err,Δ) = mean(log10.(get_div(err))./ log10.(get_div(Δ)))
 
-##
 euler = Euler()
 rk4 = RK4()
+##
 @time begin
     Δts = [0.1, 0.01, 0.001, 0.0001, 0.00001]#0.00002875]
     itp_ords = 11:2:51
@@ -75,7 +75,7 @@ begin
     ylabel(L"\displaystyle \int \left| p_{\mathrm{ref}}(x) - \tilde{p}_{\Delta t}(x) \right| \mathrm{d}x")
 end
 
-
+##
 
 @time begin
     Δt = 0.001
@@ -85,6 +85,7 @@ end
     err_N_cheb = Vector{Float64}(undef,0)
     err_N_lin = Vector{Float64}(undef,0)
     err_N_cub = Vector{Float64}(undef,0)
+    err_N_qui = Vector{Float64}(undef,0)
     _x = LinRange(-3.0, 3.0, 10001)
 
     for N in itp_ords
@@ -99,6 +100,10 @@ end
         _, err = get_PI_err(N, Δt; method = euler, interpolation = :cubic, _testN = 10001, _x =_x, Tmax = 10.0,discreteintegrator = ClenshawCurtisIntegrator(),di_mul = 100)
         push!(err_N_cub, err)
     end
+    for N in itp_ords_pol
+        _, err = get_PI_err(N, Δt; method = euler, interpolation = :quintic, _testN = 10001, _x =_x, Tmax = 10.0,discreteintegrator = ClenshawCurtisIntegrator(),di_mul = 100)
+        push!(err_N_qui, err)
+    end
 end
 begin
     figure(2); clf()
@@ -106,6 +111,7 @@ begin
     
     plot(itp_ords_pol, err_N_lin,".-",label="Linear, \$\\Delta t = $(Δt)\$")
     plot(itp_ords_pol, err_N_cub,".-",label="Cubic, \$\\Delta t = $(Δt)\$")
+    plot(itp_ords_pol, err_N_qui,".-",label="Cubic, \$\\Delta t = $(Δt)\$")
     plot(itp_ords[1:10], exp.(-0.5itp_ords[1:10] .+ 5) ,"-",c = py_colors[8],alpha = 0.5, label = L"\exp(-a N + b)")
     plot(itp_ords_pol, 10itp_ords_pol.^-1 ,"-",c = py_colors[8],alpha = 0.6, label = L"N^{-1}")
     plot(itp_ords_pol, 300itp_ords_pol.^-2 ,"-",c = py_colors[8],alpha = 0.7, label = L"N^{-2}")
@@ -120,7 +126,7 @@ end
 # 1
 
 
-
+##
 
 Δt = 0.001
 Tmax = 10.
