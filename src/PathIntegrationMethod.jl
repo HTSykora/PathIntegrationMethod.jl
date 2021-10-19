@@ -6,6 +6,7 @@ using Reexport
 using Symbolics
 using FFTW
 using FastGaussQuadrature
+using SparseArrays
 
 export SDE, DriftTerm, DiffusionTerm,
     Euler, RungeKutta, RK4, Maruyama,
@@ -13,7 +14,7 @@ export SDE, DriftTerm, DiffusionTerm,
     GridAxis, InterpolatedFunction,
     recycle_interpolatedfunction!,
     PathIntegration, 
-    advance!, recompute_step_MX!, reinit_PI_pdf!, integrate,
+    advance!, recompute_stepMX!, reinit_PI_pdf!, integrate,
     DiscreteIntegrator, QuadGKIntegrator, ClenshawCurtisIntegrator, GaussLegendreIntegrator, GaussRadauIntegrator, GaussLobattoIntegrator, TrapezoidalIntegrator, NewtonCotesIntegrator
     
 

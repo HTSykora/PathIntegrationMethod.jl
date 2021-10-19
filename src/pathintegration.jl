@@ -6,7 +6,7 @@ Compute a `PathIntegration` object for computing the response probability densit
 # Arguments
 - `sde::AbstractSDE{d,k,m}`: ``d``-dimensional dynamic system which is subjected to an ``m``-dimensional Wiener process acting on the ``k...d`` coordinates.
 - `method::DiscreteTimeSteppingMethod`: method used for the time-discretisation of the dynamical system described by `sde`. 
-- `ts::Union{Number,AbstractArray{<:Number}}`: If `AbstractArray{<:Number}` is provided then the `step_MX`-s between the times in `ts` are computed. If `Number` is provided, then it computes a single `step_MX` is computed between 0 and `ts`.
+- `ts::Union{Number,AbstractArray{<:Number}}`: If `AbstractArray{<:Number}` is provided then the `stepMX`-s between the times in `ts` are computed. If `Number` is provided, then it computes a single `stepMX` is computed between 0 and `ts`.
 - `axes::Vararg{aT,d} where aT<:GridAxis`: The axes spanning the space where the transitional PDF is computed for the dynamical system `sde`.
 
 # Keyword Arguments
@@ -24,7 +24,8 @@ Compute a `PathIntegration` object for computing the response probability densit
     - `Nothing`: Uses the 1/12th of the range width in each direction defined by the `axes`.
     - `Number`: Uses the single value `σ_init` for each axis direction
     - `Union{NTuple{d,<:Number},AbstractVector{<:Number}}`: Individual standard deviations for each axis.
-- `pre_compute = true`: Compute the `step_MX`. This should be left unchanged if the RPDF computation is the goal.
+- `pre_compute = true`: Compute the `stepMX`. This should be left unchanged if the RPDF computation is the goal.
+- `sparse_stepMX = true`: If a sparse interpolation is used (see Interpolation), then use a sparse representation of the `stepMX`
 
 ----
 For methods, discrete integrators, interpolators, and examples please refer to the documentation. 
@@ -32,7 +33,7 @@ For methods, discrete integrators, interpolators, and examples please refer to t
 function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d};
     discreteintegrator = d==k ? QuadGKIntegrator() : ClenshawCurtisIntegrator(),
     di_N = 21,  # discrete integration resolution
-    initialise_pdf = true, f_init = nothing, pre_compute = true,  kwargs...) where {d,k,m}
+    initialise_pdf = true, f_init = nothing, pre_compute = true, sparse_stepMX = true, kwargs...) where {d,k,m}
     if method isa DiscreteTimeSteppingMethod
         x0 = zeros(d) # * not type safe for autodiff
         x1 = similar(x0)
@@ -76,13 +77,14 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
         # if debug_mode in (Val{true},true)
         #     return IK, kwargs
         # end
-        step_MX = compute_stepMX(IK; kwargs...)
+        _sparse_stepMX = sparse_stepMX && is_sparse_interpolation(pdf)
+        stepMX = compute_stepMX(IK; sparse_stepMX = _sparse_stepMX, kwargs...)
     else
-        step_MX = nothing
+        stepMX = nothing
         IK = nothing
     end
     p_temp = similar(pdf.p);
-    PathIntegration(sdestep, pdf, p_temp,ts, step_MX, step_idx, IK, kwargs)
+    PathIntegration(sdestep, pdf, p_temp,ts, stepMX, step_idx, IK, kwargs)
 end
 _val(vals) = vals
 # PathIntegration{dynT, pdT, tsT, tpdMX_type, Tstp_idx, IKT, kwargT}
@@ -93,11 +95,11 @@ function advance!(PI::PathIntegration)
 end
 
 @inline function next_stepMX(PI::PathIntegration{dynT, pdT,tsT}) where {dynT, pdT,tsT<:Number}
-    PI.step_MX
+    PI.stepMX
 end
 @inline function next_stepMX(PI::PathIntegration{dynT, pdT,tsT}) where {dynT, pdT,tsT<:AbstractArray}
-    PI.step_idx[1] =  mod1(PI.step_idx[1] + 1, length(PI.step_MX))
-    PI.step_MX[PI.step_idx[1]]
+    PI.step_idx[1] =  mod1(PI.step_idx[1] + 1, length(PI.stepMX))
+    PI.stepMX[PI.step_idx[1]]
 end
 
 # Computations utilites
@@ -138,7 +140,7 @@ function reinit_PI_pdf!(PI,f = nothing)
 end
 
 
-function recompute_step_MX!(PI::PathIntegration; par = nothing, t = nothing, f = nothing, Q_reinit = false)
+function recompute_stepMX!(PI::PathIntegration; par = nothing, t = nothing, f = nothing, Q_reinit = false)
     if !(par isa Nothing)
         PI.IK.sdestep.sde.par .= par;
     end
@@ -159,14 +161,14 @@ function recompute_step_MX!(PI::PathIntegration; par = nothing, t = nothing, f =
         reinit_PI_pdf!(PI,f)
     end
 
-    reinit_stepMX!(PI.step_MX)
-    fill_stepMX_ts!(PI.step_MX, PI.IK; PI.IK.kwargs...)
+    reinit_stepMX!(PI.stepMX)
+    fill_stepMX_ts!(PI.stepMX, PI.IK; PI.IK.kwargs...)
     nothing
 end
 
-function reinit_stepMX!(step_MX::AbstractMatrix{T}) where T
-    fill!(step_MX,zero(T))
+function reinit_stepMX!(stepMX::AbstractMatrix{T}) where T
+    fill!(stepMX,zero(T))
 end
-function reinit_stepMX!(step_MX::AbstractVector{amT}) where amT<:AbstractMatrix{T} where T
-    fill!.(step_MX,zero(T))
+function reinit_stepMX!(stepMX::AbstractVector{amT}) where amT<:AbstractMatrix{T} where T
+    fill!.(stepMX,zero(T))
 end

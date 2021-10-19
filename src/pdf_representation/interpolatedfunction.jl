@@ -15,7 +15,7 @@ function InterpolatedFunction(T::DataType, axes::Vararg{Any,N}; f = nothing, kwa
     end
 
     itp_type = get_itp_type(axes)
-    InterpolatedFunction{eltype(T),length(psize),itp_type,typeof(axes),typeof(p),typeof(idx_it),typeof(val_it)}(axes,p,idx_it,val_it)
+    InterpolatedFunction{T,length(psize),itp_type,typeof(axes),typeof(p),typeof(idx_it),typeof(val_it)}(axes,p,idx_it,val_it)
 end
 InterpolatedFunction(T::DataType,axes::aT; kwargs...) where aT<:Tuple = InterpolatedFunction(T,axes...; kwargs...)
 
@@ -32,6 +32,8 @@ function get_itp_type(axes)
     end ? SparseInterpolationType : DenseInterpolationType
 end
 
+is_sparse_interpolation(::InterpolatedFunction{T,N,<:SparseInterpolationType}) where {T,N} = true
+is_sparse_interpolation(::InterpolatedFunction) = false
 function recycle_interpolatedfunction!(itp_f::InterpolatedFunction, f)
     @assert f isa Function "f is not a function!"
     _it = BI_product(itp_f.axes...)

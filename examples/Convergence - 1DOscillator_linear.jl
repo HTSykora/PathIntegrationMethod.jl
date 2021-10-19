@@ -29,7 +29,7 @@ function p_AN(x,v; σ2 = 1.)
     PathIntegrationMethod.normal1D_σ2(0.,σ2, x)*PathIntegrationMethod.normal1D_σ2(0.,σ2, v)
 end
 function get_PI_err_Δt!(PI,Δt, errF; Tmax = 100., Q_reinit = false) 
-    recompute_step_MX!(PI, t=Δt, Q_reinit = Q_reinit)
+    recompute_stepMX!(PI, t=Δt, Q_reinit = Q_reinit)
     for _ in 1:Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
         advance!(PI)
     end
@@ -58,8 +58,8 @@ rk4  = RK4();
 
 errF = InterpolatedFunction(gridaxes...);
 
-@time recompute_step_MX!(PI_euler,t=0.02)
-@time recompute_step_MX!(PI_rk4,t=0.02)
+@time recompute_stepMX!(PI_euler,t=0.02)
+@time recompute_stepMX!(PI_rk4,t=0.02)
 
 ##
 @time begin

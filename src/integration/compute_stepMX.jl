@@ -1,8 +1,12 @@
-function compute_stepMX(IK; kwargs...)
+function compute_stepMX(IK; sparse_stepMX = true, kwargs...)
     stepMX = initialize_stepMX(eltype(IK.pdf.p), IK.t, length(IK.pdf))
 
     fill_stepMX_ts!(stepMX, IK; kwargs...)
-    stepMX
+    if sparse_stepMX
+        sparse(stepMX)
+    else
+        stepMX
+    end
 end
 
 @inline initialize_stepMX(T, ts::AbstractVector{eT}, l) where eT<:Number = [zeros(T,l,l) for _ in 1:(length(ts)-1)]

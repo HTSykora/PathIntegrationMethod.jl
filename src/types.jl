@@ -148,7 +148,7 @@ struct PathIntegration{dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,kwargT}
     pdf::pdT
     p_temp::ptempT
     ts::tsT
-    step_MX::stepmxT
+    stepMX::stepmxT
     step_idx::Tstp_idx
     IK::IKT
     kwargs::kwargT
