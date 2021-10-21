@@ -143,7 +143,7 @@ struct InterpolatedFunction{T,N,itp_type,axesT,pT,idx_itT,val_itT} <: AbstractAr
     idx_it::idx_itT
     val_it::val_itT
 end
-struct PathIntegration{dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,kwargT}
+struct PathIntegration{dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,mpdtT,kwargT}
     step_dynamics::dynT # SDEStep
     pdf::pdT
     p_temp::ptempT
@@ -151,9 +151,18 @@ struct PathIntegration{dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,kwargT}
     stepMX::stepmxT
     step_idx::Tstp_idx
     IK::IKT
+    marginal_pdfs::mpdtT
     kwargs::kwargT
 end
 
+struct MarginalPDF{pT,idT,wT,tT,p0T,dT}
+    pdf::pT
+    ID::idT
+    wMX::wT
+    temp::tT
+    p0::p0T
+    dims::dT
+end
 # Utility types
 struct IntegrationKernel{kd,sdeT,x1T,diT,fT,pdfT, tT,tempT,kwargT}
     sdestep::sdeT
@@ -171,6 +180,9 @@ struct IK_temp{VT,MT,idxT,valT}
     itpVs::VT
     itpM::MT
     # impactinterval::iiT
+end
+struct Slicer{n,N,idT,slT}
+    slicer::slT
 end
 # struct ImpactInterval{limT,wT}
 #     lims::limT # r
