@@ -87,7 +87,7 @@ function iterate_x0!(step::SDEStep{d,k,m, sdeT, methodT,tracerT}) where {d, k,m,
 end
 
 function get_detJinv(step::SDEStep{d,k,m, sdeT, methodT,tracerT}) where {d, k,m, sdeT, methodT,tracerT<:SymbolicNewtonStep}
-    step.steptracer.detJI_inv(step.x0,step.sde.par,_t0(step),_t1(step))
+    step.steptracer.detJI_inv(step.x0,step.sde.par,_t0(step),_t1(step)) |> abs
 end
 
 # Utility

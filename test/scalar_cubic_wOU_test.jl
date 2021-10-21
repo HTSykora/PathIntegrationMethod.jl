@@ -10,7 +10,7 @@ py_colors=PyPlot.PyDict(PyPlot.matplotlib."rcParams")["axes.prop_cycle"].by_key(
 # 1D problem:
 function f1(x,p,t) 
     ε, σ = p
-    x[1]-ε*x[1]^3 +σ*x[2]
+    x[1] - ε*x[1]^3 + σ*x[2]
 end
 function f2(x,p,t) 
     _, _, μ = p
@@ -20,7 +20,7 @@ function g(x,p,t)
     _, _, μ = p
     sqrt(2μ)
 end
-sde = SDE((f1,f2),g, [1.,1.0,1.0])
+sde = SDE((f1,f2),g, [1.,2.0,2.0])
 
 ##
 euler = Euler()
@@ -28,33 +28,33 @@ rk4 = RK4()
 
 ##
 # # Single test run
-Δt = 0.001
+Δt = 0.00001
 # Δt = 0.000002875
-gridaxes = (GridAxis(-4, 4, 101, interpolation = :cubic),
-            GridAxis(-4, 4, 511, interpolation = :cubic))
-@time PI = PathIntegration(sde, euler, Δt, gridaxes..., pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 31, smart_integration = true,int_limit_thickness_multiplier = 6, sparse_stepMX = true, mPDF_IDs = ((1,),(2,)));
+gridaxes = (GridAxis(-6, 6, 101, interpolation = :cubic),
+            GridAxis(-4, 4, 51, interpolation = :cubic))
+@time PI = PathIntegration(sde, euler, Δt, gridaxes..., pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 31, smart_integration = true,int_limit_thickness_multiplier = 8, sparse_stepMX = true, mPDF_IDs = ((1,),(2,)));
 
 
-Tmax = 0.2;#1.0
+Tmax = 0.6;#1.0
 @time for _ in 1:Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
     advance!(PI)
 end
 
-begin
-    figure(1); clf()
-    # ax = axes(projection="3d")
-    X = [gridaxes[1][i] for i in eachindex(gridaxes[1]), j in eachindex(gridaxes[2])]
-    V = [gridaxes[2][j] for i in eachindex(gridaxes[1]), j in eachindex(gridaxes[2])]
-    # Data for a three-dimensional line
-    scatter3D(X, V, PI.pdf.p)
-    xlabel("x")
-    ylabel("z")
-end
+# begin
+#     figure(1); clf()
+#     # ax = axes(projection="3d")
+#     X = [gridaxes[1][i] for i in eachindex(gridaxes[1]), j in eachindex(gridaxes[2])]
+#     V = [gridaxes[2][j] for i in eachindex(gridaxes[1]), j in eachindex(gridaxes[2])]
+#     # Data for a three-dimensional line
+#     scatter3D(X, V, PI.pdf.p)
+#     xlabel("x")
+#     ylabel("z")
+# end
 
-update_mPDFs!(PI)
+@time update_mPDFs!(PI)
 
 begin
-    id =2;
+    id = 1
     figure(2); clf()
     # ax = axes(projection="3d")
     _x = LinRange(gridaxes[id][1],gridaxes[id][end],101)
@@ -64,6 +64,3 @@ begin
     plot(_x,zero(_x))
     xlabel(["x","z"][id])
 end
-
-foo = x -> (x^2)*PI.marginal_pdfs[id](x)
-quadgk(foo,-4,4)[1] |> sqrt
