@@ -91,11 +91,11 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
     if mPDF_IDs isa Nothing
         mpdf = nothing
     else
-        mpdf = initialise_mpdf(pdf,mPDF_IDs)
+        mpdf = initialise_mPDF(pdf,mPDF_IDs)
     end
 
     p_temp = similar(pdf.p);
-    PathIntegration(sdestep, pdf, p_temp,ts, stepMX, step_idx, IK, marginal_pdfs, kwargs)
+    PathIntegration(sdestep, pdf, p_temp,ts, stepMX, step_idx, IK, mpdf, kwargs)
 end
 _val(vals) = vals
 # PathIntegration{dynT, pdT, tsT, tpdMX_type, Tstp_idx, IKT, kwargT}
@@ -182,4 +182,16 @@ function reinit_stepMX!(stepMX::AbstractMatrix{T}) where T
 end
 function reinit_stepMX!(stepMX::AbstractVector{amT}) where amT<:AbstractMatrix{T} where T
     fill!.(stepMX,zero(T))
+end
+
+
+update_mPDFs!(PI::PathIntegration{dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,mpdtT,kwargT}) where {dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,mpdtT<:Nothing,kwargT} = nothing
+
+function update_mPDFs!(PI::PathIntegration{dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,mpdtT,kwargT}) where {dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,mpdtT<:MarginalPDF,kwargT}
+    update_mPDF!(PI.marginal_pdfs,PI.pdf)
+    nothing
+end
+function update_mPDFs!(PI::PathIntegration{dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,mpdtT,kwargT}) where {dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,mpdtT,kwargT}
+    update_mPDF!.(PI.marginal_pdfs,Ref(PI.pdf))
+    nothing
 end

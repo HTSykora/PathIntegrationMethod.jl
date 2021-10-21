@@ -22,13 +22,14 @@ function (IK::IntegrationKernel{dk,sdeT})(vals,x) where sdeT<:SDEStep{d,k,m} whe
     compute_missing_states_driftstep!(IK.sdestep)
 
     # * if m ≠ 1 and d ≠ k: figure out a rework
-    fx = transitionprobability(IK.sdestep,IK.x1)
+    _fx = transitionprobability(IK.sdestep,IK.x1)
 
     ## Get interpolation values
     set_oldvals_tozero!(vals, IK)
-    if isapprox(fx,zero(fx), atol=1e-8)
+    if isapprox(_fx,zero(_fx), atol=1e-8)
         all_zero!(vals, IK)
     else
+        fx = detJ_correction(_fx,IK)
         basefun_vals_safe!(IK)
         fill_vals!(vals,IK,fx,_idx_it(IK), _val_it(IK))
     end
@@ -37,6 +38,13 @@ function (IK::IntegrationKernel{dk,sdeT})(vals,x) where sdeT<:SDEStep{d,k,m} whe
 end
 
 # Utility functions:
+function detJ_correction(fx,IK::IntegrationKernel{dk,sdeT}) where sdeT<:SDEStep{d,1,m} where {dk,d,m}
+    fx
+end
+function detJ_correction(fx,IK::IntegrationKernel{dk,sdeT}) where sdeT<:SDEStep{d,k,m} where {dk,k,d,m}
+    fx*get_detJinv(IK.sdestep)
+end
+
 function update_relevant_states!(IK::IntegrationKernel{dk,sdeT},x::Number) where sdeT<:SDEStep{d,d,m} where {dk,d,m}
     IK.sdestep.x0[d] = x
 end

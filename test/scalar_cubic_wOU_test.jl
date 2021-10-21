@@ -20,7 +20,7 @@ function g(x,p,t)
     _, _, μ = p
     sqrt(2μ)
 end
-sde = SDE((f1,f2),g, [1.,2.,1.])
+sde = SDE((f1,f2),g, [1.,1.0,1.0])
 
 ##
 euler = Euler()
@@ -30,12 +30,12 @@ rk4 = RK4()
 # # Single test run
 Δt = 0.001
 # Δt = 0.000002875
-Tmax = 1.0
-gridaxes = (GridAxis(-4, 4, 71, interpolation = :chebyshev),
-            GridAxis(-4, 4, 35, interpolation = :chebyshev))
-@time PI = PathIntegration(sde, rk4, Δt, gridaxes..., pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 31, smart_integration = true,int_limit_thickness_multiplier = 10, sparse_stepMX = true);
+gridaxes = (GridAxis(-4, 4, 101, interpolation = :cubic),
+            GridAxis(-4, 4, 511, interpolation = :cubic))
+@time PI = PathIntegration(sde, euler, Δt, gridaxes..., pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 31, smart_integration = true,int_limit_thickness_multiplier = 6, sparse_stepMX = true, mPDF_IDs = ((1,),(2,)));
 
 
+Tmax = 0.2;#1.0
 @time for _ in 1:Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
     advance!(PI)
 end
@@ -50,3 +50,20 @@ begin
     xlabel("x")
     ylabel("z")
 end
+
+update_mPDFs!(PI)
+
+begin
+    id =2;
+    figure(2); clf()
+    # ax = axes(projection="3d")
+    _x = LinRange(gridaxes[id][1],gridaxes[id][end],101)
+    # Data for a three-dimensional line
+    plot(_x, PI.marginal_pdfs[id].(_x))
+    plot(_x,PathIntegrationMethod.normal1D.(_x))
+    plot(_x,zero(_x))
+    xlabel(["x","z"][id])
+end
+
+foo = x -> (x^2)*PI.marginal_pdfs[id](x)
+quadgk(foo,-4,4)[1] |> sqrt
