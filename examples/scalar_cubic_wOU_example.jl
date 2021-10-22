@@ -9,7 +9,7 @@ py_colors=PyPlot.PyDict(PyPlot.matplotlib."rcParams")["axes.prop_cycle"].by_key(
 ##
 # 1D problem:
 function f1(x,p,t) 
-    ε, σ = p
+    ε, σ =  p
     x[1] - ε*x[1]^3 + σ*x[2]
 end
 function f2(x,p,t) 
@@ -20,7 +20,7 @@ function g(x,p,t)
     _, _, μ = p
     sqrt(2μ)
 end
-sde = SDE((f1,f2),g, [1.,2.0,2.0])
+sde = SDE((f1,f2),g, [1.,1.0,4.0])
 
 ##
 euler = Euler()
@@ -28,14 +28,16 @@ rk4 = RK4()
 
 ##
 # # Single test run
-Δt = 0.00001
+Δt = 0.0001
 # Δt = 0.000002875
-gridaxes = (GridAxis(-6, 6, 101, interpolation = :cubic),
-            GridAxis(-4, 4, 51, interpolation = :cubic))
-@time PI = PathIntegration(sde, euler, Δt, gridaxes..., pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 31, smart_integration = true,int_limit_thickness_multiplier = 8, sparse_stepMX = true, mPDF_IDs = ((1,),(2,)));
+gridaxes = (GridAxis(-6, 6, 81, interpolation = :chebyshev),
+            GridAxis(-4, 4, 31, interpolation = :chebyshev))
+@time PI = PathIntegration(sde, euler, Δt, gridaxes..., pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 31, smart_integration = true,int_limit_thickness_multiplier = 8, sparse_stepMX = true, mPDF_IDs = ((1,),(2,)), σ_init = 1.);
 
+f_init = deepcopy(PI.pdf)
 
-Tmax = 0.6;#1.0
+reinit_PI_pdf!(PI)#,f_init)
+Tmax = 0.1;#1.0
 @time for _ in 1:Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
     advance!(PI)
 end
@@ -64,3 +66,8 @@ begin
     plot(_x,zero(_x))
     xlabel(["x","z"][id])
 end
+
+##
+# Monte-Carlo simulations
+using DifferentialEquations
+
