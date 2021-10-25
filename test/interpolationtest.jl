@@ -45,15 +45,15 @@ function f3(x)
     sin(x)
 end
 grid_dat3 = (-1,5,11)
-f_itp3 = InterpolatedFunction(Float64,GridAxis(grid_dat3...; interpolation = :cubic, xT = Float64); f = f3)
+f_itp3 = InterpolatedFunction(Float64,GridAxis(grid_dat3...; interpolation = :chebyshev, xT = Float64); f = f3)
 
 start,stop,num = grid_dat3
-xs = LinRange(start,stop, 5(num-1)+1)
+xs = LinRange(start-1.0,stop+1., 5(num-1)+1)
 x_ref = LinRange(start,stop, 100(num-1))
-f_interpolated3 = f_itp3.(xs)
+@time f_interpolated3 = f_itp3.(xs)
 begin
     figure(1); clf()
-    plot(f_itp3.axes[1],f_itp3,color="red","o", label = "Itp points")
+    plot(f_itp3.axes[1],f_itp3.p,color="red","o", label = "Itp points")
     plot(xs,f_interpolated3,"-o", markersize=4, label = "Itp full")
     plot(x_ref,f3.(x_ref), label = "Ref")
     # plot(f_itp3.axes[1],f3.(f_itp3.axes[1]), label= "Ref Itp grid")

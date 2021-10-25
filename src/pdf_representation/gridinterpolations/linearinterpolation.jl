@@ -37,13 +37,13 @@ function basefun_vals_safe!(vals::SparseInterpolationBaseVals{ord,vT},itp::Linea
         vals.idxs[1] = i
         vals.idxs[2] = i+1
         linearinterpolation_weights!(vals.val, xs[i], xs[i+1], x, itp.Δ)
+    elseif zero_extrapolation
+        vals.val .= zero(eltype(vT))
     elseif i==1
         vals.val[1] = one(eltype(vT))
         vals.val[2] = zero(eltype(vT))
         vals.idxs[1] = 1
         vals.idxs[2] = 2
-    elseif zero_extrapolation
-        vals.val .= zero(eltype(vT))
     else
         vals.val[1] = zero(eltype(vT))
         vals.val[2] = one(eltype(vT))

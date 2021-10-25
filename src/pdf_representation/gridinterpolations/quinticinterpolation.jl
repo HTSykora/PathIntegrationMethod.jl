@@ -78,7 +78,7 @@ function basefun_vals!(vals,itp::QuinticInterpolation,xs::Vx,x) where {Vx<:Abstr
 end
 
 function basefun_vals_safe!(vals::SparseInterpolationBaseVals{ord,vT},itp::QuinticInterpolation,xs::Vx,x; kwargs...) where {ord,vT, Vx<:AbstractVector{Tx}} where Tx<:Number
-    do_interpolation, zero_extrapolation, i = find_idx(xs, x, allow_extrapolation = allow_extrapolation; kwargs...)
+    do_interpolation, zero_extrapolation, i = find_idx(xs, x; kwargs...)
     # for j in eachindex(vals.val)
     #     vals.val[j] = zero(eltype(vT))
     # end

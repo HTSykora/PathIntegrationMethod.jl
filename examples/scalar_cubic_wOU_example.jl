@@ -30,14 +30,14 @@ rk4 = RK4()
 # # Single test run
 Δt = 0.001
 # Δt = 0.000002875
-@time gridaxes = (GridAxis(-2, 2, 51, interpolation = :chebyshev),
-            GridAxis(-4, 4, 21, interpolation = :chebyshev))
+@time gridaxes = (GridAxis(-2, 2, 51, interpolation = :cubic),
+            GridAxis(-4, 4, 21, interpolation = :cubic))
 @time PI = PathIntegration(sde, euler, Δt, gridaxes..., pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 31, smart_integration = true,int_limit_thickness_multiplier = 8, sparse_stepMX = true, mPDF_IDs = ((1,),(2,)), σ_init = 1.);
 
 f_init = deepcopy(PI.pdf)
 
-@time reinit_PI_pdf!(PI,f_init)
-@time recompute_stepMX!(PI, par = nothing, Q_reinit_pdf = true, f = f_init)
+# @time reinit_PI_pdf!(PI,f_init)
+# @time recompute_stepMX!(PI, par = nothing, Q_reinit_pdf = true, f = f_init)
 
 Tmax = 1.0;#1.0
 @time for _ in 1:Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
