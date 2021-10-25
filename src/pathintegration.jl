@@ -143,9 +143,9 @@ end
 (PI::PathIntegration)(x...) = PI.pdf(x...)
 
 ## Recompute functions
-function reinit_PI_pdf!(PI,f = nothing)
+function reinit_PI_pdf!(PI::PathIntegration,f = nothing)
     if f isa Nothing
-        _f = init_DiagonalNormalPDF(PI.pdf.axes...)
+        _f = init_DiagonalNormalPDF(PI.pdf.axes...; PI.IK.kwargs...)
     elseif f isa Function
         _f = f
     end
@@ -153,7 +153,7 @@ function reinit_PI_pdf!(PI,f = nothing)
 end
 
 
-function recompute_stepMX!(PI::PathIntegration; par = nothing, t = nothing, f = nothing, Q_reinit = false)
+function recompute_stepMX!(PI::PathIntegration; par = nothing, t = nothing, f = nothing, Q_reinit_pdf = false)
     if !(par isa Nothing)
         PI.IK.sdestep.sde.par .= par;
     end
@@ -168,10 +168,8 @@ function recompute_stepMX!(PI::PathIntegration; par = nothing, t = nothing, f = 
         PI.IK.t[1] = zero(eltype(PI.IK.t))
         PI.IK.t[2] = t
     end
-    if Q_reinit
-        reinit_PI_pdf!(PI)
-    elseif f isa Function
-        reinit_PI_pdf!(PI,f)
+    if Q_reinit_pdf
+        reinit_PI_pdf!(PI, f)
     end
 
     reinit_stepMX!(PI.stepMX)
