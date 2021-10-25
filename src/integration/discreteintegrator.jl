@@ -10,7 +10,7 @@ end
 
 # QuadGKIntegrator() = QuadGKIntegrator(nothing,nothing,nothing)
 QuadGKIntegrator(;kwargs...) = QuadGKIntegrator(nothing,nothing,cleanup_quadgk_keywords(kwargs...))
-@inline function cleanup_quadgk_keywords(;σ_init = nothing, μ_init = nothing, kwargs...)
+@inline function cleanup_quadgk_keywords(;σ_init = nothing, μ_init = nothing, allow_extrapolation=false,  zero_extrapolation=true, kwargs...)
     kwargs
 end
 function DiscreteIntegrator(discreteintegrator::QuadGKIntegrator{T1,T2,Tkwarg},res_prototype, N::Union{NTuple{1,<:Integer},<:Integer}, axes::GA; xT = Float64, wT = Float64, kwargs...) where {GA<:GridAxis, T1, T2, Tkwarg}

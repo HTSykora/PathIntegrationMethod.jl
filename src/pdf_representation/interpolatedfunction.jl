@@ -1,5 +1,6 @@
 Base.getindex(p::InterpolatedFunction,idx...) = p.p[idx...]
 Base.size(p::InterpolatedFunction) = size(p.p)
+Base.length(p::InterpolatedFunction) = length(p.p)
 
 # Assuming interpolation
 function InterpolatedFunction(T::DataType, axes::Vararg{Any,N}; f = nothing, kwargs...) where N

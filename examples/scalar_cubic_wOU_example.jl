@@ -28,16 +28,16 @@ rk4 = RK4()
 
 ##
 # # Single test run
-Δt = 0.0001
+Δt = 0.001
 # Δt = 0.000002875
-gridaxes = (GridAxis(-6, 6, 81, interpolation = :chebyshev),
+@time gridaxes = (GridAxis(-2, 2, 81, interpolation = :chebyshev),
             GridAxis(-4, 4, 31, interpolation = :chebyshev))
 @time PI = PathIntegration(sde, euler, Δt, gridaxes..., pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 31, smart_integration = true,int_limit_thickness_multiplier = 8, sparse_stepMX = true, mPDF_IDs = ((1,),(2,)), σ_init = 1.);
 
 f_init = deepcopy(PI.pdf)
 
-reinit_PI_pdf!(PI)#,f_init)
-Tmax = 0.1;#1.0
+reinit_PI_pdf!(PI,f_init)
+Tmax = 1.0;#1.0
 @time for _ in 1:Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
     advance!(PI)
 end
@@ -56,7 +56,7 @@ end
 @time update_mPDFs!(PI)
 
 begin
-    id = 1
+    id = 2
     figure(2); clf()
     # ax = axes(projection="3d")
     _x = LinRange(gridaxes[id][1],gridaxes[id][end],101)
@@ -69,5 +69,37 @@ end
 
 ##
 # Monte-Carlo simulations
-using DifferentialEquations
+using PyPlot, LaTeXStrings; pygui(true);
+PyPlot.rc("text", usetex=true);
+py_colors=PyPlot.PyDict(PyPlot.matplotlib."rcParams")["axes.prop_cycle"].by_key()["color"];
+using StochasticDiffEq
 
+function MC_f(du,u,p,t)
+    ε, σ, μ =  p
+    du[1] = u[1] - ε*u[1]^3 + σ*u[2]
+    du[2] = -μ*u[2]
+end
+function MC_g(du,u,p,t)
+    _, _, μ = p
+    du[2] = sqrt(2μ)
+end
+
+tspan = (0.0,10000.0)
+Δt = 0.001
+u₀ = [0.,0.];
+
+prob = SDEProblem(MC_f,MC_g,u₀,tspan,[1.,1.0,4.0])
+
+@time solu = solve(prob,EM(),dt=Δt)
+
+# begin
+#     figure(1); clf();
+#     plot(solu.t,getindex.(solu.u,1))
+#     # plot(solu.t,getindex.(solu.u,2))
+# end
+
+begin
+    figure(1); clf();
+    hist(getindex.(solu.u,1)[findfirst(x->x>100.,solu.t):end],bins=50,density = true)
+    # plot(solu.t,getindex.(solu.u,2))
+end

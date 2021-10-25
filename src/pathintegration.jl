@@ -31,6 +31,8 @@ Compute a `PathIntegration` object for computing the response probability densit
     - `Integer`: 1-dimensional mPDF is initalised for state-variable `mPDF_IDs`
     - `NTuple{n,<:Integer}`: `n`-dimensional mPDF is initalised for state-variables specified in `mPDF_IDs`
     - `Union{Tuple{NTuple{n,<:Integer}},Vector{NTuple{d,<:Integer}}}`: Multiple mPDF initialised
+- `allow_extrapolation::Bool = false`: ...
+- `zero_extrapolation::Bool = true`: ...
 ----
 For methods, discrete integrators, interpolators, and examples please refer to the documentation. 
 """

@@ -77,13 +77,13 @@ function basefun_vals!(vals,itp::QuinticInterpolation,xs::Vx,x) where {Vx<:Abstr
     nothing
 end
 
-function basefun_vals_safe!(vals::SparseInterpolationBaseVals{ord,vT},itp::QuinticInterpolation,xs::Vx,x; allow_extrapolation = false, kwargs...) where {ord,vT, Vx<:AbstractVector{Tx}} where Tx<:Number
-    needsinterpolation, i = find_idx(xs, x, allow_extrapolation = allow_extrapolation; kwargs...)
-    for j in eachindex(vals.val)
-        vals.val[j] = zero(eltype(vT))
-    end
+function basefun_vals_safe!(vals::SparseInterpolationBaseVals{ord,vT},itp::QuinticInterpolation,xs::Vx,x; kwargs...) where {ord,vT, Vx<:AbstractVector{Tx}} where Tx<:Number
+    do_interpolation, zero_extrapolation, i = find_idx(xs, x, allow_extrapolation = allow_extrapolation; kwargs...)
+    # for j in eachindex(vals.val)
+    #     vals.val[j] = zero(eltype(vT))
+    # end
 
-    if needsinterpolation
+    if do_interpolation
         if i == 1
             vals.idxs[1] = i
             vals.idxs[2] = i+1
@@ -103,15 +103,13 @@ function basefun_vals_safe!(vals::SparseInterpolationBaseVals{ord,vT},itp::Quint
             vals.idxs[4] = i+2
             quinticinterpolation_weights!(vals.val, x - xs[i], itp.Δ)
         end
-    elseif i==1
-        vals.val[1] = one(eltype(vT))
-        vals.val[2] = zero(eltype(vT))
-        vals.val[3] = zero(eltype(vT))
-        vals.val[4] = zero(eltype(vT))
-        vals.idxs[1] = 1
-        vals.idxs[2] = 2
-        vals.idxs[3] = 3
-        vals.idxs[4] = 4
+    elseif zero_extrapolation
+        vals.val .= zero(eltype(vT))
+    elseif i<5
+        @inbounds for j in 1:4
+            vals.val[j] = (j == i ? one(eltype(vT)) : zero(eltype(vT)))
+            vals.idxs[j] = j
+        end
     else
         vals.val[1] = zero(eltype(vT))
         vals.val[2] = zero(eltype(vT))

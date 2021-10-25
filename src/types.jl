@@ -137,7 +137,7 @@ end
 struct QuinticInterpolation{ΔT} <: SparseInterpolationType
     Δ::ΔT
 end
-struct InterpolatedFunction{T,N,itp_type,axesT,pT,idx_itT,val_itT} <: AbstractArray{T,N}
+struct InterpolatedFunction{T,N,itp_type,axesT,pT,idx_itT,val_itT} <:Function #<:AbstractArray{T,N}
     axes::axesT
     p::pT
     idx_it::idx_itT

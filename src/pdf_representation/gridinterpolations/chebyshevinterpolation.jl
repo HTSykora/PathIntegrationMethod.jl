@@ -102,14 +102,14 @@ function basefun_vals!(vals,itp::ChebyshevInterpolation,xs::Vx,x) where {Vx<:Abs
     # return vals
 end
 
-function basefun_vals_safe!(vals,itp::ChebyshevInterpolation,xs::Vx,x; allow_extrapolation = false, kwargs...) where {Vx<:AbstractVector{Tx}} where Tx<:Number
-    needsinterpolation, i = find_idx(xs, x, allow_extrapolation = allow_extrapolation; kwargs...)
-    if needsinterpolation
+function basefun_vals_safe!(vals,itp::ChebyshevInterpolation,xs::Vx,x; kwargs...) where {Vx<:AbstractVector{Tx}} where Tx<:Number
+    do_interpolation, zero_extrapolation, i = find_idx(xs, x; kwargs...)
+    if do_interpolation
         basefun_vals!(vals,itp,xs,x)
+    elseif zero_extrapolation
+        vals .= zero(eltype(vals))
     else
-        for j in eachindex(vals)
-            vals[j] = zero(eltype(vals))
-        end
+        vals .= zero(eltype(vals))
         vals[i] = one(eltype(vals))
     end
     nothing

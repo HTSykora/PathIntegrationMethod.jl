@@ -3,8 +3,8 @@
 
 # 1D interpolation
 # function (itp::AbstractInterpolationType)(p::Vp,xs::Vx,x::xT) where {N,Vp<:AbstractVector{Tp},Vx<:AbstractVector{Tx},xT<:Number} where Tp<:Number where Tx<:Number
-#     needsinterpolation, i = find_idx(xs, x)
-#     if needsinterpolation
+#     do_interpolation, zero_extrapolation, i = find_idx(xs, x)
+#     if do_interpolation
 #         return itp(p,xs,x,i)
 #     else
 #         return p[i]
@@ -12,7 +12,7 @@
 # end
 
 
-function find_idx(xs::Vx,x::xT; allow_extrapolation::Bool = false, zero_extrapolation = false, kwargs...) where {Vx<:AbstractVector{Tx},xT<:Number} where Tx<:Number
+function find_idx(xs::Vx,x::xT; allow_extrapolation::Bool = false, zero_extrapolation::Bool = true, kwargs...) where {Vx<:AbstractVector{Tx},xT<:Number} where Tx<:Number
     # this function is also used in basefun_vals_safe! (Chebyshev)
     if !(x<xs[1] || x>xs[end])
         if x isa Union{Rational,Integer}
@@ -21,21 +21,22 @@ function find_idx(xs::Vx,x::xT; allow_extrapolation::Bool = false, zero_extrapol
             @inbounds i = searchsortedlast(xs, x - 10eps(xT))
         end
         if i==zero(i)  # it can happen if t ≈ t0
-            needsinterpolation = false
+            do_interpolation = false
             i = one(i)
         elseif isapprox(xs[i+1], x, atol = 100eps(xT))
-            needsinterpolation = false
+            do_interpolation = false
             i = i + one(i)
         else
-            needsinterpolation = true
+            do_interpolation = true
         end
+        _ze = false
     else
-        needsinterpolation = allow_extrapolation
+        do_interpolation = allow_extrapolation
+        _ze = zero_extrapolation && !(allow_extrapolation)
         i = x<xs[1] ? 1 : length(xs);
     end
-    return needsinterpolation, i
+    return do_interpolation, _ze, i
 end
-
 
 # Multivariate interopolation
 get_tempval(axis::GridAxis,i) = axis.temp[i]
@@ -51,12 +52,12 @@ function interpolate(p::MX,axes, x::Vararg{Any,N}; idx_it = BI_product(_eachinde
     val
 end
 
-function basefun_vals_safe!(vals,axis::GridAxis,x)
-    basefun_vals_safe!(vals,axis.itp,axis.xs,x)
+function basefun_vals_safe!(vals,axis::GridAxis,x; kwargs...)
+    basefun_vals_safe!(vals,axis.itp,axis.xs,x; kwargs...)
     nothing
 end
-function basefun_vals_safe!(axis::GridAxis,x)
-    basefun_vals_safe!(axis.temp, axis,x)
+function basefun_vals_safe!(axis::GridAxis,x; kwargs...)
+    basefun_vals_safe!(axis.temp, axis,x; kwargs...)
     nothing
 end
 function basefun_vals_safe(axis,x) where Vx<:AbstractVector{Tx} where Tx<:Number
