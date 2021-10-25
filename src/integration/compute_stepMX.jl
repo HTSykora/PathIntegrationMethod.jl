@@ -3,7 +3,7 @@ function compute_stepMX(IK; sparse_stepMX = true, kwargs...)
 
     fill_stepMX_ts!(stepMX, IK; kwargs...)
     if sparse_stepMX
-        sparse(stepMX)
+        make_sparse(stepMX)
     else
         stepMX
     end
@@ -55,6 +55,9 @@ end
     end
     nothing
 end
+
+make_sparse(stepMX::AbstractVector{T}) where T<:Number = sparse(stepMX)
+make_sparse(stepMX::AbstractVector{T}) where T<:AbstractArray = sparse.(stepMX)
 
 function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thickness_multiplier = 6, smart_integration = true, kwargs...) where dyn <:SDEStep{d,k,m} where {kd,d,k,m}
     if smart_integration

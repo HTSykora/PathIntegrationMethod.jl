@@ -103,7 +103,8 @@ _val(vals) = vals
 # PathIntegration{dynT, pdT, tsT, tpdMX_type, Tstp_idx, IKT, kwargT}
 function advance!(PI::PathIntegration)
     mul!(vec(PI.p_temp), next_stepMX(PI), vec(PI.pdf.p))
-    PI.pdf.p .= PI.p_temp ./_integrate(PI.p_temp, PI.pdf.axes...)
+    _I = 1/_integrate(PI.p_temp, PI.pdf.axes...);
+    @. PI.pdf.p = PI.p_temp * _I
     nothing
 end
 

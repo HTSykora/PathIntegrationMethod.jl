@@ -30,30 +30,30 @@ rk4 = RK4()
 # # Single test run
 Δt = 0.001
 # Δt = 0.000002875
-@time gridaxes = (GridAxis(-2, 2, 51, interpolation = :cubic),
-            GridAxis(-4, 4, 21, interpolation = :cubic))
-@time PI = PathIntegration(sde, euler, Δt, gridaxes..., pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 31, smart_integration = true,int_limit_thickness_multiplier = 8, sparse_stepMX = true, mPDF_IDs = ((1,),(2,)), σ_init = 1.);
+@time gridaxes = (GridAxis(-2, 2, 71, interpolation = :quintic),
+            GridAxis(-4, 4, 31, interpolation = :quintic))
+@time PI = PathIntegration(sde, rk4, Δt, gridaxes..., pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 31, smart_integration = true,int_limit_thickness_multiplier = 6, sparse_stepMX = true, mPDF_IDs = ((1,),(2,)), σ_init = 1.);
 
 f_init = deepcopy(PI.pdf)
 
 # @time reinit_PI_pdf!(PI,f_init)
-# @time recompute_stepMX!(PI, par = nothing, Q_reinit_pdf = true, f = f_init)
+# @time recompute_stepMX!(PI, par =  [4.,2.0,10.0], Q_reinit_pdf = true, f = f_init)
 
-Tmax = 1.0;#1.0
+Tmax =1.0;#1.0
 @time for _ in 1:Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
     advance!(PI)
 end
 
-# begin
-#     figure(1); clf()
-#     # ax = axes(projection="3d")
-#     X = [gridaxes[1][i] for i in eachindex(gridaxes[1]), j in eachindex(gridaxes[2])]
-#     V = [gridaxes[2][j] for i in eachindex(gridaxes[1]), j in eachindex(gridaxes[2])]
-#     # Data for a three-dimensional line
-#     scatter3D(X, V, PI.pdf.p)
-#     xlabel("x")
-#     ylabel("z")
-# end
+begin
+    figure(1); clf()
+    # ax = axes(projection="3d")
+    X = [gridaxes[1][i] for i in eachindex(gridaxes[1]), j in eachindex(gridaxes[2])]
+    V = [gridaxes[2][j] for i in eachindex(gridaxes[1]), j in eachindex(gridaxes[2])]
+    # Data for a three-dimensional line
+    scatter3D(X, V, PI.pdf.p)
+    xlabel("x")
+    ylabel("z")
+end
 
 @time update_mPDFs!(PI)
 
