@@ -75,8 +75,8 @@ function cubicinterpolation_weights_end!(vals, dx, Δ)
     # not enforcing unknown boundary conditions
     vals[1] = zero(δ)
     vals[2] = 0.5δ² - 0.5δ
-    vals[4] = one(δ) - δ² 
-    vals[3] = 0.5δ² + 0.5δ
+    vals[3] = one(δ) - δ² 
+    vals[4] = 0.5δ² + 0.5δ
     nothing
 end
 
