@@ -24,16 +24,16 @@ end
 ##
 par = [0.05, 0.5, 5.0]# ζ, σ = p
 sde = SDE((f1,f2,f3),g3,par)
-xmin = -4; xmax = 4; xN = 21;
-vmin = -4; vmax = 4; vN = 21;
-zmin = -4; zmax = 4; zN = 21;
+xmin = -4; xmax = 4; xN = 31;
+vmin = -4; vmax = 4; vN = 31;
+zmin = -4; zmax = 4; zN = 31;
 gridaxes = (GridAxis(xmin,xmax,xN,interpolation=:quintic),
         GridAxis(vmin,vmax,vN,interpolation=:quintic),
         GridAxis(zmin,zmax,zN,interpolation=:quintic));
 
 Δt = 0.001
-method = Euler(); # method  = RK4()
-@time PI = PathIntegration(sde, method, [0.,Δt],gridaxes...; pre_compute=true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 21, smart_integration = true,int_limit_thickness_multiplier = 6, mPDF_IDs = ((1,),(2,),(3,)), σ_init = 1.,sparse_stepMX = true);
+method = Euler();  method  = RK4()
+@time PI = PathIntegration(sde, method, [0.,Δt],gridaxes...; pre_compute=true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 21, smart_integration = true,int_limit_thickness_multiplier = 6, mPDF_IDs = ((1,),(2,),(3,)), σ_init = 1.,sparse_stepMX = true,multithreaded_sparse = true);
 
 # @time recompute_stepMX!(PI, t=0.02)
 ##

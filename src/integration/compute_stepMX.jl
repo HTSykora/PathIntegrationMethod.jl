@@ -1,17 +1,22 @@
-function compute_stepMX(IK; sparse_stepMX = true, kwargs...)
+function compute_stepMX(IK; sparse_stepMX = Val{true}(), multithreaded_sparse = Val{true}(), kwargs...)
     stepMX = initialize_stepMX(eltype(IK.pdf.p), IK.t, length(IK.pdf),sparse_stepMX)
 
     fill_stepMX_ts!(stepMX, IK; kwargs...)
     # stepMX
-    get_final_stepMX_form(stepMX)
+    get_final_stepMX_form(stepMX, multithreaded_sparse)
 end
 
-@inline get_final_stepMX_form(stepMX::AbstractMatrix{T}) where T<:Number = stepMX
-@inline get_final_stepMX_form(stepMX::AbstractVector{aT}) where aT<:AbstractMatrix{T} where T<:Number = stepMX
-@inline get_final_stepMX_form(stepMX::AbstractVector{aT}) where aT<:AbstractSparseMatrix{T} where T<:Number = get_final_stepMX_form.(stepMX)
-@inline get_final_stepMX_form(stepMX:::AbstractSparseMatrix{T}) where T<:Number = transpose(stepMX)
-@inline initialize_stepMX(T, ts::AbstractVector{eT}, l::Integer, sparse_stepMX) where eT<:Number = [initialize_stepMX(T,l,Val{sparse_stepMX}()) for _ in 1:(length(ts)-1)]
-@inline initialize_stepMX(T, ts::Number, l::Integer, sparse_stepMX) = initialize_stepMX(T,l,Val{sparse_stepMX}())
+@inline get_final_stepMX_form(stepMX::Union{AbstractMatrix{T},AbstractVector{aT}}, mts) where aT<:AbstractMatrix{T} where T<:Number = stepMX
+@inline get_final_stepMX_form(stepMX::AbstractVector{aT}, mts) where aT<:AbstractSparseMatrix{T} where T<:Number = get_final_stepMX_form.(stepMX,Ref(mts))
+@inline function get_final_stepMX_form(stepMX::AbstractSparseMatrix{T},::Val{true}) where T<:Number
+    transpose(ThreadedSparseMatrixCSC(stepMX))
+end
+@inline function get_final_stepMX_form(stepMX::AbstractSparseMatrix{T},::Val{false}) where T<:Number
+    transpose(stepMX)
+end
+
+@inline initialize_stepMX(T, ts::AbstractVector{eT}, l::Integer, sparse_stepMX) where eT<:Number = [initialize_stepMX(T,l,sparse_stepMX) for _ in 1:(length(ts)-1)]
+@inline initialize_stepMX(T, ts::Number, l::Integer, sparse_stepMX) = initialize_stepMX(T, l, sparse_stepMX)
 @inline initialize_stepMX(T::DataType, l::Integer, ::Val{true}) = spzeros(T, l, l)
 @inline initialize_stepMX(T::DataType, l::Integer, ::Val{false}) = zeros(T, l, l)
 

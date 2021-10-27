@@ -26,6 +26,7 @@ Compute a `PathIntegration` object for computing the response probability densit
     - `Union{NTuple{d,<:Number},AbstractVector{<:Number}}`: Individual standard deviations for each axis.
 - `pre_compute = true`: Compute the `stepMX`. This should be left unchanged if the RPDF computation is the goal.
 - `sparse_stepMX = true`: If a sparse interpolation is used (see Interpolation), then use a sparse representation of the `stepMX`
+- `multithreaded_sparse = true`: Use a multithreaded sparse matrix if `stepMX` ends up sparse
 - `mPDF_IDs = nothing`: Marginal PDF (mPDF) for IDinates specified by `mPDF_IDs`
     - `Nothing`: No mPDF is initialised.
     - `Integer`: 1-dimensional mPDF is initalised for state-variable `mPDF_IDs`
@@ -40,7 +41,7 @@ For methods, discrete integrators, interpolators, and examples please refer to t
 function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d}; 
     discreteintegrator = d==k ? QuadGKIntegrator() : ClenshawCurtisIntegrator(),
     di_N = 21,  # discrete integration resolution
-    initialise_pdf = true, f_init = nothing, pre_compute = true, sparse_stepMX = true,
+    initialise_pdf = true, f_init = nothing, pre_compute = true, sparse_stepMX = true, multithreaded_sparse = true,
     mPDF_IDs = nothing, kwargs...) where {d,k,m}
     if method isa DiscreteTimeSteppingMethod
         x0 = zeros(d) # * not type safe for autodiff
@@ -86,7 +87,7 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
         #     return IK, kwargs
         # end
         _sparse_stepMX = sparse_stepMX && is_sparse_interpolation(pdf)
-        stepMX = compute_stepMX(IK; sparse_stepMX = _sparse_stepMX, kwargs...)
+        stepMX = compute_stepMX(IK; sparse_stepMX = Val{_sparse_stepMX}(), multithreaded_sparse = Val{multithreaded_sparse}(), kwargs...)
     else
         stepMX = nothing
         IK = nothing
