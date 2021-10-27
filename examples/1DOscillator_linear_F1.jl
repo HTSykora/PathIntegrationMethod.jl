@@ -31,11 +31,11 @@ gridaxes = (GridAxis(xmin,xmax,xN,interpolation=:quintic),
         GridAxis(vmin,vmax,vN,interpolation=:quintic),
         GridAxis(zmin,zmax,zN,interpolation=:quintic));
 
-Δt = 0.01
+Δt = 0.001
 method = Euler(); # method  = RK4()
-@time PI = PathIntegration(sde, method, [0.,Δt],gridaxes...; pre_compute=true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 21, smart_integration = true,int_limit_thickness_multiplier = 6, mPDF_IDs = ((1,),(2,),(3,)), σ_init = 1.);
+@time PI = PathIntegration(sde, method, [0.,Δt],gridaxes...; pre_compute=true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 21, smart_integration = true,int_limit_thickness_multiplier = 6, mPDF_IDs = ((1,),(2,),(3,)), σ_init = 1.,sparse_stepMX = true);
 
-@time recompute_stepMX!(PI, t=0.02)
+# @time recompute_stepMX!(PI, t=0.02)
 ##
 Tmax = 100.;
 Tmax = 25;
@@ -69,7 +69,7 @@ begin
     end
     ylabel(L"p")
     legend()
-    plot(_x,zero(_x))
+    # plot(_x,zero(_x))
 end
 # reinit_PI_pdf!(PI, PathIntegrationMethod.init_DiagonalNormalPDF(gridaxes...; μ_init = nothing, σ_init = 0.5))
 

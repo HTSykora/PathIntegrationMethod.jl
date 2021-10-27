@@ -1,16 +1,14 @@
 function compute_stepMX(IK; sparse_stepMX = true, kwargs...)
-    stepMX = initialize_stepMX(eltype(IK.pdf.p), IK.t, length(IK.pdf))
+    stepMX = initialize_stepMX(eltype(IK.pdf.p), IK.t, length(IK.pdf),sparse_stepMX)
 
     fill_stepMX_ts!(stepMX, IK; kwargs...)
-    if sparse_stepMX
-        make_sparse(stepMX)
-    else
-        stepMX
-    end
+    stepMX
 end
 
-@inline initialize_stepMX(T, ts::AbstractVector{eT}, l) where eT<:Number = [zeros(T,l,l) for _ in 1:(length(ts)-1)]
-@inline initialize_stepMX(T, ts::Number, l) = zeros(T, l, l)
+@inline initialize_stepMX(T, ts::AbstractVector{eT}, l::Integer, sparse_stepMX) where eT<:Number = [initialize_stepMX(T,l,Val{sparse_stepMX}()) for _ in 1:(length(ts)-1)]
+@inline initialize_stepMX(T, ts::Number, l::Integer, sparse_stepMX) = initialize_stepMX(T,l,Val{sparse_stepMX}())
+@inline initialize_stepMX(T::DataType, l::Integer, ::Val{true}) = spzeros(T, l, l)'
+@inline initialize_stepMX(T::DataType, l::Integer, ::Val{false}) = zeros(T, l, l)
 
 function fill_stepMX_ts!(stepMX::AbstractVector{aT}, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, aT<:AbstractMatrix{T},tT<:AbstractArray} where T<:Number
     for jₜ in 1:length(IK.t)-1
@@ -29,7 +27,7 @@ function fill_stepMX!(stepMX, IK::IntegrationKernel)
         update_dyn_state_x1!(IK, idx)
         rescale_discreteintegrator!(IK; IK.kwargs...)
         get_IK_weights!(IK)
-        fill_to_stepMX!(stepMX,IK,i)
+        fill_to_stepMX!(stepMX,IK,i; IK.kwargs...)
     end
 end
 
@@ -48,9 +46,18 @@ function update_dyn_state_x1!(IK::IntegrationKernel{kd,dyn}, idx) where dyn <:SD
     # end
 end
 
-@inline function fill_to_stepMX!(stepMX,IK,i)
+@inline function fill_to_stepMX!(stepMX::AbstractMatrix,IK,i; kwargs...)
     for j in eachindex(IK.temp.itpM)
         stepMX[i,j] = IK.temp.itpM[j]
+        # ? fill by rows and multiply from the right when advancing time
+    end
+    nothing
+end
+@inline function fill_to_stepMX!(stepMX::AbstractSparseMatrix,IK,i; sparse_tol = 1e-6, kwargs...)
+    for (j,val) in enumerate(IK.temp.itpM)
+        if abs(val) > sparse_tol
+            stepMX[i,j] = val
+        end
         # ? fill by rows and multiply from the right when advancing time
     end
     nothing
