@@ -2,12 +2,19 @@ function compute_stepMX(IK; sparse_stepMX = true, kwargs...)
     stepMX = initialize_stepMX(eltype(IK.pdf.p), IK.t, length(IK.pdf),sparse_stepMX)
 
     fill_stepMX_ts!(stepMX, IK; kwargs...)
-    stepMX
+    # stepMX
+    if sparse_stepMX # Needs to be transposed due to filling-up strategy
+        get_transpose(stepMX)
+    else
+        stepMX
+    end
 end
 
+get_transpose(stepMX::AbstractVector{aT}) where aT<:AbstractMatrix{T} where T<:Number = transpose.(stepMX)
+get_transpose(stepMX::AbstractMatrix{T}) where T<:Number = transpose.(stepMX)
 @inline initialize_stepMX(T, ts::AbstractVector{eT}, l::Integer, sparse_stepMX) where eT<:Number = [initialize_stepMX(T,l,Val{sparse_stepMX}()) for _ in 1:(length(ts)-1)]
 @inline initialize_stepMX(T, ts::Number, l::Integer, sparse_stepMX) = initialize_stepMX(T,l,Val{sparse_stepMX}())
-@inline initialize_stepMX(T::DataType, l::Integer, ::Val{true}) = spzeros(T, l, l)'
+@inline initialize_stepMX(T::DataType, l::Integer, ::Val{true}) = spzeros(T, l, l)
 @inline initialize_stepMX(T::DataType, l::Integer, ::Val{false}) = zeros(T, l, l)
 
 function fill_stepMX_ts!(stepMX::AbstractVector{aT}, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, aT<:AbstractMatrix{T},tT<:AbstractArray} where T<:Number
@@ -56,7 +63,7 @@ end
 @inline function fill_to_stepMX!(stepMX::AbstractSparseMatrix,IK,i; sparse_tol = 1e-6, kwargs...)
     for (j,val) in enumerate(IK.temp.itpM)
         if abs(val) > sparse_tol
-            stepMX[i,j] = val
+            stepMX[j,i] = val
         end
         # ? fill by rows and multiply from the right when advancing time
     end
