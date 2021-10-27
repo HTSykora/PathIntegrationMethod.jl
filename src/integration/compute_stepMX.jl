@@ -3,15 +3,13 @@ function compute_stepMX(IK; sparse_stepMX = true, kwargs...)
 
     fill_stepMX_ts!(stepMX, IK; kwargs...)
     # stepMX
-    if sparse_stepMX # Needs to be transposed due to filling-up strategy
-        get_transpose(stepMX)
-    else
-        stepMX
-    end
+    get_final_stepMX_form(stepMX)
 end
 
-get_transpose(stepMX::AbstractVector{aT}) where aT<:AbstractMatrix{T} where T<:Number = transpose.(stepMX)
-get_transpose(stepMX::AbstractMatrix{T}) where T<:Number = transpose.(stepMX)
+@inline get_final_stepMX_form(stepMX::AbstractMatrix{T}) where T<:Number = stepMX
+@inline get_final_stepMX_form(stepMX::AbstractVector{aT}) where aT<:AbstractMatrix{T} where T<:Number = stepMX
+@inline get_final_stepMX_form(stepMX::AbstractVector{aT}) where aT<:AbstractSparseMatrix{T} where T<:Number = get_final_stepMX_form.(stepMX)
+@inline get_final_stepMX_form(stepMX:::AbstractSparseMatrix{T}) where T<:Number = transpose(stepMX)
 @inline initialize_stepMX(T, ts::AbstractVector{eT}, l::Integer, sparse_stepMX) where eT<:Number = [initialize_stepMX(T,l,Val{sparse_stepMX}()) for _ in 1:(length(ts)-1)]
 @inline initialize_stepMX(T, ts::Number, l::Integer, sparse_stepMX) = initialize_stepMX(T,l,Val{sparse_stepMX}())
 @inline initialize_stepMX(T::DataType, l::Integer, ::Val{true}) = spzeros(T, l, l)
