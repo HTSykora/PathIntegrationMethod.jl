@@ -7,20 +7,17 @@ py_colors=PyPlot.PyDict(PyPlot.matplotlib."rcParams")["axes.prop_cycle"].by_key(
 
 # using QuadGK, Arpack
 
-1+1
-##
-
 f1(u,p,t) = u[2]
 function f2(u,p,t)
-    ζ, σ, _, _ = p # ζ, σ
-    -2ζ*u[2] - u[1] + σ*u[3]
+    u[4]
 end
 function f3(u,p,t)
-    u[4]
+    ζ, σ, _, _ = p # ζ, σ
+    - u[1] + σ*u[2] - 2ζ*u[3]
 end
 function f4(u,p,t)
     _, _, Ωz, ζz = p
-    -2Ωz*ζz*u[4] - Ωz^2*u[3]
+    -2Ωz*ζz*u[4] - Ωz^2*u[2]
 end
 function g4(u,p,t)
     _, _, Ωz, ζz = p
@@ -29,10 +26,10 @@ end
 ##
 par = [0.05, 0.5, 2.0, 0.1]# ζ, σ, Ωz, ζz = p
 sde = SDE((f1,f2,f3,f4),g4,par)
- xmin = -4;  xmax = 4;  xN = 21;
- vmin = -4;  vmax = 4;  vN = 21;
- zmin = -4;  zmax = 4;  zN = 21;
-dzmin = -4; dzmax = 4; dzN = 21;
+ xmin = -4;  xmax = 4;  xN = 16;
+ vmin = -4;  vmax = 4;  vN = 16;
+ zmin = -4;  zmax = 4;  zN = 16;
+dzmin = -6; dzmax = 6; dzN = 16;
 gridaxes = (GridAxis(xmin,xmax,xN,interpolation=:quintic),
         GridAxis(vmin,vmax,vN,interpolation=:quintic),
         GridAxis(zmin,zmax,zN,interpolation=:quintic),
@@ -46,8 +43,9 @@ method = Euler();  method  = RK4()
 ##
 Tmax = 100.;
 Tmax = 25;
+Tmax = 4;
 @time advance!(PI)
-@time for _ in 1:Int((Tmax + sqrt(eps())) ÷ Δt)
+@time for _ in 1:1000#Int((Tmax + sqrt(eps())) ÷ Δt)
         advance!(PI)
 end
 # pev1 = ev[2][:,1] .|> real; pev1 ./= sum(pev1)
@@ -98,7 +96,10 @@ function σ2M(p)
 end
 function AMX(p)
     ζ, σ, Ωz, ζz = p;
-    A = SMatrix{4,4}([0. 1. 0. 0.; -1. -2ζ σ 0.; 0. 0. 1. 0.; 0. 0. -Ωz^2 -2Ωz*ζz]); 
+    A = SMatrix{4,4}([0. 0. 1. 0.;
+                      0. 0. 0. 1.;
+                      -1. σ -2ζ 0.;
+                      0. -Ωz^2 0. -2Ωz*ζz]); 
     #factorize(A)
 end
 
@@ -124,21 +125,21 @@ end
 DiffGen(p::AbstractVector) = DiffGen(AMX(p),σ2M(p),[0.])
 ##
 
-par = [0.05, 0.5, 2.0, 0.1]# ζ, σ, Ωz, ζz = p
+par = [0.05, 0.5, 1.5, 0.1]# ζ, σ, Ωz, ζz = p
 Φ = DriftGen(par)
 Φ2 = DiffGen(par)
 Φ2.t[1] = 1.
 @time diff1 = zchop.(get_Diffval(Φ2,100.0),1e-9)
 @time diff2 = zchop.(get_Diffval(Φ2,200.0),1e-9)
 
-dist = MvNormal(zeros(3),Symmetric(diff2))
+dist = MvNormal(zeros(4),Symmetric(diff2))
 refpdf0(x,v,z,dz) = pdf(dist,[x,v,z,dz])
 
 
- xmin = -4;  xmax = 4;  xN = 21;
- vmin = -4;  vmax = 4;  vN = 21;
- zmin = -4;  zmax = 4;  zN = 21;
-dzmin = -4; dzmax = 4; dzN = 21;
+ xmin = -4;  xmax = 4;  xN = 16;
+ vmin = -4;  vmax = 4;  vN = 16;
+ zmin = -4;  zmax = 4;  zN = 16;
+dzmin = -6; dzmax = 6; dzN = 16;
 gridaxes = (GridAxis(xmin,xmax,xN,interpolation=:chebyshev),
             GridAxis(vmin,vmax,vN,interpolation=:chebyshev),
             GridAxis(zmin,zmax,zN,interpolation=:chebyshev),
@@ -154,15 +155,15 @@ mpdfs = PathIntegrationMethod.initialise_mPDF(ref_pdf,((1,),(2,),(3,),(4,)))
 @time mpdfs[4](0.)
 begin
     figure(2); clf();
-    for id in 1:3
+    for id in 1:4
         # ax = axes(projection="3d")
         _x = LinRange(gridaxes[id][1],gridaxes[id][end],1001)
         # Data for a three-dimensional line
-        plot(_x, mpdfs[id].(_x), label=[L"x",L"v",L"z"][id])
+        plot(_x, mpdfs[id].(_x), label=[L"x",L"v",L"z",L"\dot{z}"][id])
         # plot(_x,PathIntegrationMethod.normal1D.(_x))
     end
     ylabel(L"p")
     legend()
     # plot(_x,zero(_x))
 end
-
+##
