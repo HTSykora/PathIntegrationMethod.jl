@@ -39,24 +39,27 @@ sum(abs2, f_true1 .- f_interpolated1)/length(f_true1) > sum(abs2, f_true2 .- f_i
 
 ##
 # Visual checks
+using Revise
+using PathIntegrationMethod
+using BenchmarkTools
 using PyPlot
 pygui(true)
 function f3(x) 
     sin(x)
 end
-grid_dat3 = (-1,5,11)
+grid_dat3 = (-1,5,21)
+grid_dat3 = (0,2π,10)
 f_itp3 = InterpolatedFunction(Float64,GridAxis(grid_dat3...; interpolation = :chebyshev, xT = Float64); f = f3)
 
 start,stop,num = grid_dat3
-xs = LinRange(start-1.0,stop+1., 5(num-1)+1)
+xs = LinRange(start-1.0,stop+1., 10(num-1)+1)
 x_ref = LinRange(start,stop, 100(num-1))
-@time f_interpolated3 = f_itp3.(xs)
+@time f_interpolated3 = f_itp3.(xs, allow_extrapolation = false)
 begin
     figure(1); clf()
     plot(f_itp3.axes[1],f_itp3.p,color="red","o", label = "Itp points")
-    plot(xs,f_interpolated3,"-o", markersize=4, label = "Itp full")
+    plot(xs,f_interpolated3,"-", markersize=4, label = "Itp full")
     plot(x_ref,f3.(x_ref), label = "Ref")
     # plot(f_itp3.axes[1],f3.(f_itp3.axes[1]), label= "Ref Itp grid")
     legend()
 end
-

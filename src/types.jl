@@ -112,7 +112,10 @@ struct ChebyshevInterpolation{NT,_1T} <: DenseInterpolationType
     N::NT
     _1::_1T
 end
-struct FourierInterpolation{N} <: DenseInterpolationType end
+struct TrigonometricInterpolation{_isodd,NT,cT} <: DenseInterpolationType
+    N::NT
+    c::cT
+end
 struct LinearInterpolation{ΔT} <: SparseInterpolationType
     Δ::ΔT
 end

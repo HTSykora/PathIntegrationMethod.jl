@@ -23,8 +23,8 @@ InterpolatedFunction(T::DataType,axes::aT; kwargs...) where aT<:Tuple = Interpol
 InterpolatedFunction(axes::Vararg{Any,N}; kwargs...) where N = InterpolatedFunction(Float64,axes...; kwargs...)
 
 # Computing interpolated ProbabilityDensityFunction
-function (f::InterpolatedFunction{T,N,axesT})(x::Vararg{Any,N}) where {T,N,axesT} #axesT <: NTuple{<:GridAxis}
-    interpolate(f.p,f.axes,x...; idx_it = f.idx_it, val_it = f.val_it)
+function (f::InterpolatedFunction{T,N,axesT})(x::Vararg{Any,N}; kwargs...) where {T,N,axesT} #axesT <: NTuple{<:GridAxis}
+    interpolate(f.p,f.axes,x...; idx_it = f.idx_it, val_it = f.val_it, kwargs...)
 end
 
 function get_itp_type(axes)
