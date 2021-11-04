@@ -78,11 +78,12 @@ end
 ##
 
 @time begin
-    Δt = 0.001
+    Δt = 0.0001
     itp_ords = 11:2:51
     itp_ords_pol = 11:20:211
 
     err_N_cheb = Vector{Float64}(undef,0)
+    err_N_trig = Vector{Float64}(undef,0)
     err_N_lin = Vector{Float64}(undef,0)
     err_N_cub = Vector{Float64}(undef,0)
     err_N_qui = Vector{Float64}(undef,0)
@@ -91,6 +92,10 @@ end
     for N in itp_ords
         _, err = get_PI_err(N, Δt; method = euler, interpolation = :chebyshev, _testN = 10001, _x =_x, Tmax = 10.0,discreteintegrator = ClenshawCurtisIntegrator(),di_mul = 100)
         push!(err_N_cheb, err)
+    end
+    for N in itp_ords
+        _, err = get_PI_err(N, Δt; method = euler, interpolation = :trigonometric, _testN = 10001, _x =_x, Tmax = 10.0,discreteintegrator = ClenshawCurtisIntegrator(),di_mul = 100)
+        push!(err_N_trig, err)
     end
     for N in itp_ords_pol
         _, err = get_PI_err(N, Δt; method = euler, interpolation = :linear, _testN = 10001, _x =_x, Tmax = 10.0,discreteintegrator = ClenshawCurtisIntegrator(),di_mul = 100)
@@ -107,19 +112,20 @@ end
 end
 begin
     figure(2); clf()
-    plot(itp_ords, err_N_cheb,".-",label="Chebyshev \$\\Delta t = $(Δt)\$")
+    plot(itp_ords, err_N_cheb,".-",label="Chebyshev")
+    plot(itp_ords, err_N_trig,".-",label="Trigonometric")
     
-    plot(itp_ords_pol, err_N_lin,".-",label="Linear, \$\\Delta t = $(Δt)\$")
-    plot(itp_ords_pol, err_N_cub,".-",label="Cubic, \$\\Delta t = $(Δt)\$")
-    plot(itp_ords_pol, err_N_qui,".-",label="Cubic, \$\\Delta t = $(Δt)\$")
+    plot(itp_ords_pol, err_N_lin,".-",label="Linear")
+    plot(itp_ords_pol, err_N_cub,".-",label="Cubic")
+    plot(itp_ords_pol, err_N_qui,".-",label="Quintic")
     plot(itp_ords[1:10], exp.(-0.5itp_ords[1:10] .+ 5) ,"-",c = py_colors[8],alpha = 0.5, label = L"\exp(-a N + b)")
     plot(itp_ords_pol, 10itp_ords_pol.^-1 ,"-",c = py_colors[8],alpha = 0.6, label = L"N^{-1}")
     plot(itp_ords_pol, 300itp_ords_pol.^-2 ,"-",c = py_colors[8],alpha = 0.7, label = L"N^{-2}")
-    plot(itp_ords_pol, 500itp_ords_pol.^-3 ,"-",c = py_colors[8],alpha = 0.8, label = L"N^{-3}")
+    plot(itp_ords_pol, 1000itp_ords_pol.^-3 ,"-",c = py_colors[8],alpha = 0.8, label = L"N^{-3}")
 
     xscale(:log); yscale(:log)
-
-    legend()
+    title("\$\\Delta t = $(Δt)\$")
+    legend(loc=1)
     xlabel("\$N\$ - Interpolation order")
     ylabel(L"\displaystyle \int \left| p_{\mathrm{ref}}(x) - \tilde{p}_{N}(x) \right| \mathrm{d}x")
 end
@@ -131,7 +137,7 @@ end
 Δt = 0.001
 Tmax = 10.
 # # Single test run
-gridaxis = GridAxis(-3,3,201,interpolation = :linear,newton_cotes_order = 3)
+gridaxis = GridAxis(-3,3,201,interpolation = :trigonometric,newton_cotes_order = 3)
 @time PI = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true,discreteintegrator = ClenshawCurtisIntegrator(),di_mul = 100);
 @time for _ in 1:1:Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
     advance!(PI)

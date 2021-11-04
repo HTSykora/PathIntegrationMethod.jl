@@ -48,8 +48,8 @@ function f3(x)
     sin(x)
 end
 grid_dat3 = (-1,5,21)
-grid_dat3 = (0,2π,10)
-f_itp3 = InterpolatedFunction(Float64,GridAxis(grid_dat3...; interpolation = :chebyshev, xT = Float64); f = f3)
+grid_dat3 = (0,2π,21)
+f_itp3 = InterpolatedFunction(Float64,GridAxis(grid_dat3...; interpolation = :trigonometric, xT = Float64); f = f3)
 
 start,stop,num = grid_dat3
 xs = LinRange(start-1.0,stop+1., 10(num-1)+1)

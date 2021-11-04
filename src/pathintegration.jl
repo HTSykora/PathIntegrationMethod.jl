@@ -42,7 +42,7 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
     discreteintegrator = d==k ? QuadGKIntegrator() : ClenshawCurtisIntegrator(),
     di_N = 21,  # discrete integration resolution
     initialise_pdf = true, f_init = nothing, pre_compute = true, sparse_stepMX = true, multithreaded_sparse = true,
-    mPDF_IDs = nothing, kwargs...) where {d,k,m}
+    mPDF_IDs = nothing, extract_IK = Val{false}(), kwargs...) where {d,k,m}
     if method isa DiscreteTimeSteppingMethod
         x0 = zeros(d) # * not type safe for autodiff
         x1 = similar(x0)
@@ -82,10 +82,10 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
         end
         di = DiscreteIntegrator(discreteintegrator, pdf.p, di_res, axes[k:end]...; kwargs...)
         IK = IntegrationKernel(sdestep, nothing, di, ts, pdf, ikt, kwargs)
-        # put debug_mode = Val{false} to kwargs if needed
-        # if debug_mode in (Val{true},true)
-        #     return IK, kwargs
-        # end
+        
+        if extract_IK isa Val{true}
+            return IK
+        end
         _sparse_stepMX = sparse_stepMX && is_sparse_interpolation(pdf)
         stepMX = compute_stepMX(IK; sparse_stepMX = Val{_sparse_stepMX}(), multithreaded_sparse = Val{multithreaded_sparse}(), kwargs...)
     else
