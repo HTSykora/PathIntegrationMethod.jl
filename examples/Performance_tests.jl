@@ -16,10 +16,10 @@ function run_IK_evaluations(IK,idxs)
     nothing
 end
 
-function test_IK(IK, n0 = 1, n1 = 10; ns_scale = 10^6)
+function test_IK(IK, n0 = 1, n1 = 10; ns_scale = 10^6,reducer = median)
     idxs = collect(PathIntegrationMethod.dense_idx_it(IK))[n0:n1];
     bm = @benchmark run_IK_evaluations($IK,$idxs)
-    median(bm).time /(n1 - n0 + 1)/ns_scale, bm
+    reducer(bm).time /(n1 - n0 + 1)/ns_scale, bm
     # median time in [ms], bemnchmarkresults
 end
 ##
@@ -29,8 +29,9 @@ g(x,p,t) = sqrt(2)
 sde = SDE(f,g)
 Δt = 0.001
 
-gridaxis = GridAxis(-3, 3, 31, interpolation = :chebyshev)
+gridaxis = GridAxis(-3, 3, 11, interpolation = :chebyshev)
 @time IK = PathIntegration(sde, Euler(), Δt, gridaxis, pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 21, smart_integration = true,int_limit_thickness_multiplier = 6, sparse_stepMX = true, extract_IK = Val{true}());
+t,_ = test_IK(IK,1,11)
 
 Ns = 11:10:151
 itps = [:chebyshev, :trigonometric, :linear, :cubic, :quintic]
@@ -69,13 +70,16 @@ end
 
 par = [0.05, 0.1]; # ζ, σ = p
 sde = SDE((f1,f2),g2,par)
-xmin = -2; xmax = 2; xN = 31;
-vmin = -2; vmax = 2; vN = 31;
+xmin = -2; xmax = 2; xN = 21;
+vmin = -2; vmax = 2; vN = 21;
 Δt = 0.025
 gridaxes = (GridAxis(xmin,xmax,xN,interpolation=:chebyshev),
         GridAxis(vmin,vmax,vN,interpolation=:chebyshev))
 
 @time IK = PathIntegration(sde, Euler(), Δt, gridaxes..., pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 21, smart_integration = true,int_limit_thickness_multiplier = 6, sparse_stepMX = true, extract_IK = Val{true}());
+t,bm = test_IK(IK,1,11,reducer = mean)
+
+@time PI = PathIntegration(sde, Euler(), Δt, gridaxes..., pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 21, smart_integration = true,int_limit_thickness_multiplier = 6, sparse_stepMX = true);
 
 Ns = 11:10:151
 itps = [:chebyshev, :trigonometric, :linear, :cubic, :quintic]
