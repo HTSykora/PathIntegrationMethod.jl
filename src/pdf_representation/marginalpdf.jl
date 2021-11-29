@@ -18,7 +18,7 @@ function get_mpdf_intdims(pdf::InterpolatedFunction{T,N},ID::Integer) where {T, 
     @assert ID ≤ N "ID > $N"
     @assert 0 < ID "ID < 0"
     
-    Tuple(i for i in 1:N if i ≂̸ ID)
+    Tuple(i for i in 1:N if i != ID)
 end
 function get_mpdf_intdims(pdf::InterpolatedFunction{T,N},IDs::NTuple{n,Integer}) where {n,T,N}
     @assert maximum(IDs) ≤ N "maximum(IDs) > $N"
