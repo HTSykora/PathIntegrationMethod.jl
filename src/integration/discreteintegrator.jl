@@ -21,7 +21,7 @@ function DiscreteIntegrator(discreteintegrator::QuadGKIntegrator{T1,T2,Tkwarg},r
     # else
     qgkkwargs = (discreteintegrator.kwargs..., cleanup_quadgk_keywords(;kwargs...)...)
     # end
-    QuadGKIntegrator((start, stop), zero(res_prototype), qgkkwargs)
+    QuadGKIntegrator([start, stop], zero(res_prototype), qgkkwargs)
 end
 
 function (::ClenshawCurtisIntegrator)(xT, wT, start, stop, num) 
