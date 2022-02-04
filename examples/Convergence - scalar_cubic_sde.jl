@@ -1,3 +1,4 @@
+using Pkg; Pkg.activate()
 using Revise, BenchmarkTools
 using PathIntegrationMethod
 using PyPlot, LaTeXStrings; pygui(true);
