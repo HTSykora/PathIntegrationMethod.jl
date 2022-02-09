@@ -32,10 +32,10 @@ function g2(u,p,t)
 end
 
 ## 
-xmin, xmax, Nx = -10, 10, 101
-vmin, vmax, Nv = -10, 10, 101
+xmin, xmax, Nx = -10, 10, 51
+vmin, vmax, Nv = -10, 10, 51
 
-gridaxes = [GridAxis(xmin,xmax,Nx,interpolation = :linear),GridAxis(vmin,vmax,Nv,interpolation = :linear)]
+gridaxes = [GridAxis(xmin,xmax,Nx,interpolation = :chebyshev),GridAxis(vmin,vmax,Nv,interpolation = :chebyshev)]
 # 
 par = [0.15, 0.25, sqrt(0.5)];
 # par = [0.2, 0.1, sqrt(0.2)];
@@ -44,7 +44,7 @@ par = [0.15, 0.25, sqrt(0.5)];
 
 sde = SDE((f1, f2), g2, par)
 Δt = 0.001;
-@time PI = PathIntegration(sde, Euler(), Δt, gridaxes..., pre_compute = true, σ_init = 0.5, μ_init = [0.0, 0.], discreteintegrator = ClenshawCurtisIntegrator());
+@time PI = PathIntegration(sde, Euler(), Δt, gridaxes..., pre_compute = true, σ_init = 0.5, μ_init = [0.0, 0.], discreteintegrator = ClenshawCurtisIntegrator(), stepMXtype = DenseMX());
 # @btime PathIntegrationProblem($sde,$Δt,$xvs..., precompute = $true, σ_init = $0.5);
 
 @time for _ in 1:10000

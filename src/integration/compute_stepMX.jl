@@ -10,6 +10,9 @@ end
 function get_stepMXtype(sde::sdeT,::Val{DenseInterpolationType}; kwargs...) where sdeT <: Union{AbstractSDE{1},AbstractSDE{2}}
     DenseMX()
 end
+get_tol(::DenseMX) = zero(Float64)
+get_tol(m::SparseMX) = m.tol
+
 
 function compute_stepMX(IK; stepMXtype = DenseMX(), kwargs...)
     stepMX = initialize_stepMX(eltype(IK.pdf.p), IK.t, length(IK.pdf),stepMXtype)
@@ -50,7 +53,7 @@ function fill_stepMX!(stepMX, IK::IntegrationKernel,stepMXtype)
         update_dyn_state_x1!(IK, idx)
         rescale_discreteintegrator!(IK; IK.kwargs...)
         get_IK_weights!(IK)
-        fill_to_stepMX!(stepMX,IK,i; sparse_tol = stepMXtype.tol, IK.kwargs...)
+        fill_to_stepMX!(stepMX,IK,i; sparse_tol = get_tol(stepMXtype), IK.kwargs...)
     end
 end
 
