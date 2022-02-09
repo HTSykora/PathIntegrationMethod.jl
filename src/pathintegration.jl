@@ -44,12 +44,12 @@ For methods, discrete integrators, interpolators, and examples please refer to t
 function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d}; 
     discreteintegrator = d==k ? QuadGKIntegrator() : ClenshawCurtisIntegrator(),
     di_N = 21,  # discrete integration resolution
-    initialise_pdf = true, f_init = nothing, pre_compute = true, stepMXtype = nothing,
+    initialise_pdf = true, f_init = nothing, pre_compute = true, stepMXtype = nothing, sparse_tol = 1e-6,
     mPDF_IDs = nothing, extract_IK = Val{false}(), kwargs...) where {d,k,m}
     if stepMXtype isa StepMatrixRepresentation
         _stepMXtype = stepMXtype
     else
-        _stepMXtype = get_stepMXtype(sde, get_itp_type(axes); kwargs...)
+        _stepMXtype = get_stepMXtype(sde, get_itp_type(axes); sparse_tol = sparse_tol, kwargs...)
     end
 
     if method isa DiscreteTimeSteppingMethod

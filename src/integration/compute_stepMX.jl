@@ -14,7 +14,7 @@ end
 function compute_stepMX(IK; stepMXtype = DenseMX(), kwargs...)
     stepMX = initialize_stepMX(eltype(IK.pdf.p), IK.t, length(IK.pdf),stepMXtype)
 
-    fill_stepMX_ts!(stepMX, IK; kwargs...)
+    fill_stepMX_ts!(stepMX, IK, stepMXtype; kwargs...)
     # stepMX
     get_final_stepMX_form(stepMX, stepMXtype)
 end
@@ -33,24 +33,24 @@ end
 @inline initialize_stepMX(T::DataType, l::Integer, ::SparseMX) = spzeros(T, l, l)
 @inline initialize_stepMX(T::DataType, l::Integer, ::DenseMX) = zeros(T, l, l)
 
-function fill_stepMX_ts!(stepMX::AbstractVector{aT}, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, aT<:AbstractMatrix{T},tT<:AbstractArray} where T<:Number
+function fill_stepMX_ts!(stepMX::AbstractVector{aT}, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}, stepMXtype; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, aT<:AbstractMatrix{T},tT<:AbstractArray} where T<:Number
     for jₜ in 1:length(IK.t)-1
         IK.sdestep.t0[1] = IK.t[jₜ]
         IK.sdestep.t1[1] = IK.t[jₜ+1]
-        fill_stepMX!(stepMX[jₜ], IK)
+        fill_stepMX!(stepMX[jₜ], IK, stepMXtype)
     end
 end
-function fill_stepMX_ts!(stepMX, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, tT<:Number}
-    fill_stepMX!(stepMX, IK)
+function fill_stepMX_ts!(stepMX, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}, stepMXtype; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, tT<:Number}
+    fill_stepMX!(stepMX, IK, stepMXtype)
 end
 
-function fill_stepMX!(stepMX, IK::IntegrationKernel)
+function fill_stepMX!(stepMX, IK::IntegrationKernel,stepMXtype)
     for (i, idx) in enumerate(dense_idx_it(IK))
         update_IK_state_x1!(IK, idx)
         update_dyn_state_x1!(IK, idx)
         rescale_discreteintegrator!(IK; IK.kwargs...)
         get_IK_weights!(IK)
-        fill_to_stepMX!(stepMX,IK,i; IK.kwargs...)
+        fill_to_stepMX!(stepMX,IK,i; sparse_tol = stepMXtype.tol, IK.kwargs...)
     end
 end
 
