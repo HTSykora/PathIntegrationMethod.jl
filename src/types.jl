@@ -215,3 +215,13 @@ struct DiagonalNormalPDF{uT, sT} <: Function
     μ::uT
     σ²::sT
 end
+
+# Step matrix representation types
+abstract type StepMatrixRepresentation end
+struct DenseMX <:StepMatrixRepresentation
+end
+
+struct SparseMX{tf,tolT} <:StepMatrixRepresentation
+    Q_threaded::Bool
+    tol::tolT
+end

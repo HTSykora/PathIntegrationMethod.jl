@@ -1,24 +1,37 @@
-function compute_stepMX(IK; sparse_stepMX = Val{true}(), multithreaded_sparse = Val{true}(), kwargs...)
-    stepMX = initialize_stepMX(eltype(IK.pdf.p), IK.t, length(IK.pdf),sparse_stepMX)
+function SparseMX(;threaded = true, sparse_tol::T = 1e-6, kwargs...) where T
+    SparseMX{threaded,T}(threaded,sparse_tol)
+end
+function get_stepMXtype(sde::AbstractSDE{d},::T; multithreaded_sparse = true, kwargs...) where {d,T}
+    SparseMX(; threaded = multithreaded_sparse, kwargs...)
+end
+function get_stepMXtype(sde::sdeT,::Val{SparseInterpolationType}; multithreaded_sparse = true, kwargs...) where sdeT <: Union{AbstractSDE{1},AbstractSDE{2}}
+    SparseMX(; threaded = multithreaded_sparse, kwargs...)
+end
+function get_stepMXtype(sde::sdeT,::Val{DenseInterpolationType}; kwargs...) where sdeT <: Union{AbstractSDE{1},AbstractSDE{2}}
+    DenseMX()
+end
+
+function compute_stepMX(IK; stepMXtype = DenseMX(), kwargs...)
+    stepMX = initialize_stepMX(eltype(IK.pdf.p), IK.t, length(IK.pdf),stepMXtype)
 
     fill_stepMX_ts!(stepMX, IK; kwargs...)
     # stepMX
-    get_final_stepMX_form(stepMX, multithreaded_sparse)
+    get_final_stepMX_form(stepMX, stepMXtype)
 end
 
-@inline get_final_stepMX_form(stepMX::Union{AbstractMatrix{T},AbstractVector{aT}}, mts) where aT<:AbstractMatrix{T} where T<:Number = stepMX
-@inline get_final_stepMX_form(stepMX::AbstractVector{aT}, mts) where aT<:AbstractSparseMatrix{T} where T<:Number = get_final_stepMX_form.(stepMX,Ref(mts))
-@inline function get_final_stepMX_form(stepMX::AbstractSparseMatrix{T},::Val{true}) where T<:Number
+@inline get_final_stepMX_form(stepMX::Union{AbstractMatrix{T},AbstractVector{aT}}, ::DenseMX) where aT<:AbstractMatrix{T} where T<:Number = stepMX
+@inline get_final_stepMX_form(stepMX::AbstractVector{aT}, mts::SparseMX) where aT<:AbstractSparseMatrix{T} where T<:Number = get_final_stepMX_form.(stepMX,Ref(mts))
+@inline function get_final_stepMX_form(stepMX::AbstractSparseMatrix{T},::SparseMX{true}) where T<:Number
     transpose(ThreadedSparseMatrixCSC(stepMX))
 end
-@inline function get_final_stepMX_form(stepMX::AbstractSparseMatrix{T},::Val{false}) where T<:Number
+@inline function get_final_stepMX_form(stepMX::AbstractSparseMatrix{T},::SparseMX{false}) where T<:Number
     transpose(stepMX)
 end
 
-@inline initialize_stepMX(T, ts::AbstractVector{eT}, l::Integer, sparse_stepMX) where eT<:Number = [initialize_stepMX(T,l,sparse_stepMX) for _ in 1:(length(ts)-1)]
-@inline initialize_stepMX(T, ts::Number, l::Integer, sparse_stepMX) = initialize_stepMX(T, l, sparse_stepMX)
-@inline initialize_stepMX(T::DataType, l::Integer, ::Val{true}) = spzeros(T, l, l)
-@inline initialize_stepMX(T::DataType, l::Integer, ::Val{false}) = zeros(T, l, l)
+@inline initialize_stepMX(T, ts::AbstractVector{eT}, l::Integer, stepMXtype) where eT<:Number = [initialize_stepMX(T,l,stepMXtype) for _ in 1:(length(ts)-1)]
+@inline initialize_stepMX(T, ts::Number, l::Integer, stepMXtype) = initialize_stepMX(T, l, stepMXtype)
+@inline initialize_stepMX(T::DataType, l::Integer, ::SparseMX) = spzeros(T, l, l)
+@inline initialize_stepMX(T::DataType, l::Integer, ::DenseMX) = zeros(T, l, l)
 
 function fill_stepMX_ts!(stepMX::AbstractVector{aT}, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, aT<:AbstractMatrix{T},tT<:AbstractArray} where T<:Number
     for jₜ in 1:length(IK.t)-1

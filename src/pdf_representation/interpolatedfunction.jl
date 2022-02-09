@@ -30,7 +30,7 @@ end
 function get_itp_type(axes)
     mapreduce(|,axes) do axis
         axis.itp isa SparseInterpolationType 
-    end ? SparseInterpolationType : DenseInterpolationType
+    end ? Val{SparseInterpolationType}() : Val{DenseInterpolationType}()
 end
 
 is_sparse_interpolation(::InterpolatedFunction{T,N,<:SparseInterpolationType}) where {T,N} = true

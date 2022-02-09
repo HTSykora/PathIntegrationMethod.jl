@@ -15,7 +15,8 @@ export SDE, DriftTerm, DiffusionTerm,
     recycle_interpolatedfunction!,
     PathIntegration, 
     advance!, recompute_stepMX!, reinit_PI_pdf!, integrate, update_mPDFs!,
-    DiscreteIntegrator, QuadGKIntegrator, ClenshawCurtisIntegrator, GaussLegendreIntegrator, GaussRadauIntegrator, GaussLobattoIntegrator, TrapezoidalIntegrator, NewtonCotesIntegrator
+    DiscreteIntegrator, QuadGKIntegrator, ClenshawCurtisIntegrator, GaussLegendreIntegrator, GaussRadauIntegrator, GaussLobattoIntegrator, TrapezoidalIntegrator, NewtonCotesIntegrator,
+    DenseMX, SparseMX
     
 
 include("types.jl")

@@ -25,24 +25,33 @@ Compute a `PathIntegration` object for computing the response probability densit
     - `Number`: Uses the single value `σ_init` for each axis direction
     - `Union{NTuple{d,<:Number},AbstractVector{<:Number}}`: Individual standard deviations for each axis.
 - `pre_compute = true`: Compute the `stepMX`. This should be left unchanged if the RPDF computation is the goal.
-- `sparse_stepMX = true`: If a sparse interpolation is used (see Interpolation), then use a sparse representation of the `stepMX`
-- `multithreaded_sparse = true`: Use a multithreaded sparse matrix if `stepMX` ends up sparse
+- `stepMXtype = nothing`: Step matrix representation type. The default representation depends on `d` and the interpolation used (see Interpolation): `d ≤ 2` with sparse interpolation the `stepMX` is a multithreaded sparse matrix, for dense interpolations it is dense, and for `d>2` the default is a multithreaded sparse
+    Possible options:
+        - `SparseMX(; threaded = true, sparse_tol = 1e-6)`
+        - `DenseMX()`
+- `multithreaded_sparse = true`: is the sparse `stepMX` multithreaded if no `stepMXtype` is specified
+- `sparse_tol = 1e-6`: absolute tolerance for the elements considered as zero values in the sparse stepMX if no `stepMXtype` is specified
 - `mPDF_IDs = nothing`: Marginal PDF (mPDF) for IDinates specified by `mPDF_IDs`
     - `Nothing`: No mPDF is initialised.
     - `Integer`: 1-dimensional mPDF is initalised for state-variable `mPDF_IDs`
     - `NTuple{n,<:Integer}`: `n`-dimensional mPDF is initalised for state-variables specified in `mPDF_IDs`
     - `Union{Tuple{NTuple{n,<:Integer}},Vector{NTuple{d,<:Integer}}}`: Multiple mPDF initialised
-- `allow_extrapolation::Bool = false`: ...
-- `zero_extrapolation::Bool = true`: ...
-- `sparse_tol = 1e-8`: ...
+- `allow_extrapolation::Bool = false`: Allow nonzero extrapolation outside the region specified by `axes`
+- `zero_extrapolation::Bool = true`: Return 0 if extrapolated outside of the region specified by `axes`
 ----
 For methods, discrete integrators, interpolators, and examples please refer to the documentation. 
 """
 function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d}; 
     discreteintegrator = d==k ? QuadGKIntegrator() : ClenshawCurtisIntegrator(),
     di_N = 21,  # discrete integration resolution
-    initialise_pdf = true, f_init = nothing, pre_compute = true, sparse_stepMX = true, multithreaded_sparse = true,
+    initialise_pdf = true, f_init = nothing, pre_compute = true, stepMXtype = nothing,
     mPDF_IDs = nothing, extract_IK = Val{false}(), kwargs...) where {d,k,m}
+    if stepMXtype isa StepMatrixRepresentation
+        _stepMXtype = stepMXtype
+    else
+        _stepMXtype = get_stepMXtype(sde, get_itp_type(axes); kwargs...)
+    end
+
     if method isa DiscreteTimeSteppingMethod
         x0 = zeros(d) # * not type safe for autodiff
         x1 = similar(x0)
@@ -86,8 +95,7 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
         if extract_IK isa Val{true}
             return IK
         end
-        _sparse_stepMX = sparse_stepMX && is_sparse_interpolation(pdf)
-        stepMX = compute_stepMX(IK; sparse_stepMX = Val{_sparse_stepMX}(), multithreaded_sparse = Val{multithreaded_sparse}(), kwargs...)
+        stepMX = compute_stepMX(IK; stepMXtype = _stepMXtype, kwargs...)
     else
         stepMX = nothing
         IK = nothing
