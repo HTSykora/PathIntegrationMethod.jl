@@ -111,11 +111,31 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
 end
 _val(vals) = vals
 # PathIntegration{dynT, pdT, tsT, tpdMX_type, Tstp_idx, IKT, kwargT}
+function advance_till_converged!(PI::PathIntegration; reltol = 1e-6, maxiter = 10000)
+    for _ in 1:maxiter
+        _advance_to_temp!(PI.p_temp,PI)
+        _corr_to_temp!(PI.p_temp,PI.p_temp,PI)
+        ϵ = integrate_diff(PI.pdf,PI.p_temp)
+        @. PI.pdf.p = PI.p_temp
+        if ϵ < reltol*get_PIdt(PI)
+            return nothing
+        end
+    end
+    nothing
+end
 function advance!(PI::PathIntegration)
-    mul!(vec(PI.p_temp), next_stepMX(PI), vec(PI.pdf.p))
-    _I = 1/_integrate(PI.p_temp, PI.pdf.axes...);
-    @. PI.pdf.p = PI.p_temp * _I
+    _advance_to_temp!(PI.p_temp,PI)
+    _corr_to_temp!(PI.pdf.p,PI.p_temp,PI)
+    nothing
+end
+function _advance_to_temp!(p_temp::tT,PI::PathIntegration{dynT}) where {tT<:AbstractArray{T,d},dynT<:SDEStep{d}} where {T,d}
+    mul!(vec(p_temp), next_stepMX(PI), vec(PI.pdf.p))
     PI.t = PI.t + get_PIdt(PI)
+    nothing
+end
+function _corr_to_temp!(res::tT,p_temp::tT,PI::PathIntegration{dynT}) where {tT<:AbstractArray{T,d},dynT<:SDEStep{d}} where {T,d}
+    _I = 1/_integrate(p_temp, PI.pdf.axes...);
+    @. res = PI.p_temp * _I
     nothing
 end
 

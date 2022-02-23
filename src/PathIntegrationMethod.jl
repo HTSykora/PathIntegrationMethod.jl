@@ -14,7 +14,9 @@ export SDE, DriftTerm, DiffusionTerm,
     GridAxis, InterpolatedFunction,
     recycle_interpolatedfunction!,
     PathIntegration, 
-    advance!, recompute_stepMX!, reinit_PI_pdf!, integrate, update_mPDFs!,
+    advance!, advance_till_converged!, update_mPDFs!,
+    recompute_stepMX!, reinit_PI_pdf!,
+    integrate, integrate_diff,
     DiscreteIntegrator, QuadGKIntegrator, ClenshawCurtisIntegrator, GaussLegendreIntegrator, GaussRadauIntegrator, GaussLobattoIntegrator, TrapezoidalIntegrator, NewtonCotesIntegrator,
     DenseMX, SparseMX
     

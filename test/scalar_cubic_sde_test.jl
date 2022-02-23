@@ -1,6 +1,7 @@
 using Pkg; Pkg.activate();
 using Revise, BenchmarkTools
 using PathIntegrationMethod
+using SpecialFunctions
 using PyPlot, LaTeXStrings; pygui(true);
 PyPlot.rc("text", usetex=true);
 py_colors=PyPlot.PyDict(PyPlot.matplotlib."rcParams")["axes.prop_cycle"].by_key()["color"];
@@ -15,9 +16,15 @@ sde = SDE(f,g)
 # Analytic form
 _p_AN(x,ε = 1.) = exp(x^2/2 - ε*x^4/4)
 function p_AN(xs, ε=1.)
-    itg = quadgk(x->_p_AN(x,ε) ,xs[1],xs[end])[1]
+    if ε ≈ 1.
+        # println(true)
+        itg = exp(0.125)*π*(besseli(-1/4,1/8) + besseli(1/4,1/8))/(2)
+    else
+        itg = quadgk(x->_p_AN(x,ε) ,xs[1],xs[end])[1]
+    end
     _p_AN.(xs,Ref(ε)) ./ itg
 end
+
 
 function get_PI_err(N, Δt; interpolation = :chebyshev, xmin = -3.0, xmax = 3.0, _testN = 10001, _x = LinRange(xmin, xmax, _testN), Tmax = 10.0, method = Euler(), kwargs...)
     gridaxis = GridAxis(_x[1],_x[end],N,interpolation = interpolation)
@@ -75,16 +82,18 @@ end
 
 ##
 # # Single test run
-Δt = 0.001
+Δt = 0.0001
 Δt = 0.000002875
-Tmax = 10.0
+Tmax = 4.2021;10.0
 gridaxis = GridAxis(-3, 3, 101, interpolation = :chebyshev)
 @time PI = PathIntegration(sde, Euler(), [0.,Δt], gridaxis, pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 21, smart_integration = true,int_limit_thickness_multiplier = 6,stepMXtype = SparseMX(; sparse_tol=1e-6));
 @time for _ in 1:Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
     advance!(PI)
 end
+@time advance_till_converged!(PI, maxiter = 1e6)
 # sum(abs, PI.pdf.(_x) .- p_AN(_x)) * ((_x[end] - _x[1])/length(_x))
-
+itp_an = InterpolatedFunction(gridaxis); itp_an.p .= p_AN(gridaxis)
+@time integrate(itp_an)
 begin
     figure(1); clf()
     _x = LinRange(gridaxis[1], gridaxis[end], 10001)
