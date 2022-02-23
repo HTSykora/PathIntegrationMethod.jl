@@ -12,6 +12,10 @@ function Base.getindex(vals::SparseInterpolationBaseVals{5,vT}, idx) where vT
         return vals.val[3]
     elseif idx == vals.idxs[4]
         return vals.val[4]
+    elseif idx == vals.idxs[5]
+        return vals.val[5]
+    elseif idx == vals.idxs[6]
+        return vals.val[6]
     end
     return zero(eltype(vT))
 end

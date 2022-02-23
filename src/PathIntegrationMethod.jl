@@ -6,7 +6,7 @@ using Reexport
 using Symbolics
 using FFTW
 using FastGaussQuadrature
-using SparseArrays, ThreadedSparseArrays
+using SparseArrays, ThreadedSparseArrays, StaticArrays
 
 export SDE, DriftTerm, DiffusionTerm,
     Euler, RungeKutta, RK4, Maruyama,

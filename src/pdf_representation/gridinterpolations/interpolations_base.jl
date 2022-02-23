@@ -74,8 +74,8 @@ function SparseInterpolationBaseVals(order, val::valT, idxs::idxsT, l::lT) where
     SparseInterpolationBaseVals{order,valT,idxsT,lT}(val,idxs,l)
 end
 function SparseInterpolationBaseVals(T::DataType, l::lT, order = 1) where lT<:Integer
-    idxs = ones(lT,order +1)
-    val = zeros(T,length(idxs))
+    idxs = @MVector ones(lT,order +1)
+    val = @MVector zeros(T,length(idxs))
     SparseInterpolationBaseVals{order,typeof(val),typeof(idxs),lT}(val,idxs,l)
 end
 Base.size(vals::SparseInterpolationBaseVals) = (vals.l,)

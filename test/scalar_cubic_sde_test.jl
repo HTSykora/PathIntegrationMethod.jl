@@ -82,11 +82,11 @@ end
 
 ##
 # # Single test run
-Δt = 0.0001
+Δt = 0.01
 Δt = 0.000002875
 Tmax = 4.2021;10.0
-gridaxis = GridAxis(-3, 3, 101, interpolation = :chebyshev)
-@time PI = PathIntegration(sde, Euler(), [0.,Δt], gridaxis, pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 21, smart_integration = true,int_limit_thickness_multiplier = 6,stepMXtype = SparseMX(; sparse_tol=1e-6));
+gridaxis = GridAxis(-3, 3, 511, interpolation = :quintic)
+@time PI = PathIntegration(sde, Euler(), [0.,Δt], gridaxis, pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 31, smart_integration = true,int_limit_thickness_multiplier = 6,stepMXtype = SparseMX(; sparse_tol=1e-6));
 @time for _ in 1:Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
     advance!(PI)
 end
@@ -98,7 +98,7 @@ begin
     figure(1); clf()
     _x = LinRange(gridaxis[1], gridaxis[end], 10001)
     plot(_x,PI.pdf.(_x),label="Iteration" )
-    plot(_x,p_AN(_x), label = "Reference")
+    plot(_x,itp_an.(_x), label = "Reference")
     legend()
 end
 
