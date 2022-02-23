@@ -9,6 +9,21 @@ function _integrate(p::AbstractArray{<:Number,N}, axes::Vararg{Any,N}) where {N}
     sum(last(axes).wts[i]*_integrate(view(p,(Colon() for _ in 1:N-1)...,i),axes[1:N-1]...) for i in 1:sp)
 end
 
+function integrate_diff(f1::fT, f2::fT; kwargs...) where fT<:InterpolatedFunction
+    _integrate_diff(f1.p, f2.p, f1.axes...; kwargs...)
+end
+function integrate_diff(f1::fT, p2::pT; kwargs...) where {fT<:InterpolatedFunction{T,N},pT<:AbstractArray{T,N}} where {T,N}
+    _integrate_diff(f1.p, p2, f1.axes...; kwargs...)
+end
+function _integrate_diff(p1::AbstractVector{<:Number},p2::AbstractVector{<:Number},axis::GridAxis; f = abs)
+    sum(axis.wts[i]*f(_p - p2[i]) for (i,_p) in enumerate(p1))
+end
+function _integrate_diff(p1::AbstractArray{<:Number,N}, p2::AbstractArray{<:Number,N}, axes::Vararg{Any,N}; kwargs...) where {N}
+    sp = size(p,N);
+    _view = (Colon() for _ in 1:N-1)
+    sum(last(axes).wts[i]*_integrate_diff(view(p1,_view...,i),view(p2,_view...,i),axes[1:N-1]...; kwargs...) for i in 1:sp)
+end
+
 # function expected_value(f::Function, p::InterpolatedFunction)
 #     for idx in p.idx_it
 #         p.p[idx...]
