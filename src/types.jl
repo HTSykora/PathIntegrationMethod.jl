@@ -146,7 +146,7 @@ struct InterpolatedFunction{T,N,itp_type,axesT,pT,idx_itT,val_itT} <:Function #<
     idx_it::idx_itT
     val_it::val_itT
 end
-struct PathIntegration{dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,mpdtT,kwargT}
+mutable struct PathIntegration{dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,mpdtT,kwargT,TT}
     step_dynamics::dynT # SDEStep
     pdf::pdT
     p_temp::ptempT
@@ -156,6 +156,7 @@ struct PathIntegration{dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,mpdtT,kwar
     IK::IKT
     marginal_pdfs::mpdtT
     kwargs::kwargT
+    t::TT
 end
 
 struct MarginalPDF{pT,idT,wT,tT,p0T,dT}

@@ -68,8 +68,8 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
     end
     pdf = InterpolatedFunction(axes...; f = _f, kwargs...)
 
-    step_idx = [0]
-
+    step_idx = 0
+    t = 0.
     if pre_compute
         # * for CPU parallelisation extend this
         itpVs = Tuple(zero(axis.temp) for axis in axes); # = itpVs;
@@ -107,7 +107,7 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
     end
 
     p_temp = similar(pdf.p);
-    PathIntegration(sdestep, pdf, p_temp,ts, stepMX, step_idx, IK, mpdf, kwargs)
+    PathIntegration(sdestep, pdf, p_temp,ts, stepMX, step_idx, IK, mpdf, kwargs,t)
 end
 _val(vals) = vals
 # PathIntegration{dynT, pdT, tsT, tpdMX_type, Tstp_idx, IKT, kwargT}
@@ -115,6 +115,7 @@ function advance!(PI::PathIntegration)
     mul!(vec(PI.p_temp), next_stepMX(PI), vec(PI.pdf.p))
     _I = 1/_integrate(PI.p_temp, PI.pdf.axes...);
     @. PI.pdf.p = PI.p_temp * _I
+    PI.t = PI.t + get_PIdt(PI)
     nothing
 end
 
@@ -122,10 +123,16 @@ end
     PI.stepMX
 end
 @inline function next_stepMX(PI::PathIntegration{dynT, pdT,tsT}) where {dynT, pdT,tsT<:AbstractArray}
-    PI.step_idx[1] =  mod1(PI.step_idx[1] + 1, length(PI.stepMX))
-    PI.stepMX[PI.step_idx[1]]
+    PI.step_idx =  mod1(PI.step_idx + 1, length(PI.stepMX))
+    PI.stepMX[PI.step_idx]
 end
 
+@inline function get_PIdt(PI::PathIntegration{dynT, pdT,tsT}) where {dynT, pdT,tsT<:Number}
+    PI.ts
+end
+@inline function get_PIdt(PI::PathIntegration{dynT, pdT,tsT}) where {dynT, pdT,tsT<:AbstractArray}
+    PI.ts[PI.step_idx+1]
+end
 # Computations utilites
 function init_DiagonalNormalPDF(axes...; μ_init = nothing, σ_init = nothing, kwargs...)
     if μ_init isa Nothing
