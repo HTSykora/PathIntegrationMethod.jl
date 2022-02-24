@@ -49,7 +49,7 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
     if stepMXtype isa StepMatrixRepresentation
         _stepMXtype = stepMXtype
     else
-        _stepMXtype = get_stepMXtype(sde, get_itp_type(axes); sparse_tol = sparse_tol, kwargs...)
+        _stepMXtype = get_stepMXtype(sde, get_val_itp_type(axes); sparse_tol = sparse_tol, kwargs...)
     end
 
     if method isa DiscreteTimeSteppingMethod
