@@ -32,7 +32,7 @@ function get_itp_type(axes)
         axis.itp isa SparseInterpolationType 
     end ? SparseInterpolationType : DenseInterpolationType
 end
-get_val_itp_type(axes) = Val{getp_itp_type(axes)}()
+get_val_itp_type(axes) = Val{get_itp_type(axes)}()
 
 is_sparse_interpolation(::InterpolatedFunction{T,N,<:SparseInterpolationType}) where {T,N} = true
 is_sparse_interpolation(::InterpolatedFunction) = false

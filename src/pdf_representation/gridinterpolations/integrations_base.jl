@@ -19,7 +19,7 @@ function _integrate_diff(p1::AbstractVector{<:Number},p2::AbstractVector{<:Numbe
     sum(axis.wts[i]*f(_p - p2[i]) for (i,_p) in enumerate(p1))
 end
 function _integrate_diff(p1::AbstractArray{<:Number,N}, p2::AbstractArray{<:Number,N}, axes::Vararg{Any,N}; kwargs...) where {N}
-    sp = size(p,N);
+    sp = size(p1,N);
     _view = (Colon() for _ in 1:N-1)
     sum(last(axes).wts[i]*_integrate_diff(view(p1,_view...,i),view(p2,_view...,i),axes[1:N-1]...; kwargs...) for i in 1:sp)
 end
