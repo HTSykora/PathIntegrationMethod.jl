@@ -111,9 +111,10 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
 end
 _val(vals) = vals
 # PathIntegration{dynT, pdT, tsT, tpdMX_type, Tstp_idx, IKT, kwargT}
-function advance_till_converged!(PI::PathIntegration; rtol = 1e-6, Tmax = nothing, check_dt = PI.ts[1], check_iter = nothing , maxiter = 100_000, atol = rtol*check_dt)
+function advance_till_converged!(PI::PathIntegration; rtol = 1e-6, Tmax = nothing, check_dt = PI.ts[end], check_iter = nothing , maxiter = 100_000, atol = rtol*check_dt)
+    _dt = PI.ts isa Number ? PI.ts : PI.ts[2]
     if check_iter isa Nothing
-        chk_itr = Int((check_dt+sqrt(eps(check_dt))) ÷ PI.ts[1]) - 1;
+        chk_itr = Int((check_dt+sqrt(eps(check_dt))) ÷_dt) - 1;
         # Assuming constant time step
     else
         chk_itr = check_iter - 1
@@ -121,7 +122,7 @@ function advance_till_converged!(PI::PathIntegration; rtol = 1e-6, Tmax = nothin
     if Tmax isa Nothing
         _maxiter = maxiter
     else
-        _maxiter = Int((Tmax+sqrt(eps(Tmax))) ÷ PI.ts[1]);
+        _maxiter = Int((Tmax+sqrt(eps(Tmax))) ÷_dt);
         # Assuming constant time step
     end
 
