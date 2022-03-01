@@ -129,7 +129,7 @@ function advance_till_converged!(PI::PathIntegration; rtol = 1e-6, Tmax = nothin
     
     ϵ = 100*atol;
 
-    while ϵ < atol && iter < _maxiter
+    while ϵ > atol && iter < _maxiter
         for _ in 1:chk_itr
             advance!(PI)
         end
@@ -139,7 +139,7 @@ function advance_till_converged!(PI::PathIntegration; rtol = 1e-6, Tmax = nothin
         @. PI.pdf.p = PI.p_temp
         iter = iter + chk_itr + 1
     end
-    PI
+    PI, ϵ
 end
 
 
