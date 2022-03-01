@@ -111,18 +111,38 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
 end
 _val(vals) = vals
 # PathIntegration{dynT, pdT, tsT, tpdMX_type, Tstp_idx, IKT, kwargT}
-function advance_till_converged!(PI::PathIntegration; reltol = 1e-6, maxiter = 10000)
-    for _ in 1:maxiter
+function advance_till_converged!(PI::PathIntegration; rtol = 1e-6, Tmax = nothing, check_dt = PI.ts[1], check_iter = nothing , maxiter = 100_000, atol = rtol*check_dt)
+    if check_iter isa Nothing
+        chk_itr = Int((check_dt+sqrt(eps(check_dt))) ÷ PI.ts[1]) - 1;
+        # Assuming constant time step
+    else
+        chk_itr = check_iter - 1
+    end
+    if Tmax isa Nothing
+        _maxiter = maxiter
+    else
+        _maxiter = Int((Tmax+sqrt(eps(Tmax))) ÷ PI.ts[1]);
+        # Assuming constant time step
+    end
+
+    iter = zero(_maxiter)
+    
+    ϵ = 100*atol;
+
+    while ϵ < atol && iter < _maxiter
+        for _ in 1:chk_itr
+            advance!(PI)
+        end
         _advance_to_temp!(PI.p_temp,PI)
         _corr_to_temp!(PI.p_temp,PI.p_temp,PI)
         ϵ = integrate_diff(PI.pdf,PI.p_temp)
         @. PI.pdf.p = PI.p_temp
-        if ϵ < reltol*get_PIdt(PI)
-            return nothing
-        end
+        iter = iter + chk_itr + 1
     end
-    nothing
+    PI
 end
+
+
 function advance!(PI::PathIntegration)
     _advance_to_temp!(PI.p_temp,PI)
     _corr_to_temp!(PI.pdf.p,PI.p_temp,PI)
@@ -181,26 +201,33 @@ end
 (PI::PathIntegration)(x...) = PI.pdf(x...)
 
 ## Recompute functions
-function reinit_PI_pdf!(PI::PathIntegration,f = nothing)
+function reinit_PI_pdf!(PI::PathIntegration,f = nothing, reset_t= true, reset_step_index = true)
     if f isa Nothing
         _f = init_DiagonalNormalPDF(PI.pdf.axes...; PI.IK.kwargs...)
     elseif f isa Function
         _f = f
     end
     recycle_interpolatedfunction!(PI.pdf, _f)
+
+    if reset_t
+        PI.t = zero(PI.t)
+    end
+    if reset_step_index
+        PI.step_idx = zero(PI.step_idx)
+    end
 end
 
 
-function recompute_stepMX!(PI::PathIntegration; par = nothing, t = nothing, f = nothing, Q_reinit_pdf = false)
+function recompute_stepMX!(PI::PathIntegration; par = nothing, t = nothing, f = nothing, Q_reinit_pdf = false, reset_t= true, reset_step_index = true)
     if !(par isa Nothing)
         PI.IK.sdestep.sde.par .= par;
     end
 
     if t isa AbstractVector
-        if length(PI.IK.t) != length(t)
-            resize!(PI.IK.t,length(t))
+        if length(PI.IK.ts) != length(ts)
+            resize!(PI.IK.ts,length(ts))
         end
-        PI.IK.t .= t
+        PI.IK.t .= ts
     elseif t isa Number
         resize!(PI.IK.t,2);
         PI.IK.t[1] = zero(eltype(PI.IK.t))
@@ -212,6 +239,13 @@ function recompute_stepMX!(PI::PathIntegration; par = nothing, t = nothing, f = 
 
     reinit_stepMX!(PI.stepMX)
     fill_stepMX_ts!(PI.stepMX, PI.IK; PI.IK.kwargs...)
+
+    if reset_t
+        PI.t = zero(PI.t)
+    end
+    if reset_step_index
+        PI.step_idx = zero(PI.step_idx)
+    end
     nothing
 end
 
