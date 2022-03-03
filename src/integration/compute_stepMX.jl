@@ -17,9 +17,9 @@ get_tol(m::SparseMX) = m.tol
 function compute_stepMX(IK; stepMXtype = DenseMX(), kwargs...)
     stepMX = initialize_stepMX(eltype(IK.pdf.p), IK.t, length(IK.pdf),stepMXtype)
 
-    fill_stepMX_ts!(stepMX, IK, stepMXtype; kwargs...)
-    # stepMX
+    fill_stepMX_ts!(stepMX, IK; kwargs...)
     get_final_stepMX_form(stepMX, stepMXtype)
+    # stepMX
 end
 
 @inline get_final_stepMX_form(stepMX::Union{AbstractMatrix{T},AbstractVector{aT}}, ::DenseMX) where aT<:AbstractMatrix{T} where T<:Number = stepMX
@@ -36,24 +36,25 @@ end
 @inline initialize_stepMX(T::DataType, l::Integer, ::SparseMX) = spzeros(T, l, l)
 @inline initialize_stepMX(T::DataType, l::Integer, ::DenseMX) = zeros(T, l, l)
 
-function fill_stepMX_ts!(stepMX::AbstractVector{aT}, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}, stepMXtype; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, aT<:AbstractMatrix{T},tT<:AbstractArray} where T<:Number
+function fill_stepMX_ts!(stepMX::AbstractVector{aT}, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, aT<:AbstractMatrix{T},tT<:AbstractArray} where T<:Number
     for jₜ in 1:length(IK.t)-1
         IK.sdestep.t0[1] = IK.t[jₜ]
         IK.sdestep.t1[1] = IK.t[jₜ+1]
-        fill_stepMX!(stepMX[jₜ], IK, stepMXtype)
+        fill_stepMX!(stepMX[jₜ], IK)
     end
 end
-function fill_stepMX_ts!(stepMX, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}, stepMXtype; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, tT<:Number}
-    fill_stepMX!(stepMX, IK, stepMXtype)
+function fill_stepMX_ts!(stepMX, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, tT<:Number}
+    fill_stepMX!(stepMX, IK)
 end
 
-function fill_stepMX!(stepMX, IK::IntegrationKernel,stepMXtype)
+fill_stepMX!(stepMX::Transpose, IK) = fill_stepMX!(stepMX.parent, IK)
+function fill_stepMX!(stepMX, IK)
     for (i, idx) in enumerate(dense_idx_it(IK))
         update_IK_state_x1!(IK, idx)
         update_dyn_state_x1!(IK, idx)
         rescale_discreteintegrator!(IK; IK.kwargs...)
         get_IK_weights!(IK)
-        fill_to_stepMX!(stepMX,IK,i; sparse_tol = get_tol(stepMXtype), IK.kwargs...)
+        fill_to_stepMX!(stepMX,IK,i; IK.kwargs...)
     end
 end
 
@@ -82,6 +83,7 @@ end
 @inline function fill_to_stepMX!(stepMX::AbstractSparseMatrix,IK,i; sparse_tol = 1e-6, kwargs...)
     for (j,val) in enumerate(IK.temp.itpM)
         if abs(val) > sparse_tol
+            # stepMX[i,j] = val
             stepMX[j,i] = val
         end
         # ? fill by rows and multiply from the right when advancing time

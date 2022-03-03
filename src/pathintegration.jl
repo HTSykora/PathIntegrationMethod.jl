@@ -90,12 +90,12 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
             error("di_N is not a Union{Number, NTuple{M,Integer}, AbstractArray{Integer}} with length $(d-k+1)")
         end
         di = DiscreteIntegrator(discreteintegrator, pdf.p, di_res, axes[k:end]...; kwargs...)
-        IK = IntegrationKernel(sdestep, nothing, di, ts, pdf, ikt, kwargs)
+        IK = IntegrationKernel(sdestep, nothing, di, ts, pdf, ikt, (;sparse_tol = get_tol(_stepMXtype), kwargs...))
         
         if extract_IK isa Val{true}
             return IK
         end
-        stepMX = compute_stepMX(IK; stepMXtype = _stepMXtype, kwargs...)
+        stepMX = compute_stepMX(IK; stepMXtype = _stepMXtype, IK.kwargs...)
     else
         stepMX = nothing
         IK = nothing
@@ -250,6 +250,17 @@ function recompute_stepMX!(PI::PathIntegration; par = nothing, t = nothing, f = 
     nothing
 end
 
+function reinit_stepMX!(stepMX::SparseArrays.AbstractSparseMatrixCSC) where T
+    resize!(stepMX.nzval,0)
+    resize!(stepMX.rowval,0)
+    fill!(stepMX.colptr,one(eltype(stepMX.colptr)))
+end
+function reinit_stepMX!(stepMX::ThreadedSparseMatrixCSC) where T
+    reinit_stepMX!(stepMX.A)
+end
+function reinit_stepMX!(stepMX::Transpose) where T
+    reinit_stepMX!(stepMX.parent)
+end
 function reinit_stepMX!(stepMX::AbstractMatrix{T}) where T
     fill!(stepMX,zero(T))
 end

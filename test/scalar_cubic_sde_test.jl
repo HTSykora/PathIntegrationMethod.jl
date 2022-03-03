@@ -85,8 +85,8 @@ end
 Δt = 0.01
 Δt = 0.000002875
 Tmax = 4.2021;10.0
-gridaxis = GridAxis(-3, 3, 511, interpolation = :quintic)
-@time PI = PathIntegration(sde, Euler(), [0.,Δt], gridaxis, pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 31, smart_integration = true,int_limit_thickness_multiplier = 6,stepMXtype = SparseMX(; sparse_tol=1e-6));
+gridaxis = GridAxis(-3, 3, 101, interpolation = :quintic)
+@time PI = PathIntegration(sde, Euler(), [0.,Δt], gridaxis, pre_compute = true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 31, smart_integration = true,int_limit_thickness_multiplier = 6,stepMXtype = SparseMX(; threaded=true,sparse_tol=1e-6));
 @time for _ in 1:Int((Tmax + sqrt(eps(Tmax))) ÷ Δt)
     advance!(PI)
 end
