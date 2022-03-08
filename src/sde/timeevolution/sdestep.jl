@@ -1,3 +1,9 @@
+function SDEStep(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMethod, ts; kwargs...) where {d,k,m}
+    x0 = zeros(d) # * not type safe for autodiff
+    x1 = similar(x0)
+    SDEStep(sde, method, x0, x1, ts; kwargs...)
+end
+
 function SDEStep(sde, method, x0, x1, dt::Number; kwargs...)
     SDEStep(sde, method, x0, x1, zero(dt), dt; kwargs...)
 end

@@ -41,7 +41,7 @@ Compute a `PathIntegration` object for computing the response probability densit
 ----
 For methods, discrete integrators, interpolators, and examples please refer to the documentation. 
 """
-function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d}; 
+function PathIntegration(sdestep::SDEStep{d,k,m}, ts, axes::Vararg{Any,d}; 
     discreteintegrator = d==k ? QuadGKIntegrator() : ClenshawCurtisIntegrator(),
     di_N = 21,  # discrete integration resolution
     initialise_pdf = true, f_init = nothing, pre_compute = true, stepMXtype = nothing, sparse_tol = 1e-6,
@@ -49,14 +49,9 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
     if stepMXtype isa StepMatrixRepresentation
         _stepMXtype = stepMXtype
     else
-        _stepMXtype = get_stepMXtype(sde, get_val_itp_type(axes); sparse_tol = sparse_tol, kwargs...)
+        _stepMXtype = get_stepMXtype(sdestep.sde, get_val_itp_type(axes); sparse_tol = sparse_tol, kwargs...)
     end
 
-    if method isa DiscreteTimeSteppingMethod
-        x0 = zeros(d) # * not type safe for autodiff
-        x1 = similar(x0)
-        sdestep = SDEStep(sde, method, x0, x1, ts; kwargs...)
-    end
     if initialise_pdf
         if f_init isa Nothing
             _f = init_DiagonalNormalPDF(axes...; kwargs...)
@@ -110,6 +105,11 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method, ts, axes::Vararg{Any,d
     PathIntegration(sdestep, pdf, p_temp,ts, stepMX, step_idx, IK, mpdf, kwargs,t)
 end
 _val(vals) = vals
+
+function PathIntegration(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMethod, ts, axes::Vararg{Any,d}; kwargs...) where {d,k,m}
+    sdestep = SDEStep(sde, method, ts; kwargs...)
+    PathIntegration(sdestep,ts,axes...; kwargs...)
+end
 # PathIntegration{dynT, pdT, tsT, tpdMX_type, Tstp_idx, IKT, kwargT}
 function advance_till_converged!(PI::PathIntegration; rtol = 1e-6, Tmax = nothing, check_dt = PI.ts[end], check_iter = nothing , maxiter = 100_000, atol = rtol*check_dt)
     _dt = PI.ts isa Number ? PI.ts : PI.ts[2]
