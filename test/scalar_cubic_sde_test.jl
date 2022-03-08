@@ -41,12 +41,14 @@ get_errconv(err,Δ) = mean(log10.(get_div(err))./ log10.(get_div(Δ)))
 
 ##
 euler = Euler()
+rk2 = RK2()
 rk4 = RK4()
 @time begin
     Δts = [0.1, 0.01, 0.001, 0.0001, 0.00002875]
     itp_ords = 11:2:51
 
     err_Δt_euler = Vector{Float64}(undef,0)
+    err_Δt_rk2 = Vector{Float64}(undef,0)
     err_Δt_rk4 = Vector{Float64}(undef,0)
     err_N = Vector{Float64}(undef,0)
     _x = LinRange(-3.0, 3.0, 10001)
@@ -56,22 +58,29 @@ rk4 = RK4()
         push!(err_Δt_euler, err)
     end
     for Δt in Δts
+        _, err = get_PI_err(itp_ords[end], Δt; method = rk2, interpolation = :chebyshev, _x =_x, Tmax = 10.0,discreteintegrator = ClenshawCurtisIntegrator(),di_mul = 100)
+        push!(err_Δt_rk2, err)
+    end
+    for Δt in Δts
         _, err = get_PI_err(itp_ords[end], Δt; method = rk4, interpolation = :chebyshev, _x =_x, Tmax = 10.0,discreteintegrator = ClenshawCurtisIntegrator(),di_mul = 100)
         push!(err_Δt_rk4, err)
     end
 
-    for N in itp_ords
-        _, err = get_PI_err(N, Δts[end-1]; method = method, interpolation = :chebyshev, _testN = 10001, _x =_x, Tmax = 10.0)
-        push!(err_N, err)
-    end
+    # for N in itp_ords
+    #     _, err = get_PI_err(N, Δts[end-1]; method = method, interpolation = :chebyshev, _testN = 10001, _x =_x, Tmax = 10.0)
+    #     push!(err_N, err)
+    # end
 end
 # 1
 abs(get_errconv(err_Δt_euler,Δts) -1.) < 0.1
+abs(get_errconv(err_Δt_rk2,Δts) -1.) < 0.1
 abs(get_errconv(err_Δt_rk4,Δts) -1.) < 0.1
 
 begin
     figure(2); clf();
-
+    plot(Δts,err_Δt_euler,label = "Euler")
+    plot(Δts,err_Δt_rk2,label = "RK2")
+    plot(Δts,err_Δt_rk4,label = "RK4")
     legend()
     xscale("log")
     yscale("log")

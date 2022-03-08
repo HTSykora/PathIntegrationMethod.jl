@@ -123,12 +123,23 @@ BTElement(T::DataType,idx,_weight,val) = BTElement(idx,_weight,T(_weight),val)
 function RungeKutta(order::Integer, BT::btT,ks::ksT, temp::tT) where{btT,ksT,tT}
     RungeKutta{order,btT,ksT,tT}(BT,ks,temp)
 end
-function RK4(T::DataType = Float64)
+function RK2(;α = 2//3,T::DataType = Float64)
+    temp = Vector{T}(undef,0)
+    ks = Tuple(similar(temp) for _ in 1:2)
+    _c = (α,)
+    c = T.(_c)
+    b = (BTElement(T,1, 1-1//(2α), ks[1]), BTElement(T,2, 1//(2α), ks[2]))
+    a = ((BTElement(T,1,α, ks[1]),),)
+    
+    RungeKutta(2, ButcherTableau(a,b,c,_c), ks, temp)
+end
+function RK4(;T::DataType = Float64)
     temp = Vector{T}(undef,0)
     ks = Tuple(similar(temp) for _ in 1:4)
     _c = (1//2, 1//2, 1)
     c = T.(_c)
-    b = (BTElement(T,1, 1//3, ks[1]), BTElement(T,2, 1//6, ks[2]), BTElement(T,3, 1//6, ks[3]), BTElement(T,4, 1//3, ks[4]))
+    b = (BTElement(T,1, 1//6, ks[1]), BTElement(T,2, 1//3, ks[2]), BTElement(T,3, 1//3, ks[3]), BTElement(T,4, 1//6, ks[4]))
+    # b = (BTElement(T,1, 1//3, ks[1]), BTElement(T,2, 1//6, ks[2]), BTElement(T,3, 1//6, ks[3]), BTElement(T,4, 1//3, ks[4]))
     a = ((BTElement(T,1,1//2, ks[1]),),(BTElement(T,2,1//2, ks[2]),),(BTElement(T,3,1, ks[3]),))
     
     RungeKutta(4, ButcherTableau(a,b,c,_c), ks, temp)

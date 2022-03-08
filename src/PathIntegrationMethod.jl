@@ -9,7 +9,7 @@ using FastGaussQuadrature
 using SparseArrays, ThreadedSparseArrays, StaticArrays
 
 export SDE, DriftTerm, DiffusionTerm,
-    Euler, RungeKutta, RK4, Maruyama,
+    Euler, RungeKutta, RK2, RK4, Maruyama,
     SDEStep, 
     GridAxis, InterpolatedFunction,
     recycle_interpolatedfunction!,
