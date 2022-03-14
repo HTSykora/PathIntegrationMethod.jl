@@ -30,27 +30,19 @@ end
 function cubicinterpolation_weights_1!(vals, dx, Δ)
     δ = dx / Δ;
     δ² = δ*δ
-    # δ³ = δ²*δ
-
-    # ## Assuming explicit derivative in the beginning
-    # vals[1] = 0.5δ³ - 0.5δ² - δ + one(δ)
-    # vals[2] = -δ³ + δ² + δ
-
-    # ## Midpoint approximated with the same end value
-    # # vals[1] = δ³ - 1.5δ² - 0.5δ + one(δ)
-    # # vals[2] = -1.5δ³ + 2δ² + 0.5δ
-
-    # ## Mean of the 2 approaches
-    # # vals[1] = (2.5δ³ - 3.5δ² - 2δ)/3 + one(δ)
-    # # vals[2] = (-4δ³ + 5δ² + 2δ)/3
-    # vals[3] = 0.5δ³ - 0.5δ²
-    # vals[4] = zero(δ)
+    # δ³ = δ²*
 
     # not enforcing unknown boundary conditions
+    # Quadratic
     vals[1] = 0.5δ² - 1.5δ + one(δ)
     vals[2] = 2δ - δ²
     vals[3] = 0.5δ² - 0.5δ
     vals[4] = zero(δ)
+    # Cubic (worse)
+    # vals[1] = 0.5δ³-0.5δ² - δ + one(δ)
+    # vals[2] = δ + δ² - δ³
+    # vals[3] = 0.5δ³ - 0.5δ²
+    # vals[4] = zero(δ)
     nothing
 end
 
@@ -58,25 +50,18 @@ function cubicinterpolation_weights_end!(vals, dx, Δ)
     δ = dx / Δ;
     δ² = δ*δ
     # δ³ = δ²*δ
-
-    # vals[1] = zero(δ)
-    # vals[2] = -0.5δ³ + δ² - 0.5δ
-    ## Mean of the 2 approaches
-    # vals[3] = (4δ³ - 7δ²)/3 + one(δ)
-    # vals[4] = (-2.5δ³ + 4δ²)/3 + 0.5δ
-
-    ## Assuming explicit derivative in the beginning
-    # vals[3] = δ³ - 2δ² + one(δ)
-    # vals[4] = -0.5δ³ + δ² + 0.5δ
-
-    ## Midpoint approximated with the same end value
-    # vals[3] = 1.5δ³ - 2.5δ² + one(δ)
-    # vals[4] = -δ³ + 1.5δ² + 0.5δ
+    
     # not enforcing unknown boundary conditions
+    # Quadratic
     vals[1] = zero(δ)
     vals[2] = 0.5δ² - 0.5δ
     vals[3] = one(δ) - δ² 
     vals[4] = 0.5δ² + 0.5δ
+    # Cubic (worse)
+    # vals[1] = zero(δ)
+    # vals[2] = δ² - 0.5δ³ - 0.5δ
+    # vals[3] = one(δ) - 2δ² + δ³
+    # vals[4] = δ² + 0.5δ - 0.5δ³
     nothing
 end
 
