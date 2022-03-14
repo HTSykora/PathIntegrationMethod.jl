@@ -30,7 +30,7 @@ end
 function cubicinterpolation_weights_1!(vals, dx, Δ)
     δ = dx / Δ;
     δ² = δ*δ
-    # δ³ = δ²*
+    # δ³ = δ²*δ
 
     # not enforcing unknown boundary conditions
     # Quadratic
@@ -38,11 +38,6 @@ function cubicinterpolation_weights_1!(vals, dx, Δ)
     vals[2] = 2δ - δ²
     vals[3] = 0.5δ² - 0.5δ
     vals[4] = zero(δ)
-    # Cubic (worse)
-    # vals[1] = 0.5δ³-0.5δ² - δ + one(δ)
-    # vals[2] = δ + δ² - δ³
-    # vals[3] = 0.5δ³ - 0.5δ²
-    # vals[4] = zero(δ)
     nothing
 end
 
@@ -57,11 +52,6 @@ function cubicinterpolation_weights_end!(vals, dx, Δ)
     vals[2] = 0.5δ² - 0.5δ
     vals[3] = one(δ) - δ² 
     vals[4] = 0.5δ² + 0.5δ
-    # Cubic (worse)
-    # vals[1] = zero(δ)
-    # vals[2] = δ² - 0.5δ³ - 0.5δ
-    # vals[3] = one(δ) - 2δ² + δ³
-    # vals[4] = δ² + 0.5δ - 0.5δ³
     nothing
 end
 
