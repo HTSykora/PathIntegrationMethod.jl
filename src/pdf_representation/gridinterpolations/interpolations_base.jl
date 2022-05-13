@@ -39,7 +39,7 @@ function find_idx(xs::Vx,x::xT; allow_extrapolation::Bool = false, zero_extrapol
 end
 
 # Multivariate interopolation
-get_tempval(axis::GridAxis,i) = axis.temp[i]
+get_tempval(axis::AxisGrid,i) = axis.temp[i]
 function interpolate(p::MX,axes, x::Vararg{Any,N}; idx_it = BI_product(_eachindex.(axes)...), val_it = BI_product(_gettempvals.(axes)...), kwargs...) where MX<:AbstractArray{T,N} where {T,N} #xs <: NTuple{<:gridAxis}
     for (axis, _x) in zip(axes,x)
         basefun_vals_safe!(axis,_x; kwargs...)
@@ -52,11 +52,11 @@ function interpolate(p::MX,axes, x::Vararg{Any,N}; idx_it = BI_product(_eachinde
     val
 end
 
-function basefun_vals_safe!(vals,axis::GridAxis,x; kwargs...)
+function basefun_vals_safe!(vals,axis::AxisGrid,x; kwargs...)
     basefun_vals_safe!(vals,axis.itp,axis.xs,x; kwargs...)
     nothing
 end
-function basefun_vals_safe!(axis::GridAxis,x; kwargs...)
+function basefun_vals_safe!(axis::AxisGrid,x; kwargs...)
     basefun_vals_safe!(axis.temp, axis,x; kwargs...)
     nothing
 end

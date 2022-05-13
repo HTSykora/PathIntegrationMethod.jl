@@ -1,5 +1,5 @@
 
-function DiscreteIntegrator(discreteintegrator,res_prototype, N::Union{NTuple{1,<:Integer},<:Integer,AbstractArray{<:Integer}}, axes::GA; xT = Float64, wT = Float64, kwargs...) where GA<:GridAxis
+function DiscreteIntegrator(discreteintegrator,res_prototype, N::Union{NTuple{1,<:Integer},<:Integer,AbstractArray{<:Integer}}, axes::GA; xT = Float64, wT = Float64, kwargs...) where GA<:AxisGrid
     start = axes[1]
     stop = axes[end]
     _N = N isa Number ? N : first(N)
@@ -13,7 +13,7 @@ QuadGKIntegrator(;kwargs...) = QuadGKIntegrator(nothing,nothing,cleanup_quadgk_k
 @inline function cleanup_quadgk_keywords(;σ_init = nothing, μ_init = nothing, allow_extrapolation=false,  zero_extrapolation=true, kwargs...)
     kwargs
 end
-function DiscreteIntegrator(discreteintegrator::QuadGKIntegrator{T1,T2,Tkwarg},res_prototype, N::Union{NTuple{1,<:Integer},<:Integer}, axes::GA; xT = Float64, wT = Float64, kwargs...) where {GA<:GridAxis, T1, T2, Tkwarg}
+function DiscreteIntegrator(discreteintegrator::QuadGKIntegrator{T1,T2,Tkwarg},res_prototype, N::Union{NTuple{1,<:Integer},<:Integer}, axes::GA; xT = Float64, wT = Float64, kwargs...) where {GA<:AxisGrid, T1, T2, Tkwarg}
     start = axes[1]
     stop = axes[end]
     # if Tkwargs <: Nothing

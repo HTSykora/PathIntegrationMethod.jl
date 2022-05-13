@@ -10,8 +10,8 @@ Compute a `PathIntegration` object for computing the response probability densit
 - `axes::Vararg{aT,d} where aT<:GridAxis`: The axes spanning the space where the transitional PDF is computed for the dynamical system `sde`.
 
 # Keyword Arguments
-- `discreteintegrator = d==k ? QuadGKIntegrator() : ClenshawCurtisIntegrator()`: Discrete integrator to evaluate the Chapman-Kolmogorov equation
-- `di_N = 21`: Resolution of the discrete integrator. Can be an `NTuple{d-k+1,<:Integer}` or an `AbstractArray{<:Integer}` to define resolution to each integration variable
+- `discreteintegrator = ClenshawCurtisIntegrator(): Discrete integrator to evaluate the Chapman-Kolmogorov equation
+- `di_N = 31`: Resolution of the discrete integrator. Can be an `NTuple{d-k+1,<:Integer}` or an `AbstractArray{<:Integer}` to define resolution to each integration variable
 - `smart_integration = true`: Only integrate where the transitional PDF has nonzero elements. It is approximated with the step function. Use `false` if (time step * diffusion) results in a wide TPDF. Usually `true` is the better choice.
 - `int_limit_thickness_multiplier = 6`: The "thickness" scaling of the TPDF during smart integration.
 - `initialise_pdf = true`: Initialize the response probability density function. If false, then the RPDF is initialzed as p(x) ≡ 0.
@@ -42,8 +42,8 @@ Compute a `PathIntegration` object for computing the response probability densit
 For methods, discrete integrators, interpolators, and examples please refer to the documentation. 
 """
 function PathIntegration(sdestep::SDEStep{d,k,m}, ts, axes::Vararg{Any,d}; 
-    discreteintegrator = d==k ? QuadGKIntegrator() : ClenshawCurtisIntegrator(),
-    di_N = 21,  # discrete integration resolution
+    discreteintegrator = ClenshawCurtisIntegrator(),
+    di_N = 31,  # discrete integration resolution
     initialise_pdf = true, f_init = nothing, pre_compute = true, stepMXtype = nothing, sparse_tol = 1e-6,
     mPDF_IDs = nothing, extract_IK = Val{false}(), kwargs...) where {d,k,m}
     if stepMXtype isa StepMatrixRepresentation
@@ -111,7 +111,7 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMe
     PathIntegration(sdestep,ts,axes...; kwargs...)
 end
 # PathIntegration{dynT, pdT, tsT, tpdMX_type, Tstp_idx, IKT, kwargT}
-function advance_till_converged!(PI::PathIntegration; rtol = 1e-6, Tmax = nothing, check_dt = PI.ts[end], check_iter = nothing , maxiter = 100_000, atol = rtol*check_dt)
+function advance_till_converged!(PI::PathIntegration; rtol = 1e-6, Tmax = nothing, check_dt = PI.ts[end], maxiter = 100_000, atol = rtol*check_dt, check_iter = nothing)
     _dt = PI.ts isa Number ? PI.ts : PI.ts[2]
     if check_iter isa Nothing
         chk_itr = Int((check_dt+sqrt(eps(check_dt))) ÷_dt) - 1;

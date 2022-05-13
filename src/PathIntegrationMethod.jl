@@ -11,7 +11,7 @@ using SparseArrays, ThreadedSparseArrays, StaticArrays
 export SDE, DriftTerm, DiffusionTerm,
     Euler, RungeKutta, RK2, RK4, Maruyama,
     SDEStep, 
-    GridAxis, InterpolatedFunction,
+    AxisGrid, InterpolatedFunction, LinearAxis, CubicAxis, QuinticAxis, ChebyshevAxis, TrigonometricAxis,
     recycle_interpolatedfunction!,
     PathIntegration, 
     advance!, advance_till_converged!, update_mPDFs!,
@@ -23,7 +23,7 @@ export SDE, DriftTerm, DiffusionTerm,
 
 include("types.jl")
 include("pathintegration.jl")
-include("pdf_representation/gridaxis.jl")
+include("pdf_representation/axisgrid.jl")
 include("pdf_representation/interpolatedfunction.jl")
 include("pdf_representation/gridinterpolations/interpolations_base.jl")
 include("pdf_representation/gridinterpolations/chebyshevinterpolation.jl")

@@ -1,7 +1,7 @@
 function integrate(f::InterpolatedFunction)
     _integrate(f.p, f.axes...)
 end
-function _integrate(p::AbstractVector{<:Number},axis::GridAxis)
+function _integrate(p::AbstractVector{<:Number},axis::AxisGrid)
     sum(axis.wts[i]*_p for (i,_p) in enumerate(p))
 end
 function _integrate(p::AbstractArray{<:Number,N}, axes::Vararg{Any,N}) where {N}
@@ -15,7 +15,7 @@ end
 function integrate_diff(f1::fT, p2::pT; kwargs...) where {fT<:InterpolatedFunction{T,N},pT<:AbstractArray{T,N}} where {T,N}
     _integrate_diff(f1.p, p2, f1.axes...; kwargs...)
 end
-function _integrate_diff(p1::AbstractVector{<:Number},p2::AbstractVector{<:Number},axis::GridAxis; f = abs)
+function _integrate_diff(p1::AbstractVector{<:Number},p2::AbstractVector{<:Number},axis::AxisGrid; f = abs)
     sum(axis.wts[i]*f(_p - p2[i]) for (i,_p) in enumerate(p1))
 end
 function _integrate_diff(p1::AbstractArray{<:Number,N}, p2::AbstractArray{<:Number,N}, axes::Vararg{Any,N}; kwargs...) where {N}

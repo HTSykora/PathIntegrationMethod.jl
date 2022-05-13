@@ -97,8 +97,8 @@ struct StepJacobian{JT, JMT,tempT}
 end
 
 # Structs needed for PDF interpolation
-abstract type AbstractGridAxis{T} <:AbstractVector{T} end 
-struct GridAxis{itpT,wT,xT,xeT,tmpT} <: AbstractGridAxis{xeT}
+abstract type AbstractAxisGrid{T} <:AbstractVector{T} end 
+struct AxisGrid{itpT,wT,xT,xeT,tmpT} <: AbstractAxisGrid{xeT}
     itp::itpT
     xs::xT
     wts::wT

@@ -1,4 +1,3 @@
-using Revise
 using PathIntegrationMethod
 
 
@@ -28,3 +27,5 @@ sde = SDE((f1,), (g1,), par)
 # sde = SDE(f1, (g1,g2), par)
 sde = SDE((f1,f2,f3), g1, par)
 sde = SDE((f1,f2,f3), (g1,g2), par)
+
+true
