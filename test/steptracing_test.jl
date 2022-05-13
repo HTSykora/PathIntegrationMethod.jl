@@ -64,11 +64,11 @@ end
 f1(x,p,t) = x[2]^2 + x[1]^2 + x[3]^2 + t
 function f2(x,p,t)
     ζ,λ = p
-    - x[1] - 2*ζ*x[2] + sin(t) + 2ζ*x[3]^2
+    - x[1] - 2*ζ*x[2] + sin(t)
 end
 function f3(x,p,t)
     ζ,λ = p
-    - x[1] - 2*ζ*x[3] + cos(t) - λ*x[2]^2
+    - x[1] - 2*λ*x[3] + cos(t)
 end
 function g(x,p,t)
     sqrt(2)
