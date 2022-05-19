@@ -12,14 +12,14 @@ struct SDE{d,k,m,fT,gT,pT} <: AbstractSDE{d,k,m}
     par::pT
 end
 
-struct SDE_Oscillator1D{fT, gT, parT} <: AbstractSDE{2,2,1}
-    f::fT
-    g::gT
-    par::parT
-end
+# struct SDE_Oscillator1D{fT, gT, parT} <: AbstractSDE{2,2,1}
+#     f::fT
+#     g::gT
+#     par::parT
+# end
 
-struct SDE_VI_Oscillator1D{wT, oscT} <: AbstractSDE{2,2,1}
-    osc1D::oscT
+struct SDE_VIO{sdeT, wT} <: AbstractSDE{2,2,1} # 1 DoF vibroimpact oscillator
+    sde::sdeT
     wall::wT
     # wT<:Tuple{Wall} = it is assumed, that it is a bottom wall (going down)
 end
@@ -28,6 +28,7 @@ struct Wall{rT,pT}
     pos::pT
     # impact_v_sign::dT
 end
+
 abstract type AbstractSDEComponent end
 struct DriftTerm{d,fT} <: AbstractSDEComponent
     f::fT
@@ -79,13 +80,16 @@ abstract type PreComputeLevel end
 struct PreComputeJacobian <: PreComputeLevel end
 struct PreComputeLU <: PreComputeLevel end
 struct PreComputeNewtonStep <: PreComputeLevel end
-struct SymbolicNewtonStep{xIT, xT, detJIT,tempIT,tempT}
+struct SymbolicNewtonStepTracer{xIT, xT, detJIT,tempIT,tempT}
     xI_0!::xIT
     x_0!::xT
     # xII_1!::xIIT
     detJI_inv::detJIT
     tempI::tempIT
     temp::tempT
+end
+struct SymbolicNonSmoothNewtonStepTracer{snsT}
+    newtonsteps::snsT
 end
 # struct StepJacobianLU{JT, JMT}
     

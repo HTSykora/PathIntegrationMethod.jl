@@ -1,7 +1,7 @@
 #############################################
 # Some utils
 _par(sde::AbstractSDE) = sde.par
-_par(sde::SDE_VI_Oscillator1D) = sde.osc1D.par
+_par(sde::SDE_VIO) = sde.par
 
 # SDE
 SDE() = SDE{0,0,Nothing,Nothing,Nothing}(nothing,nothing,nothing)
@@ -29,15 +29,18 @@ end
 
 #############################################
 # SDE_Oscillator1D
-function SDE_Oscillator1D(f::fT,g::gT, par=nothing) where {fT<:Function,gT<:Function}
-    SDE_Oscillator1D{DriftTerm{1,fT},DiffusionTerm{1,1,1,1,gT},typeof(par)}(DriftTerm{1,fT}(f),DiffusionTerm{1,1,1,1,gT}(g), par)
-end
+# function SDE_Oscillator1D(f::fT,g::gT, par=nothing) where {fT<:Function,gT<:Function}
+#     SDE_Oscillator1D{DriftTerm{1,fT},DiffusionTerm{1,1,1,1,gT},typeof(par)}(DriftTerm{1,fT}(f),DiffusionTerm{1,1,1,1,gT}(g), par)
+# end
 
 #############################################
 # SDE_VI_Oscillator1D
-function SDE_VI_Oscillator1D(f::fT,g::gT, w::Union{Vector{wT},Tuple{wT1,wT2}}, par=nothing) where {fT<:Function,gT<:Function, wT<:Wall, wT1<:Wall, wT2<:Wall}
-    sde = SDE_Oscillator1D(f,g, par = par);
-    SDE_Oscillator1D{typeof(w), typeof(sde)}(sde, w)
+function osc_f1(u,p,t)
+    u[2]
+end
+function SDE_VIO(f::fT,g::gT, wall::Union{Tuple{wT1},Tuple{wT1,wT2}}, par=nothing) where {fT<:Function,gT<:Function, wT1<:Wall, wT2<:Wall}
+    sde = SDE((osc_f1,f), g, par);
+    SDE_VIO(sde, wall)
 end
 
-SDE_VI_Oscillator1D(f::fT,g::gT, w::Wall; kwargs...) where {fT<:Function,gT<:Function} = SDE_VI_Oscillator1D(f, g, (w,); kwargs...)
+SDE_VIO(f::fT,g::gT, w::Wall; kwargs...) where {fT<:Function,gT<:Function} = SDE_VIO(f, g, (w,); kwargs...)
