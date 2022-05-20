@@ -65,7 +65,9 @@ struct DiscreteTimeStepping{TDrift,TDiff} <:DiscreteTimeSteppingMethod
     drift::TDrift
     diffusion::TDiff
 end
-
+struct NonSmoothSDEStep{d,k,m,snsT}
+    sdesteps::snsT
+end
 struct SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,tT}
     sde::sdeT
     method::methodT
@@ -88,9 +90,7 @@ struct SymbolicNewtonStepTracer{xIT, xT, detJIT,tempIT,tempT}
     tempI::tempIT
     temp::tempT
 end
-struct SymbolicNonSmoothNewtonStepTracer{snsT}
-    newtonsteps::snsT
-end
+
 # struct StepJacobianLU{JT, JMT}
     
 # end

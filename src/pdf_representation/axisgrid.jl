@@ -7,6 +7,7 @@ _gettempvals(axis::AxisGrid) = axis.temp
 
 _eachindex(axis::AxisGrid{itpT}) where itpT<:SparseInterpolationType = _eachindex(axis.temp)
 _gettempvals(axis::AxisGrid{itpT}) where itpT<:SparseInterpolationType = axis.temp.val
+LinRange_fromaxis(a::AxisGrid, n) = LinRange(a[1],a[end], n)
 
 function sparseinterpolationdata(start, stop, num, xT, wT, newton_cotes_order, order)
     Δ = wT((stop-start)/(num-1));

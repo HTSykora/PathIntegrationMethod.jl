@@ -1,3 +1,7 @@
+get_dkm(sdestep::SDEStep) = get_dkm(sdestep.sde)
+Q_compatible(::SDEStep, ::SDEStep) = false
+Q_compatible(::SDEStep{d,k,m}, ::SDEStep{d,k,m}) = true
+
 function SDEStep(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMethod, ts; kwargs...) where {d,k,m}
     x0 = zeros(d) # * not type safe for autodiff
     x1 = similar(x0)
@@ -41,7 +45,8 @@ end
 function (pcl::PreComputeNewtonStep)(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStepping{<:ExplicitDriftMethod}, x0, x1, _t0, _t1) where {d,k,m}
 
     # @variables x[1:d] y[1:k-1] par[1:length(_par(sde))] t0 t1
-    @variables x[1:d] y[1:d] par[1:length(_par(sde))] t0 t1
+    @variables x[1:d] y[1:d] t0 t1
+    @variables par[1:(_par(sde) isa Nothing ? 1 : length(_par(sde)))]
     
     step_sym = eval_driftstep_xI_sym(sde,method,x,par,t0,t1)
     y_eq = [y[i] - step_sym[i] for i in 1:d]
@@ -62,42 +67,6 @@ function (pcl::PreComputeNewtonStep)(sde::AbstractSDE{d,k,m}, method::DiscreteTi
     SymbolicNewtonStepTracer(xI_0!, x_0!, detJI⁻¹, similar(x0,k-1), similar(x0))
 end
 
-function (pcl::PreComputeNewtonStep)(sde::SDE_VIO, method::DiscreteTimeStepping{<:ExplicitDriftMethod}, x0, x1, _t0, _t1) 
-    step1 = pcl(sde, method, x0, x1, _t0, _t1) # When the dynamics is smooth
-
-    # When there is an impact (k = d = 2)
-    
-    # @variables x[1:d] y[1:k-1] par[1:length(_par(sde))] t0 t1
-    @variables x0 v0 xi vi x1 v1 par[1:length(_par(sde))] t0 ti t1 
-    @syms r(v)
-    step_sym_i = eval_driftstep_xI_sym(sde, method, [x0, v0], par, t0, ti)
-    step_sym_1 = eval_driftstep_xI_sym(sde, method, [xi, -r(vi)*vi], par, ti, t1)
-    _eq = [
-        xi - step_sym_i[1],
-        vi - step_sym_i[2],
-        x1 - step_sym_1[1],
-        v1 - step_sym_1[2]
-    ]
-    _x = [ti, vi, x0, v0]
-    J_sym = Symbolics.jacobian(_eq,_x);
-    _corr = lu(J_sym)\_eq
-    x_new = [_x[i] - _corr[i] for i in 1:4]
-    _, x_0i! = build_function(x_new, _x, [x1, v1], par, xi, r, t0, t1, expression = Val{false})
-    
-    JI_sym = collect(J_sym[1:3, 1:3]) |> lu
-    _corr = JI_sym\collect(_eq[1:3])
-    x_new = [_x[i] - _corr[i] for i in 1:3]
-    _, xI_0i! = build_function(x_new, [ti, vi, x0], [x1, v1], par, xi, r, t0, t1, expression = Val{false})
-
-    detJI_inv = [1/Symbolics.derivative(x1 - substitute(step_sym_1[1], Dict(xi => step_sym_i[1], vi => step_sym_i[2])),x0)]
-
-    detJI⁻¹ = build_function(detJI_inv, [x0, v0], par, xi, r, t0, ti, t1, expression = Val{false})
-
-    
-    # _, xII_1! = build_function(step_sym[k:d], x, par, dt, expression = Val{false})
-    step2 = SymbolicNewtonStepTracer(xI_0i!, x_0i!, detJI⁻¹, similar(x0,3), similar(x0,4))
-    SymbolicNonSmoothNewtonStepTracer((step1, step2))
-end
 
 # function (pcl::PreComputeLU)(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStepping, x0, x1, Δt) where {d,k,m}
 #     error("LU precomputation not implemented!")

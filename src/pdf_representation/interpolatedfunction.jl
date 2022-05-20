@@ -43,3 +43,7 @@ function recycle_interpolatedfunction!(itp_f::InterpolatedFunction, f)
         itp_f.p[i] = f(x...)
     end
 end
+
+function each_latticecoordinate(itp::InterpolatedFunction)
+    BI_product(itp.axes...)
+end

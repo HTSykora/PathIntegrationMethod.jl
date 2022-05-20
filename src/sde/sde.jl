@@ -1,8 +1,11 @@
 #############################################
 # Some utils
 _par(sde::AbstractSDE) = sde.par
-_par(sde::SDE_VIO) = sde.par
+_par(sde::SDE_VIO) = _par(sde.sde)
 
+get_dkm(::AbstractSDE{d,k,m}) where {d,k,m} = (d,k,m)
+Q_compatible(::AbstractSDE, ::AbstractSDE) = false
+Q_compatible(::AbstractSDE{d,k,m}, ::AbstractSDE{d,k,m}) = true
 # SDE
 SDE() = SDE{0,0,Nothing,Nothing,Nothing}(nothing,nothing,nothing)
 SDE(d::Integer,k::Integer) = SDE{d,k,Nothing,Nothing,Nothing}(nothing,nothing,nothing)
@@ -35,12 +38,3 @@ end
 
 #############################################
 # SDE_VI_Oscillator1D
-function osc_f1(u,p,t)
-    u[2]
-end
-function SDE_VIO(f::fT,g::gT, wall::Union{Tuple{wT1},Tuple{wT1,wT2}}, par=nothing) where {fT<:Function,gT<:Function, wT1<:Wall, wT2<:Wall}
-    sde = SDE((osc_f1,f), g, par);
-    SDE_VIO(sde, wall)
-end
-
-SDE_VIO(f::fT,g::gT, w::Wall; kwargs...) where {fT<:Function,gT<:Function} = SDE_VIO(f, g, (w,); kwargs...)

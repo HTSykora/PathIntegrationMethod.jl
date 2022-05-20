@@ -12,13 +12,14 @@ export SDE, DriftTerm, DiffusionTerm,
     Euler, RungeKutta, RK2, RK4, Maruyama,
     SDEStep, 
     AxisGrid, InterpolatedFunction, LinearAxis, CubicAxis, QuinticAxis, ChebyshevAxis, TrigonometricAxis,
-    recycle_interpolatedfunction!,
+    LinRange_fromaxis, recycle_interpolatedfunction!, each_latticecoordinate,
     PathIntegration, 
     advance!, advance_till_converged!, update_mPDFs!,
     recompute_stepMX!, reinit_PI_pdf!,
     integrate, integrate_diff,
     DiscreteIntegrator, QuadGKIntegrator, ClenshawCurtisIntegrator, GaussLegendreIntegrator, GaussRadauIntegrator, GaussLobattoIntegrator, TrapezoidalIntegrator, NewtonCotesIntegrator,
-    DenseMX, SparseMX
+    DenseMX, SparseMX,
+    SDE_VIO, Wall
     
 
 include("types.jl")
@@ -44,6 +45,7 @@ include("sde/timeevolution/discretetimestepping/diffusionstep.jl")
 include("integration/integrationkernel.jl")
 include("integration/compute_stepMX.jl")
 include("integration/discreteintegrator.jl")
+include("specialsystems/vibroimpactoscillator.jl")
 
 include("utils.jl")
 end
