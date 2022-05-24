@@ -111,7 +111,8 @@ end
 
 ##
 # driftstep.jl
-
+# TODO: change to Ref(...) for time placeholders in SDEStep
+# TODO: get rid of t::Number implementations
 # TODO: 
 function compute_missing_states_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}; max_iter = 100, atol = sqrt(eps()), kwargs...) where {d,k,m,sdeT,TDrift, TDiff}
     i = 1

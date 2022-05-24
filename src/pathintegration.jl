@@ -41,7 +41,7 @@ Compute a `PathIntegration` object for computing the response probability densit
 ----
 For methods, discrete integrators, interpolators, and examples please refer to the documentation. 
 """
-function PathIntegration(sdestep::SDEStep{d,k,m}, ts, axes::Vararg{Any,d}; 
+function PathIntegration(sdestep::SDEStep{d,k,m}, _ts, axes::Vararg{Any,d}; 
     discreteintegrator = ClenshawCurtisIntegrator(),
     di_N = 31,  # discrete integration resolution
     initialise_pdf = true, f_init = nothing, pre_compute = true, stepMXtype = nothing, sparse_tol = 1e-6,
@@ -62,7 +62,7 @@ function PathIntegration(sdestep::SDEStep{d,k,m}, ts, axes::Vararg{Any,d};
         _f = nothing
     end
     pdf = InterpolatedFunction(axes...; f = _f, kwargs...)
-
+    ts = get_ts(_ts);
     step_idx = 0
     t = 0.
     if pre_compute
@@ -105,6 +105,10 @@ function PathIntegration(sdestep::SDEStep{d,k,m}, ts, axes::Vararg{Any,d};
     PathIntegration(sdestep, pdf, p_temp,ts, stepMX, step_idx, IK, mpdf, kwargs,t)
 end
 _val(vals) = vals
+get_ts(_ts::AbstractVector{tsT}) where tsT<:Number = _ts
+get_ts(_ts::tsT) where tsT<:Number = [zero(_ts), _ts]
+stepMX(PI::PathIntegration) = PI.stepM[1]
+stepMX(PI::PathIntegration, i) = PI.stepM[i]
 
 function PathIntegration(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMethod, ts, axes::Vararg{Any,d}; kwargs...) where {d,k,m}
     sdestep = SDEStep(sde, method, ts; kwargs...)

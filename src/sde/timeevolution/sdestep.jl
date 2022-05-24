@@ -8,11 +8,12 @@ function SDEStep(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMethod, ts
     SDEStep(sde, method, x0, x1, ts; kwargs...)
 end
 
+#TODO: chante to Ref(zero(dt)) and Ref(dt)
 function SDEStep(sde, method, x0, x1, dt::Number; kwargs...)
-    SDEStep(sde, method, x0, x1, zero(dt), dt; kwargs...)
+    SDEStep(sde, method, x0, x1, Ref(zero(dt)), Ref(dt); kwargs...)
 end
-function SDEStep(sde, method, x0, x1, t::AbstractVector; kwargs...)
-    SDEStep(sde, method, x0, x1, similar(t,1), similar(t,1); kwargs...)
+function SDEStep(sde, method, x0, x1, t::AbstractVector{tT}; kwargs...) where tT
+    SDEStep(sde, method, x0, x1, Ref(zero(tT)), Ref(zero(tT)); kwargs...)
 end
 
 function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pclT = PreComputeNewtonStep(), kwargs...) where {sdeT<:AbstractSDE{d,k,m}, methodT <: DiscreteTimeSteppingMethod, pclT <: PreComputeLevel} where {d,k,m}
@@ -106,8 +107,8 @@ end
 
 # Utility
 _Δt(step) = _t1(step) - _t0(step)
-_t0(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT} = step.t0[1] # ΔtT<:Number ???
+_t0(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT} = step.t0[] # ΔtT<:Number ???
 # _t0(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT<:AbstractArray} = step.t0[1]
-_t1(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT} = step.t1[1] # ΔtT<:Number ???
+_t1(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT} = step.t1[] # ΔtT<:Number ???
 # _t1(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT<:AbstractArray} = step.t1[1]
 _par(step) = step.sde.par

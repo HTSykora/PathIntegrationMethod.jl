@@ -20,7 +20,7 @@ end
 
 # utility functions for computations
 @inline initialize_transitionmatrix(T, ts::AbstractVector{eT}, l) where eT<:Number = [zeros(T,l,l) for _ in 1:(length(ts)-1)]
-@inline initialize_transitionmatrix(T, ts::Number, l) = zeros(T,l,l)
+@inline initialize_transitionmatrix(T, ts::Number, l) = [zeros(T,l,l)]
 
 @inline function initialize_IK(sde::AbstractSDE{N,N},pdgrid,ts,method,temp) where N
     t₀, t₁ = _t01(ts)
@@ -37,7 +37,7 @@ end
 @inline get_iterator(pdgrid::PDGrid{1}) = eachindex(pdgrid.xs[1]) 
 
 function fill_tpdMX_ts!(tpdMX,IK,idx_it,ts::Number; kwargs...)
-    fill_tpdMX!(tpdMX,IK,idx_it; kwargs...)
+    fill_tpdMX!(tpdMX[1],IK,idx_it; kwargs...)
     tpdMX
 end
 
