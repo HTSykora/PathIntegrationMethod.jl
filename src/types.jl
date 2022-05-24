@@ -68,7 +68,7 @@ end
 struct NonSmoothSDEStep{d,k,m,snsT}
     sdesteps::snsT
 end
-struct SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,tT}
+struct SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT}
     sde::sdeT
     method::methodT
     x0::x0T
@@ -77,6 +77,9 @@ struct SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,tT}
     t1::tT
     
     steptracer::tracerT # Required for discrete time step backtracing
+    # intermediate step utilities
+    ti::tiT
+    xi::xiT
 end
 abstract type PreComputeLevel end
 struct PreComputeJacobian <: PreComputeLevel end

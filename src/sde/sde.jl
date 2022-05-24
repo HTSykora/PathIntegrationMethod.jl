@@ -5,7 +5,7 @@ _par(sde::SDE_VIO) = _par(sde.sde)
 
 get_dkm(::AbstractSDE{d,k,m}) where {d,k,m} = (d,k,m)
 Q_compatible(::AbstractSDE, ::AbstractSDE) = false
-Q_compatible(::AbstractSDE{d,k,m}, ::AbstractSDE{d,k,m}) = true
+Q_compatible(::AbstractSDE{d,k,m}, ::AbstractSDE{d,k,m}) where {d,k,m}= true
 # SDE
 SDE() = SDE{0,0,Nothing,Nothing,Nothing}(nothing,nothing,nothing)
 SDE(d::Integer,k::Integer) = SDE{d,k,Nothing,Nothing,Nothing}(nothing,nothing,nothing)

@@ -14,4 +14,4 @@ method = Euler()
 W = Wall(x->x,1.)
 sde = SDE_VIO(f2,g2,W, par)
 
-sdestep = SDEStep(sde, method, 0.1)
+@time sdestep = SDEStep(sde, method, 0.1)

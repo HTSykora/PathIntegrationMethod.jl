@@ -1,6 +1,6 @@
 get_dkm(sdestep::SDEStep) = get_dkm(sdestep.sde)
 Q_compatible(::SDEStep, ::SDEStep) = false
-Q_compatible(::SDEStep{d,k,m}, ::SDEStep{d,k,m}) = true
+Q_compatible(::SDEStep{d,k,m}, ::SDEStep{d,k,m}) where {d,k,m}= true
 
 function SDEStep(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMethod, ts; kwargs...) where {d,k,m}
     x0 = zeros(d) # * not type safe for autodiff
@@ -20,8 +20,9 @@ function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pcl
     _method = DiscreteTimeStepping(sde, method)
     steptracer = precomputelevel(sde,_method,x0,x1, t0, t1)
     
-    SDEStep{d,k,m,sdeT,typeof(_method),typeof(steptracer),typeof(x0),typeof(x1),typeof(t0)}(sde, _method, x0, x1, t0, t1, steptracer)
+    SDEStep{d,k,m,sdeT,typeof(_method),typeof(steptracer),typeof(x0),typeof(x1),typeof(t0), Nothing, Nothing}(sde, _method, x0, x1, t0, t1, steptracer, nothing, nothing)
 end
+
 
 function (pcl::Union{PreComputeNewtonStep})(sde::AbstractSDE{d,1,m}, method::DiscreteTimeStepping{<:ExplicitDriftMethod}, x0, x1, _t0, _t1) where {d,m}
     if _par(sde) isa Nothing
