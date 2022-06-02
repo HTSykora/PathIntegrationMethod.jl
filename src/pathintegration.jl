@@ -107,8 +107,8 @@ end
 _val(vals) = vals
 get_ts(_ts::AbstractVector{tsT}) where tsT<:Number = _ts
 get_ts(_ts::tsT) where tsT<:Number = [zero(_ts), _ts]
-stepMX(PI::PathIntegration) = PI.stepM[1]
-stepMX(PI::PathIntegration, i) = PI.stepM[i]
+stepMX(PI::PathIntegration) = PI.stepMX[1]
+stepMX(PI::PathIntegration, i) = PI.stepMX[i]
 
 function PathIntegration(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMethod, ts, axes::Vararg{Any,d}; kwargs...) where {d,k,m}
     sdestep = SDEStep(sde, method, ts; kwargs...)
@@ -118,7 +118,7 @@ end
 function advance_till_converged!(PI::PathIntegration; rtol = 1e-6, Tmax = nothing, check_dt = PI.ts[end], maxiter = 100_000, atol = rtol*check_dt, check_iter = nothing)
     _dt = PI.ts isa Number ? PI.ts : PI.ts[2]
     if check_iter isa Nothing
-        chk_itr = Int((check_dt+sqrt(eps(check_dt))) ÷_dt) - 1;
+        chk_itr = Int((check_dt + sqrt(eps(check_dt))) ÷_dt) - 1;
         # Assuming constant time step
     else
         chk_itr = check_iter - 1

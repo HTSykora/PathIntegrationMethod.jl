@@ -65,10 +65,14 @@ struct DiscreteTimeStepping{TDrift,TDiff} <:DiscreteTimeSteppingMethod
     drift::TDrift
     diffusion::TDiff
 end
-struct NonSmoothSDEStep{d,k,m,snsT}
+abstract type AbstractSDEStep{d,k,m} end
+struct NonSmoothSDEStep{d,k,m,sdeT,snsT,qT,idT}
+    sde::sdeT
     sdesteps::snsT
+    Q_switch::qT
+    ID::idT
 end
-struct SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT}
+struct SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT} <: AbstractSDEStep{d,k,m}
     sde::sdeT
     method::methodT
     x0::x0T
@@ -81,17 +85,28 @@ struct SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT}
     ti::tiT
     xi::xiT
 end
+
 abstract type PreComputeLevel end
 struct PreComputeJacobian <: PreComputeLevel end
 struct PreComputeLU <: PreComputeLevel end
 struct PreComputeNewtonStep <: PreComputeLevel end
-struct SymbolicNewtonStepTracer{xIT, xT, detJIT,tempIT,tempT}
+abstract type AbstractSymbolicNewtonStepTracer end
+struct SymbolicNewtonStepTracer{xIT, xT, detJIT,tempIT,tempT} <: AbstractSymbolicNewtonStepTracer
     xI_0!::xIT
     x_0!::xT
-    # xII_1!::xIIT
     detJI_inv::detJIT
     tempI::tempIT
     temp::tempT
+end
+struct VIO_SymbolicNewtonImpactStepTracer{xIT, xT, detJIT, tempIT, tempT, vs_bT, vs_aT, vs_tT} <: AbstractSymbolicNewtonStepTracer
+    xI_0!::xIT
+    x_0!::xT
+    detJI_inv::detJIT
+    tempI::tempIT
+    temp::tempT
+    v_beforeimpact!::vs_bT
+    v_afterimpact!::vs_aT
+    v_temp::vs_tT
 end
 
 # struct StepJacobianLU{JT, JMT}

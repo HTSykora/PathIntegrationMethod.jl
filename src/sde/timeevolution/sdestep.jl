@@ -8,7 +8,6 @@ function SDEStep(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMethod, ts
     SDEStep(sde, method, x0, x1, ts; kwargs...)
 end
 
-#TODO: chante to Ref(zero(dt)) and Ref(dt)
 function SDEStep(sde, method, x0, x1, dt::Number; kwargs...)
     SDEStep(sde, method, x0, x1, Ref(zero(dt)), Ref(dt); kwargs...)
 end
@@ -111,4 +110,4 @@ _t0(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, 
 # _t0(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT<:AbstractArray} = step.t0[1]
 _t1(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT} = step.t1[] # ΔtT<:Number ???
 # _t1(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT<:AbstractArray} = step.t1[1]
-_par(step) = step.sde.par
+_par(step) = _par(step.sde)

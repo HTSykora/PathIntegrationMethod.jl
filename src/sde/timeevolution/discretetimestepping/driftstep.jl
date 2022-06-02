@@ -1,24 +1,24 @@
 function eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:Euler}
     Δt = _Δt(step)
     for i in 1:d
-        step.x1[i] = step.x0[i] + step.sde.f(i,step.x0,_par(step),_t0(step))*Δt
+        step.x1[i] = step.x0[i] + get_f(step.sde)(i,step.x0,_par(step),_t0(step))*Δt
     end
 end
-function update_x1_kd!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:Euler}
+function update_x1_kd!(step::SDEStep{d,k,m, sdeT, methodT,tracerT,x0T,x1T,tT, Nothing, Nothing}) where {d,k,m,sdeT,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT} where {TDrift<:Euler}
     Δt = _Δt(step)
     for i in k:d
-        step.x1[i] = step.x0[i] + step.sde.f(i,step.x0,_par(step),_t0(step))*Δt
+        step.x1[i] = step.x0[i] + get_f(step.sde)(i,step.x0,_par(step),_t0(step))*Δt
     end
 end
 
-function eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord
+function eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT,tracerT,x0T,x1T,tT, Nothing, Nothing}) where {d,k,m,sdeT,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT} where {TDrift<:RungeKutta{ord}} where ord
     _eval_driftstep!(step)
     fill_to_x1!(step)
 end
-function _eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord
-    Δt = _Δt(step)
+_eval_driftstep!(step) = _eval_driftstep!(step,_Δt(step))
+function _eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT}, Δt) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord
     for i in 1:d
-        step.method.drift.ks[1][i] = step.sde.f(i,step.x0,_par(step),_t0(step))*Δt
+        step.method.drift.ks[1][i] = get_f(step.sde)(i,step.x0,_par(step),_t0(step))*Δt
     end
 
     for j in 1:ord-1
@@ -28,7 +28,7 @@ function _eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT
         end
         tj = _t0(step)+Δt*(1+step.method.drift.BT.c[j])
         for i in 1:d
-            step.method.drift.ks[j+1][i] = step.sde.f(i,step.method.drift.temp,_par(step),tj)*Δt
+            step.method.drift.ks[j+1][i] = get_f(step.sde)(i,step.method.drift.temp,_par(step),tj)*Δt
         end
     end
 end
@@ -48,7 +48,7 @@ function fill_to_x1!(step::SDEStep{d,k,m, sdeT, methodT},i) where {d,k,m,sdeT, m
         end
     end
 end
-function update_x1_kd!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord
+function update_x1_kd!(step::SDEStep{d,k,m, sdeT, methodT,tracerT,x0T,x1T,tT, Nothing, Nothing}) where {d,k,m,sdeT,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT} where {TDrift<:RungeKutta{ord}} where ord
     _eval_driftstep!(step)
     fill_to_x1!(step,k)
 end
@@ -81,7 +81,7 @@ function eval_driftstep_xI_sym(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStep
     return temp
 end
 
-function update_drift_x!(step::SDEStep{d,k,m, sdeT, methodT}) where {d,k,m,sdeT,methodT<:DiscreteTimeStepping{TDrift}} where {TDrift}
+function update_drift_x!(step::SDEStep{d,k,m, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT}) where {d,k,m,sdeT,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT, tiT, xiT} where {TDrift}
     for i in 1:k-1
         step.x0[i] = step.steptracer.tempI[i]
     end

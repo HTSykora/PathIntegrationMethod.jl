@@ -2,6 +2,10 @@
 # Some utils
 _par(sde::AbstractSDE) = sde.par
 _par(sde::SDE_VIO) = _par(sde.sde)
+get_f(sde::AbstractSDE) = sde.f
+get_f(sde::SDE_VIO) = get_f(sde.sde)
+get_g(sde::AbstractSDE) = sde.g
+get_g(sde::SDE_VIO) = get_g(sde.sde)
 
 get_dkm(::AbstractSDE{d,k,m}) where {d,k,m} = (d,k,m)
 Q_compatible(::AbstractSDE, ::AbstractSDE) = false
