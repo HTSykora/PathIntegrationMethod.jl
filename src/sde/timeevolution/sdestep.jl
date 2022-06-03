@@ -20,7 +20,7 @@ function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pcl
     _method = DiscreteTimeStepping(sde, method)
     steptracer = precomputelevel(sde,_method,x0,x1, t0, t1)
     
-    SDEStep{d,k,m,sdeT,typeof(_method),typeof(steptracer),typeof(x0),typeof(x1),typeof(t0), Nothing, Nothing}(sde, _method, x0, x1, t0, t1, steptracer, nothing, nothing)
+    SDEStep{d,k,m,sdeT,typeof(_method),typeof(steptracer),typeof(x0),typeof(x1),typeof(t0), Nothing, Nothing, Nothing}(sde, _method, x0, x1, t0, t1, steptracer, nothing, nothing, nothing)
 end
 
 
@@ -106,8 +106,12 @@ end
 
 # Utility
 _Δt(step) = _t1(step) - _t0(step)
+_Δt0i(step) = _ti(step) - _t0(step)
+_Δti1(step) = _t1(step) - _ti(step)
 _t0(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT} = step.t0[] # ΔtT<:Number ???
 # _t0(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT<:AbstractArray} = step.t0[1]
 _t1(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT} = step.t1[] # ΔtT<:Number ???
+_ti(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT, Nothing}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT} = step.t1[] # ΔtT<:Number ???
+_ti(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT} = step.ti[] # ΔtT<:Number ???
 # _t1(step::SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT}) where {d, k, m, sdeT, methodT,tracerT,x0T,x1T,ΔtT<:AbstractArray} = step.t1[1]
 _par(step) = _par(step.sde)

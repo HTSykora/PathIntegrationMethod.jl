@@ -23,7 +23,7 @@ struct SDE_VIO{sdeT, wT} <: AbstractSDE{2,2,1} # 1 DoF vibroimpact oscillator
     wall::wT
     # wT<:Tuple{Wall} = it is assumed, that it is a bottom wall (going down)
 end
-struct Wall{rT,pT}
+struct Wall{rT,pT} <: Function
     r::rT
     pos::pT
     # impact_v_sign::dT
@@ -72,7 +72,7 @@ struct NonSmoothSDEStep{d,k,m,sdeT,snsT,qT,idT}
     Q_switch::qT
     ID::idT
 end
-struct SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT} <: AbstractSDEStep{d,k,m}
+struct SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT,xi2T} <: AbstractSDEStep{d,k,m}
     sde::sdeT
     method::methodT
     x0::x0T
@@ -84,6 +84,7 @@ struct SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT} <: AbstractS
     # intermediate step utilities
     ti::tiT
     xi::xiT
+    xi2::xi2T
 end
 
 abstract type PreComputeLevel end

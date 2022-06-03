@@ -33,8 +33,8 @@ function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pcl
         ti = Ref(zero(typeof(t0)));
     end
         
-    step1 = SDEStep{2,2,1,sdeT,typeof(_method),typeof(steptracers[1]),typeof(x0),typeof(x1),typeof(t0), Nothing, Nothing}(sde, _method, similar(x0), similar(x1), t0, t1, steptracers[1], nothing, nothing)
-    step2 = SDEStep{2,2,1,sdeT,typeof(_method),typeof(steptracers[2]),typeof(x0),typeof(x1),typeof(t0), typeof(ti), typeof(x0)}(sde, _method, similar(x0), similar(x1), t0, t1, steptracers[2], ti, similar(x0))
+    step1 = SDEStep{2,2,1,sdeT,typeof(_method),typeof(steptracers[1]),typeof(x0),typeof(x1),typeof(t0), Nothing, Nothing, Nothing}(sde, _method, similar(x0), similar(x1), t0, t1, steptracers[1], nothing, nothing, nothing)
+    step2 = SDEStep{2,2,1,sdeT,typeof(_method),typeof(steptracers[2]),typeof(x0),typeof(x1),typeof(t0), typeof(ti), typeof(x0), typeof(x0)}(sde, _method, similar(x0), similar(x1), t0, t1, steptracers[2], ti, similar(x0), similar(x0))
     NonSmoothSDEStep(sde, step1, step2; kwargs...)
 end
 
@@ -42,7 +42,7 @@ function (pcl::PreComputeNewtonStep)(vi_sde::SDE_VIO, method::DiscreteTimeSteppi
     tracer1 = pcl(vi_sde.sde, method, _x0, _x1, _t0, _t1) # When the dynamics is smooth
 
     # When there is an impact (k = d = 2)
-    
+    # TODO: substitute wall functions instead of r(vi)
     # @variables x[1:d] y[1:k-1] par[1:length(_par(sde))] t0 t1
     @variables x0 v0 xi vi x1 v1 t0 ti t1 
     @variables par[1:(_par(vi_sde) isa Nothing ? 1 : length(_par(vi_sde)))]
@@ -55,14 +55,16 @@ function (pcl::PreComputeNewtonStep)(vi_sde::SDE_VIO, method::DiscreteTimeSteppi
         x1 - step_sym_1[1],
         v1 - step_sym_1[2]
     ]
-    _x = [x0, v0, ti, vi]
-    J_sym = Symbolics.jacobian(_eq,_x);
+    _x = (x0, v0, ti, vi)
+    J_sym = [Symbolics.derivative(eq,x) for eq in _eq, x in _x]#Symbolics.jacobian(_eq,_x);
     _corr = lu(J_sym)\_eq
     x_new = [_x[i] - _corr[i] for i in 1:4]
-    _, x_0i! = build_function(x_new, [x0, v0], [x1, v1], [xi, vi], par, xi, r, t0, t1, ti, expression = Val{false})
-    
-    JI_sym = collect(J_sym[1:3, 1:3]) |> lu
-    _corr = JI_sym\collect(_eq[1:3])
+    _, x_0i! = build_function(x_new, [x0, v0], [x1, v1], [xi, vi], par, r, t0, t1, ti, expression = Val{false})
+    _x = (x0,  ti, vi)
+    _eq13 = collect(_eq[1:3])
+    JI_sym = [Symbolics.derivative(eq,x) for eq in _eq13, x in _x]
+    # JI_sym = collect(J_sym[1:3, 1:3]) |> lu
+    _corr = JI_sym\_eq13
     x_new = [_x[i] - _corr[i] for i in 1:3]
     _, xI_0i! = build_function(x_new, [x0, v0], [x1, v1], [xi, vi], par, r, t0, t1, ti, expression = Val{false})
 
@@ -97,7 +99,7 @@ end
 
 
 function iterate_xI0!(step::SDEStep{d,k,m, sdeT, methodT,tracerT}, wallID) where {d, k,m, sdeT, methodT,tracerT<:VIO_SymbolicNewtonImpactStepTracer}
-    step.steptracer.xI_0!(step.steptracer.tempI, step.x0, step.x1, step.xi, _par(step), step.sde.wall[wallID], _t0(step),_t1(step), step.ti[])
+    step.steptracer.xI_0!(step.steptracer.tempI, step.x0, step.x1, step.xi, _par(step), step.sde.wall[wallID], _t0(step),_t1(step), _ti(step))
 end
 
 # function update_relevant_states!(IK::IntegrationKernel{dk,sdeT},v0::Number) where sdeT<:SDE_VIO where {dk}
@@ -140,24 +142,45 @@ end
 # TODO: 
 function compute_missing_states_driftstep!(step::NonSmoothSDEStep{d,k,m,sdeT}; kwargs...) where {d,k,m,sdeT<:SDE_VIO}
     if step.Q_switch[]
-        compute_missing_states_impact_driftstep!(step.sdesteps[1], step.ID[])
+        compute_missing_states_vio_driftstep!(step.sdesteps[1], step.ID[])
     else
         compute_missing_states_driftstep!(step.sdesteps[1])
     end
 end
-function compute_missing_states_impact_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}, wallID::Integer; max_iter = 100, atol = sqrt(eps()), kwargs...) where {d,k,m,sdeT,TDrift, TDiff}
+function compute_missing_states_vio_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}, wallID::Integer; max_iter = 100, atol = sqrt(eps()), kwargs...) where {d,k,m,sdeT,TDrift, TDiff}
     i = 1
     x_change = 2atol
     while x_change > atol && i < max_iter
         iterate_xI0!(step, wallID)
         x_change = norm(step.x0[j] - step.steptracer.tempI[j] for j in 1:(k-1))
         # TODO: update starting here
-        update_drift_x!(step)
+        update_impact_vio_x!(step, wallID)
         i = i + 1
     end
     # println("iterations: $(i-1)")
     nothing
 end
+
+function update_impact_vio_x!(step::SDEStep{2,2,1, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT, xiT}, wallID) where {sdeT<:SDE_VIO,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT, tiT, xiT} where {TDrift}
+    # for i in 1:k-1
+    #     step.x0[i] = step.steptracer.tempI[i]
+    # end
+    step.x0[1] = step.steptracer.tempI[1]
+    step.ti[] = step.steptracer.tempI[2]
+    step.xi[2] = step.steptracer.tempI[3] # vi
+    step.xi2[2] = - step.sde.wall[wallID](step.xi[2])*step.xi[2]
+    update_x1_kd!(step)
+end
+
+function update_x1_kd!(step::SDEStep{2,2,1, sdeT, methodT,tracerT,x0T,x1T,tT}) where {sdeT<:SDE_VIO,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT} where {TDrift<:Euler}
+    i = 2; # i in k:d
+    step.x1[i]  = step.xi2[i] + get_f(step.sde)(i,step.xi2,_par(step),_ti(step)) * _Δti1(step)
+end
+function update_x1_kd!(step::SDEStep{d,k,m, sdeT, methodT,tracerT,x0T,x1T,tT, Nothing, Nothing}) where {d,k,m,sdeT<:SDE_VIO,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT} where {TDrift<:RungeKutta{ord}} where ord
+    _eval_driftstep!(step,step.xi2,_Δti1(step))
+    fill_to_x1!(step,step.xi2,k)
+end
+
 
 # function compute_initial_states_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}; max_iter = 100, atol = sqrt(eps()), kwargs...) where {d,k,m,sdeT,TDrift, TDiff}
 #     i = 1

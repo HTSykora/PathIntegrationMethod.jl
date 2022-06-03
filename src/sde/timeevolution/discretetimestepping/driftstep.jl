@@ -15,14 +15,14 @@ function eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT,tracerT,x0T,x1T,tT, 
     _eval_driftstep!(step)
     fill_to_x1!(step)
 end
-_eval_driftstep!(step) = _eval_driftstep!(step,_Δt(step))
-function _eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT}, Δt) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord
+_eval_driftstep!(step) = _eval_driftstep!(step, step.x0, _Δt(step))
+function _eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT}, x0, Δt) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord
     for i in 1:d
-        step.method.drift.ks[1][i] = get_f(step.sde)(i,step.x0,_par(step),_t0(step))*Δt
+        step.method.drift.ks[1][i] = get_f(step.sde)(i,x0,_par(step),_t0(step))*Δt
     end
 
     for j in 1:ord-1
-        step.method.drift.temp .= step.x0
+        step.method.drift.temp .= x0
         for a in step.method.drift.BT.a[j]
             step.method.drift.temp .= step.method.drift.temp .+ a.weight .* a.val
         end
@@ -32,15 +32,17 @@ function _eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT}, Δt) where {d,k,m
         end
     end
 end
-function fill_to_x1!(step)
-    step.x1 .= step.x0
+fill_to_x1!(step) = fill_to_x1!(step,step.x0)
+function fill_to_x1!(step, x0)
+    step.x1 .= x0
     for b in step.method.drift.BT.b
         step.x1 .= step.x1 .+ b.weight .* b.val
     end
 end
-function fill_to_x1!(step::SDEStep{d,k,m, sdeT, methodT},i) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord
+fill_to_x1!(step::SDEStep{d,k,m, sdeT, methodT},i) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord = fill_to_x1!(step, step.x0, i)
+function fill_to_x1!(step::SDEStep{d,k,m, sdeT, methodT}, x0, i) where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord
     for j in i:d
-        step.x1[j] = step.x0[j]
+        step.x1[j] = x0[j]
     end
     for b in step.method.drift.BT.b
         for j in i:d
