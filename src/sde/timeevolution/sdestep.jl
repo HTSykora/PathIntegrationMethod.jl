@@ -93,7 +93,7 @@ end
 
 # Update xI
 
-function iterate_xI0!(step::SDEStep{d,k,m, sdeT, methodT,tracerT}) where {d, k,m, sdeT, methodT,tracerT<:SymbolicNewtonStepTracer}
+function iterate_xI0!(step::SDEStep{d,k,m, sdeT, methodT,tracerT}; kwargs...) where {d, k,m, sdeT, methodT,tracerT<:SymbolicNewtonStepTracer}
     step.steptracer.xI_0!(step.steptracer.tempI, step.x0,step.x1,_par(step),_t0(step),_t1(step))
 end
 function iterate_x0!(step::SDEStep{d,k,m, sdeT, methodT,tracerT}) where {d, k,m, sdeT, methodT,tracerT<:SymbolicNewtonStepTracer}

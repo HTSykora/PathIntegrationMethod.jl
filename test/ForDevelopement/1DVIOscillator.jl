@@ -33,7 +33,7 @@ begin
     step2.ti[] = PathIntegrationMethod._Δt(step2)/2
 
     step2.x1 .= [0.95, -0.5]
-    @time PathIntegrationMethod.compute_missing_states_vio_driftstep!(step2,1)
+    @time PathIntegrationMethod.compute_missing_states_driftstep!(step2, PathIntegrationMethod.update_impact_vio_x!)
 end
 
 begin

@@ -100,15 +100,15 @@ function (pcl::PreComputeNewtonStep)(vi_sde::SDE_VIO, method::DiscreteTimeSteppi
     x_new_bi = [_xi[i] - _corr_bi[i] for i in 1:2]
     x_new_ai = [_xi[i] - _corr_ai[i] for i in 1:2]
     #TODO: figure out the necessary arguments
-    _, xI_0bi! = build_function(x_new_bi, [x0, v0], [x1, v1], [xi, vi], par, r, t0, t1, ti, expression = Val{false})
-    _, xI_0ai! = build_function(x_new_ai, [x0, v0], [x1, v1], [xi, vi], par, r, t0, t1, ti, expression = Val{false})
+    xI_0bi! = Tuple(build_inplace_diffsubstituted_function(x_new_bi, W, r, vi, [x0, v0], [x1, v1], [xi, vi], par, t0, t1, ti) for W in vi_sde.wall)
+    xI_0ai! = Tuple(build_inplace_diffsubstituted_function(x_new_ai, W, r, vi, [x0, v0], [x1, v1], [xi, vi], par, t0, t1, ti) for W in vi_sde.wall)
     # _, xII_1! = build_function(step_sym[k:d], x, par, dt, expression = Val{false})
     tracer2 = VIO_SymbolicNewtonImpactStepTracer(xI_0i!, x_0i!, detJI⁻¹, similar(_x0,3), similar(_x0,4), xI_0bi!, xI_0ai!, similar(_x0,2))
     return (tracer1, tracer2)
 end
 
 
-function iterate_xI0!(step::SDEStep{d,k,m, sdeT, methodT,tracerT}, wallID) where {d, k,m, sdeT, methodT,tracerT<:VIO_SymbolicNewtonImpactStepTracer}
+function iterate_xI0!(step::SDEStep{d,k,m, sdeT, methodT,tracerT}; wallID = 1) where {d, k,m, sdeT, methodT,tracerT<:VIO_SymbolicNewtonImpactStepTracer}
     step.steptracer.xI_0![wallID](step.steptracer.tempI, step.x0, step.x1, step.xi, _par(step), _t0(step),_t1(step), _ti(step))
 end
 
@@ -152,26 +152,26 @@ end
 # TODO: 
 function compute_missing_states_driftstep!(step::NonSmoothSDEStep{d,k,m,sdeT}; kwargs...) where {d,k,m,sdeT<:SDE_VIO}
     if step.Q_switch[]
-        compute_missing_states_vio_driftstep!(step.sdesteps[1], step.ID[])
+        compute_missing_states_driftstep!(step.sdesteps[2],update_impact_vio_x!, wallID = step.ID[])
     else
         compute_missing_states_driftstep!(step.sdesteps[1])
     end
 end
-function compute_missing_states_vio_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}, wallID::Integer; max_iter = 100, atol = sqrt(eps()), kwargs...) where {d,k,m,sdeT,TDrift, TDiff}
-    i = 1
-    x_change = 2atol
-    while x_change > atol && i < max_iter
-        iterate_xI0!(step, wallID)
-        x_change = norm(step.x0[j] - step.steptracer.tempI[j] for j in 1:(k-1))
-        # TODO: update starting here
-        update_impact_vio_x!(step, wallID)
-        i = i + 1
-    end
-    # println("iterations: $(i-1)")
-    nothing
-end
+# function compute_missing_states_vio_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}; max_iter = 100, atol = sqrt(eps()), kwargs...) where {d,k,m,sdeT,TDrift, TDiff}
+#     i = 1
+#     x_change = 2atol
+#     while x_change > atol && i < max_iter
+#         iterate_xI0!(step)
+#         x_change = norm(step.x0[j] - step.steptracer.tempI[j] for j in 1:(k-1))
+        
+#         update_impact_vio_x!(step, kwargs...)
+#         i = i + 1
+#     end
+#     # println("iterations: $(i-1)")
+#     nothing
+# end
 
-function update_impact_vio_x!(step::SDEStep{2,2,1, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT, xiT}, wallID) where {sdeT<:SDE_VIO,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT, tiT, xiT} where {TDrift}
+function update_impact_vio_x!(step::SDEStep{2,2,1, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT, xiT}; wallID = 1) where {sdeT<:SDE_VIO,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT, tiT, xiT} where {TDrift}
     # for i in 1:k-1
     #     step.x0[i] = step.steptracer.tempI[i]
     # end
@@ -190,20 +190,3 @@ function update_x1_kd!(step::SDEStep{d,k,m, sdeT, methodT,tracerT,x0T,x1T,tT}) w
     _eval_driftstep!(step,step.xi2,_Δti1(step))
     fill_to_x1!(step,step.xi2,k)
 end
-
-
-# function compute_initial_states_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}; max_iter = 100, atol = sqrt(eps()), kwargs...) where {d,k,m,sdeT,TDrift, TDiff}
-#     i = 1
-#     x_change = 2atol
-#     while x_change > atol && i < max_iter
-#         iterate_x0!(step)
-#         x_change = norm(step.x0[j] - x for (j,x) in enumerate(step.steptracer.temp))
-#         step.x0 .= step.steptracer.temp
-#         i = i + 1
-#     end
-#     # println("iterations: $(i-1)")
-#     nothing
-# end
-
-# _eval_driftstep!
-# Near impact: for higher order methods try stepping and if the intermediate step exceeds the impact barrier then recompute it with impact.
