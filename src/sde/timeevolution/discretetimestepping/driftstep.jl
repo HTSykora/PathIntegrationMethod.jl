@@ -32,8 +32,8 @@ function _eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT}, x0, Δt) where {d
         end
     end
 end
-fill_to_x1!(step) = fill_to_x1!(step,step.x0)
-function fill_to_x1!(step, x0)
+fill_to_x1!(step::SDEStep{d,k,m, sdeT, methodT})  where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord = fill_to_x1!(step,step.x0)
+function fill_to_x1!(step::SDEStep{d,k,m, sdeT, methodT}, x0::AbstractVector)  where {d,k,m,sdeT, methodT<: DiscreteTimeStepping{TDrift}} where {TDrift<:RungeKutta{ord}} where ord
     step.x1 .= x0
     for b in step.method.drift.BT.b
         step.x1 .= step.x1 .+ b.weight .* b.val

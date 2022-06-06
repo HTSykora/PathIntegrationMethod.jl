@@ -38,6 +38,14 @@ function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pcl
     NonSmoothSDEStep(sde, step1, step2; kwargs...)
 end
 
+function substitute_w_to_rdiff(exprs, W, r, v)
+    [expand_derivatives(substitute(expr,Dict(r(v)=>W(v)))) for expr in exprs] |> collect
+end
+function build_inplace_diffsubstituted_function(expr, W, r, v, args...; kwargs...)
+    new_expr = substitute_w_to_rdiff(expr, W, r, v)
+    _, f! = build_function(new_expr, args...; expression = Val{false})
+    return f!
+end
 function (pcl::PreComputeNewtonStep)(vi_sde::SDE_VIO, method::DiscreteTimeStepping{<:ExplicitDriftMethod}, _x0, _x1, _t0, _t1) 
     tracer1 = pcl(vi_sde.sde, method, _x0, _x1, _t0, _t1) # When the dynamics is smooth
 
@@ -59,18 +67,20 @@ function (pcl::PreComputeNewtonStep)(vi_sde::SDE_VIO, method::DiscreteTimeSteppi
     J_sym = [Symbolics.derivative(eq,x) for eq in _eq, x in _x]#Symbolics.jacobian(_eq,_x);
     _corr = lu(J_sym)\_eq
     x_new = [_x[i] - _corr[i] for i in 1:4]
-    _, x_0i! = build_function(x_new, [x0, v0], [x1, v1], [xi, vi], par, r, t0, t1, ti, expression = Val{false})
+    x_0i! = Tuple(build_inplace_diffsubstituted_function(x_new, W, r, vi, [x0, v0], [x1, v1], [xi, vi], par, t0, t1, ti) for W in vi_sde.wall)
+
     _x = (x0,  ti, vi)
     _eq13 = collect(_eq[1:3])
     JI_sym = [Symbolics.derivative(eq,x) for eq in _eq13, x in _x]
     # JI_sym = collect(J_sym[1:3, 1:3]) |> lu
     _corr = JI_sym\_eq13
     x_new = [_x[i] - _corr[i] for i in 1:3]
-    _, xI_0i! = build_function(x_new, [x0, v0], [x1, v1], [xi, vi], par, r, t0, t1, ti, expression = Val{false})
+    xI_0i! = Tuple(build_inplace_diffsubstituted_function(x_new, W, r, vi, [x0, v0], [x1, v1], [xi, vi], par, t0, t1, ti) for W in vi_sde.wall)
 
     detJI_inv = [1/Symbolics.derivative(x1 - substitute(step_sym_1[1], Dict(xi => step_sym_i[1], vi => step_sym_i[2])),x0)]
 
-    detJI⁻¹ = build_function(detJI_inv, [x0, v0], [xi, vi], par, r, t0, t1, ti, expression = Val{false})
+    detJI⁻¹ =Tuple(build_inplace_diffsubstituted_function(detJI_inv, W, r, vi, [x0, v0], [x1, v1], [xi, vi], par, t0, t1, ti) for W in vi_sde.wall)
+    # detJI⁻¹ = build_function(detJI_inv, [x0, v0], [xi, vi], par, r, t0, t1, ti, expression = Val{false})
 
     _xi = [v0, v1]
     step_sym_bi = eval_driftstep_xI_sym(vi_sde.sde, method, [xi, v0], par, t0, t1)
@@ -99,7 +109,7 @@ end
 
 
 function iterate_xI0!(step::SDEStep{d,k,m, sdeT, methodT,tracerT}, wallID) where {d, k,m, sdeT, methodT,tracerT<:VIO_SymbolicNewtonImpactStepTracer}
-    step.steptracer.xI_0!(step.steptracer.tempI, step.x0, step.x1, step.xi, _par(step), step.sde.wall[wallID], _t0(step),_t1(step), _ti(step))
+    step.steptracer.xI_0![wallID](step.steptracer.tempI, step.x0, step.x1, step.xi, _par(step), _t0(step),_t1(step), _ti(step))
 end
 
 # function update_relevant_states!(IK::IntegrationKernel{dk,sdeT},v0::Number) where sdeT<:SDE_VIO where {dk}
@@ -176,7 +186,7 @@ function update_x1_kd!(step::SDEStep{2,2,1, sdeT, methodT,tracerT,x0T,x1T,tT}) w
     i = 2; # i in k:d
     step.x1[i]  = step.xi2[i] + get_f(step.sde)(i,step.xi2,_par(step),_ti(step)) * _Δti1(step)
 end
-function update_x1_kd!(step::SDEStep{d,k,m, sdeT, methodT,tracerT,x0T,x1T,tT, Nothing, Nothing}) where {d,k,m,sdeT<:SDE_VIO,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT} where {TDrift<:RungeKutta{ord}} where ord
+function update_x1_kd!(step::SDEStep{d,k,m, sdeT, methodT,tracerT,x0T,x1T,tT}) where {d,k,m,sdeT<:SDE_VIO,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT} where {TDrift<:RungeKutta{ord}} where ord
     _eval_driftstep!(step,step.xi2,_Δti1(step))
     fill_to_x1!(step,step.xi2,k)
 end

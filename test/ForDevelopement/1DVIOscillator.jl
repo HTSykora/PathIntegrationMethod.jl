@@ -13,7 +13,7 @@ par = [0.1,0.1]
 method = Euler()
 method = RK2()
 
-W = Wall(x->0.7-0.5x,1.)
+W = Wall(x->0.7-0.05x,1.)
 W = Wall(0.7,1.)
 sde = SDE_VIO(f2,g2,W, par)
 
@@ -32,9 +32,10 @@ begin
     step2.xi2[1] = W.pos
     step2.ti[] = PathIntegrationMethod._Δt(step2)/2
 
-    step2.x1 .= [0.95, 1.]
-    @run PathIntegrationMethod.compute_missing_states_vio_driftstep!(step2,1)
+    step2.x1 .= [0.95, -0.5]
+    @time PathIntegrationMethod.compute_missing_states_vio_driftstep!(step2,1)
 end
+
 begin
     @show step2.x0
     @show step2.x1
@@ -45,6 +46,8 @@ end
 
 
 using Symbolics
+W = Wall(x->0.7-0.5x,1.)
+W = Wall(0.7,1.)
 mdif(W::Wall{<:Number},vi) = zero(vi)
 function testSymbolics()
     @variables vi
