@@ -99,11 +99,12 @@ function compute_missing_states_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTime
     i = 1
     x_change = 2atol
     while x_change > atol && i < max_iter
-        iterate_xI0!(step; kwargs...)
+        apply_correction_to_xI0!(step; kwargs...)
         x_change = norm(step.x0[j] - step.steptracer.tempI[j] for j in 1:(k-1))
         _update_drift_x!(step; kwargs...)
         i = i + 1
     end
+    # @show i-1
     # println("iterations: $(i-1)")
     nothing
 end

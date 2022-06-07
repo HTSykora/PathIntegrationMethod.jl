@@ -99,7 +99,7 @@ struct SymbolicNewtonStepTracer{xIT, xT, detJIT,tempIT,tempT} <: AbstractSymboli
     tempI::tempIT
     temp::tempT
 end
-struct VIO_SymbolicNewtonImpactStepTracer{xIT, xT, detJIT, tempIT, tempT, vs_bT, vs_aT, vs_tT} <: AbstractSymbolicNewtonStepTracer
+struct VIO_SymbolicNewtonImpactStepTracer{xIT, xT, detJIT, tempIT, tempT, vs_bT, vs_aT, vs_tT, vs_btT,vs_atT} <: AbstractSymbolicNewtonStepTracer
     xI_0!::xIT
     x_0!::xT
     detJI_inv::detJIT
@@ -107,7 +107,9 @@ struct VIO_SymbolicNewtonImpactStepTracer{xIT, xT, detJIT, tempIT, tempT, vs_bT,
     temp::tempT
     v_beforeimpact!::vs_bT
     v_afterimpact!::vs_aT
-    v_temp::vs_tT
+    vtemp::vs_tT
+    v_b::vs_btT
+    v_a::vs_atT
 end
 
 # struct StepJacobianLU{JT, JMT}
