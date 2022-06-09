@@ -18,11 +18,13 @@ end
 #     par::parT
 # end
 
-struct SDE_VIO{sdeT, wT} <: AbstractSDE{2,2,1} # 1 DoF vibroimpact oscillator
+struct SDE_VIO{wn, sdeT, wT, Q_cvT} <: AbstractSDE{2,2,1} # 1 DoF vibroimpact oscillator
     sde::sdeT
     wall::wT
+    Q_cv::Q_cvT # velocity compatibility checker
     # wT<:Tuple{Wall} = it is assumed, that it is a bottom wall (going down)
 end
+
 struct Wall{rT,pT} <: Function
     r::rT
     pos::pT
@@ -66,10 +68,11 @@ struct DiscreteTimeStepping{TDrift,TDiff} <:DiscreteTimeSteppingMethod
     diffusion::TDiff
 end
 abstract type AbstractSDEStep{d,k,m} end
-struct NonSmoothSDEStep{d,k,m,sdeT,snsT,qT,idT}
+struct NonSmoothSDEStep{d,k,m,sdeT,n,snsT,qT,q2T,idT}
     sde::sdeT
     sdesteps::snsT
     Q_switch::qT
+    Q_aux::q2T
     ID::idT
 end
 struct SDEStep{d, k, m, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT,xi2T} <: AbstractSDEStep{d,k,m}
@@ -219,24 +222,28 @@ end
 #     Q_atwall::BitArray{1}
 # end
 abstract type AbstractDiscreteIntegratorMethod end
-abstract type AbstractDiscreteIntegratorType end
+abstract type AbstractDiscreteIntegratorType{n} end
 struct ClenshawCurtisIntegrator <:AbstractDiscreteIntegratorMethod end
 struct GaussLegendreIntegrator <:AbstractDiscreteIntegratorMethod end
 struct GaussRadauIntegrator <:AbstractDiscreteIntegratorMethod end
 struct GaussLobattoIntegrator <:AbstractDiscreteIntegratorMethod end
 struct TrapezoidalIntegrator <: AbstractDiscreteIntegratorMethod end
 struct NewtonCotesIntegrator{N} <: AbstractDiscreteIntegratorMethod end
-struct QuadGKIntegrator{iT,rT,kT} <:AbstractDiscreteIntegratorType
+struct QuadGKIntegrator{iT,rT,kT} <:AbstractDiscreteIntegratorType{1}
     int_limits::iT
     res::rT
     kwargs::kT
 end
-struct DiscreteIntegrator{IType,xT,wT,resT,tempT} <:AbstractDiscreteIntegratorType
+struct DiscreteIntegrator{n,IType,xT,wT,resT,tempT} <:AbstractDiscreteIntegratorType{n}
     x::xT
     w::wT
     res::resT
     temp::tempT
 end
+struct NonSmoothDiscreteIntegrator{n,NoDyn,disT} <:AbstractDiscreteIntegratorType{n}
+    discreteintegrators::disT
+end
+
 struct DiagonalNormalPDF{uT, sT} <: Function
     μ::uT
     σ²::sT

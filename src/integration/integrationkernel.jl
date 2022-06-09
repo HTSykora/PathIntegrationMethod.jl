@@ -10,7 +10,7 @@ end
 
 # Evaluating the integrals
 
-function get_IK_weights!(IK::IntegrationKernel{1})
+function get_IK_weights!(IK::IntegrationKernel{1}; Q_reinit_discreteintegrator = true)
 # function get_IK_weights!(IK::IntegrationKernel{1}; integ_limits = first(IK.int_axes), kwargs...)
     IK.discreteintegrator(IK, IK.temp.itpM)
     # quadgk!(IK, IK.temp.itpM, integ_limits...; cleanup_quadgk_keywords(;kwargs...)...)

@@ -1,7 +1,8 @@
 get_dkm(sdestep::SDEStep) = get_dkm(sdestep.sde)
 Q_compatible(::SDEStep, ::SDEStep) = false
 Q_compatible(::SDEStep{d,k,m}, ::SDEStep{d,k,m}) where {d,k,m}= true
-
+number_of_sdesteps(sdestep::AbstractSDEStep) = 1
+number_of_sdesteps(sdestep::NonSmoothSDEStep{d,k,m,sdeT, n}) where {d,k,m,sdeT, n} = n
 function SDEStep(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMethod, ts; kwargs...) where {d,k,m}
     x0 = zeros(d) # * not type safe for autodiff
     x1 = similar(x0)

@@ -84,7 +84,7 @@ function PathIntegration(sdestep::SDEStep{d,k,m}, _ts, axes::Vararg{Any,d};
         else
             error("di_N is not a Union{Number, NTuple{M,Integer}, AbstractArray{Integer}} with length $(d-k+1)")
         end
-        di = DiscreteIntegrator(discreteintegrator, pdf.p, di_res, axes[k:end]...; kwargs...)
+        di = DiscreteIntegrator(discreteintegrator, sdestep, pdf.p, di_res, axes[k:end]...; kwargs...)
         IK = IntegrationKernel(sdestep, nothing, di, ts, pdf, ikt, (;sparse_tol = get_tol(_stepMXtype), kwargs...))
         
         if extract_IK isa Val{true}

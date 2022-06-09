@@ -1,3 +1,6 @@
+function DiscreteIntegrator(discreteintegrator, sdestep<:AbstractSDEStep, res_prototype, N::Union{NTuple{1,<:Integer},<:Integer,AbstractArray{<:Integer}}, axes::GA; kwargs...)
+    DiscreteIntegrator(discreteintegrator,res_prototype, N, axes; kwargs...)
+end
 
 function DiscreteIntegrator(discreteintegrator,res_prototype, N::Union{NTuple{1,<:Integer},<:Integer,AbstractArray{<:Integer}}, axes::GA; xT = Float64, wT = Float64, kwargs...) where GA<:AxisGrid
     start = axes[1]
@@ -5,7 +8,7 @@ function DiscreteIntegrator(discreteintegrator,res_prototype, N::Union{NTuple{1,
     _N = N isa Number ? N : first(N)
 
     x,w = discreteintegrator(xT, wT, start, stop, _N)
-    DiscreteIntegrator{typeof(discreteintegrator), typeof(x), typeof(w), typeof(res_prototype), typeof(res_prototype)}(x,w,zero(res_prototype),zero(res_prototype))
+    DiscreteIntegrator{1,typeof(discreteintegrator), typeof(x), typeof(w), typeof(res_prototype), typeof(res_prototype)}(x,w,zero(res_prototype),zero(res_prototype))
 end
 
 # QuadGKIntegrator() = QuadGKIntegrator(nothing,nothing,nothing)
@@ -60,7 +63,7 @@ function (::NewtonCotesIntegrator{N})(xT, wT, start, stop, num)  where N
     x, w
 end
 
-function (q::DiscreteIntegrator{intT, xT,wT})(f!, res, temp) where {intT, xT<:AbstractVector{T1}, wT<:AbstractVector{T2}} where {T1<:Number, T2<:Number}
+function (q::DiscreteIntegrator{intT, xT,wT})(f!, res, temp; Q_reinit_res = true) where {intT, xT<:AbstractVector{T1}, wT<:AbstractVector{T2}} where {T1<:Number, T2<:Number}
     # f!(temp, q.x[1])
     # res .= q.w[1] .* temp
     
@@ -68,8 +71,9 @@ function (q::DiscreteIntegrator{intT, xT,wT})(f!, res, temp) where {intT, xT<:Ab
     #     f!(temp, x)
     #     res .+= q.w[i+1] .* temp
     # end
-    res .= zero(eltype(res))
-    
+    if Q_reinit_res
+        res .= zero(eltype(res))
+    end
     for (w,x) in zip(q.w,q.x)
         f!(temp, x)
         temp .*= w
@@ -100,12 +104,18 @@ end
 # Romberg iteration
 
 # Rescaling
+function get_limits(di::QuadGKIntegrator)
+    di.int_limits
+end
+function get_limits(di::DiscreteIntegrator{1})
+    di.x[1], di.x[end]
+end
 function rescale_to_limits!(di::QuadGKIntegrator,start,stop)
     di.int_limits[1] = start
     di.int_limits[2] = stop
     nothing
 end
-function rescale_to_limits!(di::DiscreteIntegrator,start,stop)
+function rescale_to_limits!(di::DiscreteIntegrator{1},start,stop)
     rescale_xw!(di.x,di.w,start,stop)
     nothing
 end
@@ -128,4 +138,17 @@ function rescale_xw!(x,w,start,stop)
     old_start = x[1];
     x .= (x .- old_start) .* scale .+ start 
     w .= w .* scale
+end
+
+function rescale_discreteintegrator!(discreteintegrator<:DiscreteIntegrator{1}, sdestep<:SDEStep{d,d,m}, pdf; int_limit_thickness_multiplier = 6, kwargs...) where {d,m}
+    σ = sqrt(_Δt(sdestep)*get_g(sdestep.sde)(d, sdestep.x0,_par(sdestep),_t0(sdestep))^2)
+    mn = min(pdf.axes[d][end], max(pdf.axes[d][1],sdestep.x0[d] - int_limit_thickness_multiplier*σ))
+    mx = max(pdf.axes[d][1],min(pdf.axes[d][end],sdestep.x0[d] + int_limit_thickness_multiplier*σ))
+
+    if mn ≈ mx
+        mn = pdf.axes[d][1]
+        mx = pdf.axes[d][end]
+    end
+
+    rescale_to_limits!(discreteintegrator,mn,mx)
 end
