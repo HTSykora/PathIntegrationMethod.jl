@@ -53,7 +53,7 @@ function fill_stepMX!(stepMX, IK; smart_integration = true, kwargs...)
         update_IK_state_x1!(IK, idx)
         update_dyn_state_x1!(IK, idx)
         if smart_integration
-            compute_initial_states_driftstep!(sdestep)
+            compute_initial_states_driftstep!(IK.sdestep; IK.kwargs...)
             rescale_discreteintegrator!(IK; IK.kwargs...)
         end
         get_IK_weights!(IK)
@@ -69,11 +69,14 @@ end
 
 function update_dyn_state_x1!(IK::IntegrationKernel{kd,dyn}, idx) where dyn <:SDEStep{d,k,m} where {kd, d,k,m}
 
-    IK.sdestep.x1 .= IK.x1
+    update_dyn_state_x1!(IK.sdestep,IK.x1)
     # IK.sdestep.x1 .=  getindex.(IK.pdf.axes,idx) # ? check allocations
     # for i in 1:d
     #     IK.sdestep.x1[i] = getindex(IK.pdf.axes[i],idx[i])
     # end
+end
+function update_dyn_state_x1!(sdestep::SDEStep{d,k,m}, x1) where {d,k,m}
+    sdestep.x1 .= x1
 end
 
 @inline function fill_to_stepMX!(stepMX::AbstractMatrix,IK,i; kwargs...)

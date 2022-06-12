@@ -9,10 +9,13 @@ get_dkm(sde::SDE_VIO) = (2,2,1) # (d,k,m)
 function osc_f1(u,p,t)
     u[2]
 end
+is_v_compatible(v, ID) = !xor(signbit(v), ID == 1)
+is_x_inimpactzone(x, xi, ID; wall_tol = 1.5e-8, kwargs...) = 
+    isapprox(x, xi, atol = wall_tol) ? false : xor(ID == 1, x<xi)
+
 function SDE_VIO(f::fT,g::gT, wall::Union{Tuple{wT1},Tuple{wT1,wT2}}, par=nothing) where {fT<:Function,gT<:Function, wT1<:Wall, wT2<:Wall}
     sde = SDE((osc_f1,f), g, par);
-    q_cv = get_Q_cv(wall)
-    SDE_VIO{length(wall),typeof(sde), typeof(wall), typeof(q_cv)}(sde, wall, q_cv)
+    SDE_VIO{length(wall),typeof(sde), typeof(wall)}(sde, wall)
 end
 SDE_VIO(f::fT,g::gT, w::Wall, par = nothing; kwargs...) where {fT<:Function,gT<:Function} = SDE_VIO(f, g, (w,), par; kwargs...)
 get_Q_cv(::Tuple{wT1}) where wT1<:Wall = (signbit,)
@@ -117,7 +120,7 @@ function apply_correction_to_xI0!(step::SDEStep{d,k,m, sdeT, methodT,tracerT}; w
 end
 
 # To update the 
-function _compute_velocities_to_impact!(temp, v_f!, vs, x1, xi, par, t0, t1; max_iter = 100, atol = sqrt(eps()), kwargs...)
+function _compute_velocities_to_impact!(temp, v_f!, vs, x1, xi, par, t0, t1; max_iter = 100, atol = 1.5e-8, kwargs...)
     i = 1
     x_change = 2atol
     while x_change > atol && i < max_iter
@@ -130,23 +133,22 @@ function _compute_velocities_to_impact!(temp, v_f!, vs, x1, xi, par, t0, t1; max
     end
     nothing
 end
-function compute_velocities_to_impact!(step::SDEStep{2,2,1,<:SDE_VIO,DiscreteTimeStepping{TDrift,TDiff}}, wallID; max_iter = 100, atol = sqrt(eps()), kwargs...) where {d,k,m,sdeT,TDrift, TDiff}
+function compute_velocities_to_impact!(step::SDEStep{2,2,1,<:SDE_VIO,DiscreteTimeStepping{TDrift,TDiff}}, wallID; kwargs...) where {TDrift, TDiff}
     # Compute max v0, v1 just before impact happens
-    _compute_velocities_to_impact!(step.steptracer.vtemp,step.steptracer.v_beforeimpact![wallID], step.steptracer.v_b, step.x1[1], step.xi[1], _par(step), _t0(step), _t1(step))
-    _compute_velocities_to_impact!(step.steptracer.vtemp,step.steptracer.v_afterimpact![wallID], step.steptracer.v_a, step.x1[1], step.xi[1], _par(step), _t0(step), _t1(step))
+    _compute_velocities_to_impact!(step.steptracer.vtemp,step.steptracer.v_beforeimpact![wallID], step.steptracer.v_b, step.x1[1], step.xi[1], _par(step), _t0(step), _t1(step); kwargs...)
+    _compute_velocities_to_impact!(step.steptracer.vtemp,step.steptracer.v_afterimpact![wallID], step.steptracer.v_a, step.x1[1], step.xi[1], _par(step), _t0(step), _t1(step); kwargs...)
 
     nothing
 end
-
 ##
 
 # driftstep.jl
 function compute_missing_states_driftstep!(step::NonSmoothSDEStep{d,k,m,sdeT}; kwargs...) where {d,k,m,sdeT<:SDE_VIO}
     if step.Q_switch[]
         update_impact_vio_xi!(step.sdesteps[2], step.ID[])
-        compute_missing_states_driftstep!(step.sdesteps[2],update_impact_vio_x!, wallID = step.ID[])
+        compute_missing_states_driftstep!(step.sdesteps[2],update_impact_vio_x!, wallID = step.ID[]; kwargs...)
     else
-        compute_missing_states_driftstep!(step.sdesteps[1])
+        compute_missing_states_driftstep!(step.sdesteps[1]; kwargs...)
     end
 end
 function update_impact_vio_xi!(step::SDEStep{2,2,1, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT, xiT}, wallID;) where {sdeT<:SDE_VIO,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT, tiT, xiT} where {TDrift}
@@ -176,6 +178,19 @@ function update_x1_kd!(step::SDEStep{d,k,m, sdeT, methodT,tracerT,x0T,x1T,tT}) w
     fill_to_x1!(step,step.xi2,k)
 end
 
+
+function compute_initial_states_driftstep!(step::NonSmoothSDEStep{d,k,m,sdeT}; kwargs...) where {d,k,m,sdeT<:SDE_VIO}
+    compute_initial_states_driftstep!(step.sdesteps[1]; kwargs...)
+    compute_velocities_to_impact!(step.sdesteps[2], step.ID[])
+
+    if is_x_inimpactzone(step.sdestep[1].x0[1], step.sde.wall[step.ID[]].pos, step.ID[]; kwargs...)
+        compute_initial_states_driftstep!(step.sdesteps[2]; kwargs...)
+        step.Q_switch[] = true
+    end
+
+    # println("iterations: $(i-1)")
+    nothing
+end
 ##
 # compute_stepMX.jl
 function _v_beforeimpact_f(v1, v0, r)
@@ -214,55 +229,46 @@ function get_v_beforeimpact(v_afterimpact, wall::Wall; v_maxiter = 100, v0_neigh
     end
     v
 end
-compatible_vel(v, ID) = ID == 1 ? v < zero(v) : v > zero(v)
-function modify_x1_if_on_wall!(IK::IntegrationKernel{1,dyn}; wall_tol = 1.5e-8, kwargs... ) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO{1}}
-    # sqrt(eps()) ≈ 1.49e-8
-    ID = IK.sdestep.ID[];
-    wall = sdeIK.sdestep.sde.wall[ID]
-    
-    if isapprox(IK.x1[1], wall.pos, atol = wall_tol) && IK.x1[2] < zero(eltype(IK.x1))
-        IK.sdestep.sdesteps[1].xi2[1] = IK.x1[1]
-        IK.sdestep.sdesteps[1].xi2[2] = IK.x1[2]
-        IK.x1[2] = get_v_beforeimpact(IK.x1[2],wall; kwargs...)
-    end
-end
-function modify_x1_if_on_wall!(IK::IntegrationKernel{1,dyn}; wall_tol = 1.5e-8, kwargs...) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO{2}}
-    # sqrt(eps()) ≈ 1.49e-8
-    wall1, wall2 = sdeIK.sdestep.sde.wall
-    if isapprox(IK.x1[1], wall1.pos, atol = wall_tol) && IK.x1[2] < zero(eltype(IK.x1))
-        IK.sdestep.sdesteps[1].xi2[1] = IK.x1[1]
-        IK.sdestep.sdesteps[1].xi2[2] = IK.x1[2]
-        IK.x1[2] = get_v_beforeimpact(IK.x1[2],wall1; kwargs...)
-        IK.sdestep.ID = 1
-    elseif isapprox(IK.x1[1],wall2.pos, atol = wall_tol) && IK.x1[2] > zero(eltype(IK.x1))
-        IK.sdestep.sdesteps[1].xi2[1] = IK.x1[1]
-        IK.sdestep.sdesteps[1].xi2[2] = IK.x1[2]
-        IK.x1[2] = get_v_beforeimpact(IK.x1[2],wall2; kwargs...)
-        IK.sdestep.ID = 2
-    end
-end
+
 function get_and_set_potential_wallID!(IK::IntegrationKernel{1,dyn}) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO}
     get_and_set_potential_wallID!(IK.sdestep, IK.x1[1])
 end
 function get_and_set_potential_wallID!(sdestep::NonSmoothSDEStep{2,2,1,sdeT}, x1) where sdeT <: SDE_VIO{1}
-    1
+    sdestep.ID[] = 1
 end
 function get_and_set_potential_wallID!(sdestep::NonSmoothSDEStep{2,2,1,sdeT}, x1) where sdeT <: SDE_VIO{2}
     walls = sdestep.sde.walls
     ID = abs(walls[1].pos - x1) < abs(walls[2].pos - x1) ? 1 : 2
     sdestep.ID[] = ID
 end
+function modify_x1_if_on_wall!(IK::IntegrationKernel{1,dyn}; wall_tol = 1.5e-8, kwargs... ) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO}
+    # sqrt(eps()) ≈ 1.49e-8
+    ID = IK.sdestep.ID[];
+    wall = IK.sdestep.sde.wall[ID[]];
+    if (isapprox(IK.x1[1], wall.pos, atol = wall_tol) && !(is_v_compatible(v, ID)))
+        IK.sdestep.sdesteps[1].xi2[1] = IK.x1[1]
+        IK.sdestep.sdesteps[1].xi2[2] = IK.x1[2]
+        IK.x1[2] = get_v_beforeimpact(IK.x1[2], wall; kwargs...)
+        IK.sdestep.Q_aux[] = true
+    end
+end
 
 function update_IK_state_x1!(IK::IntegrationKernel{1,dyn}, idx) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO}
     d=2
+    IK.sdestep.Q_switch[] = false
+    IK.sdestep.Q_aux[] = false
+
     for i in 1:d
         IK.x1[i] = getindex(IK.pdf.axes[i],idx[i])
     end
 
-
-
     get_and_set_potential_wallID!(IK)
     modify_x1_if_on_wall!(IK)
+end
+function update_dyn_state_x1!(IK::IntegrationKernel{1,dyn}, idx) where dyn <:NonSmoothSDEStep{d,k,m, sdeT} where {d,k,m,sdeT}
+    for sdestep in IK.sdestep.sdesteps
+        update_dyn_state_x1!(sdestep,IK.x1)
+    end
 end
 
 # TODO:
@@ -288,15 +294,15 @@ end
 
 ## 
 
-function get_IK_weights!(IK::IntegrationKernel{1})
-    # function get_IK_weights!(IK::IntegrationKernel{1}; integ_limits = first(IK.int_axes), kwargs...)
-    IK.discreteintegrator(IK, IK.temp.itpM)
-    # quadgk!(IK, IK.temp.itpM, integ_limits...; cleanup_quadgk_keywords(;kwargs...)...)
-end
+# function get_IK_weights!(IK::IntegrationKernel{1})
+#     # function get_IK_weights!(IK::IntegrationKernel{1}; integ_limits = first(IK.int_axes), kwargs...)
+#     IK.discreteintegrator(IK, IK.temp.itpM)
+#     # quadgk!(IK, IK.temp.itpM, integ_limits...; cleanup_quadgk_keywords(;kwargs...)...)
+# end
     
 ##
 # discreteintegrator.jl
-function DiscreteIntegrator(discreteintegrator, sdestep<:NonSmoothSDEStep, res_prototype, N::Union{NTuple{1,<:Integer},<:Integer,AbstractArray{<:Integer}}, axes::GA; kwargs...)
+function DiscreteIntegrator(discreteintegrator, sdestep::NonSmoothSDEStep, res_prototype, N::Union{NTuple{1,<:Integer},<:Integer,AbstractArray{<:Integer}}, axes::GA; kwargs...) where GA
     discreteintegrators = Tuple(DiscreteIntegrator(discreteintegrator,res_prototype, N, axes; kwargs...) for _ in sdestep.sdesteps)
     
     NonSmoothDiscreteIntegrator{1,number_of_sdesteps(sdestep),typeof(discreteintegrators)}(discreteintegrators)

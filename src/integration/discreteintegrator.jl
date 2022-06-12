@@ -1,4 +1,4 @@
-function DiscreteIntegrator(discreteintegrator, sdestep<:AbstractSDEStep, res_prototype, N::Union{NTuple{1,<:Integer},<:Integer,AbstractArray{<:Integer}}, axes::GA; kwargs...)
+function DiscreteIntegrator(discreteintegrator, sdestep::AbstractSDEStep, res_prototype, N::Union{NTuple{1,<:Integer},<:Integer,AbstractArray{<:Integer}}, axes::GA; kwargs...) where GA
     DiscreteIntegrator(discreteintegrator,res_prototype, N, axes; kwargs...)
 end
 
@@ -8,7 +8,8 @@ function DiscreteIntegrator(discreteintegrator,res_prototype, N::Union{NTuple{1,
     _N = N isa Number ? N : first(N)
 
     x,w = discreteintegrator(xT, wT, start, stop, _N)
-    DiscreteIntegrator{1,typeof(discreteintegrator), typeof(x), typeof(w), typeof(res_prototype), typeof(res_prototype)}(x,w,zero(res_prototype),zero(res_prototype))
+    Q_integrate = Ref(true)
+    DiscreteIntegrator{1,typeof(discreteintegrator), typeof(x), typeof(w), typeof(res_prototype), typeof(res_prototype),typeof(Q_integrate)}(x,w,zero(res_prototype),zero(res_prototype),Q_integrate)
 end
 
 # QuadGKIntegrator() = QuadGKIntegrator(nothing,nothing,nothing)
@@ -24,7 +25,7 @@ function DiscreteIntegrator(discreteintegrator::QuadGKIntegrator{T1,T2,Tkwarg},r
     # else
     qgkkwargs = (discreteintegrator.kwargs..., cleanup_quadgk_keywords(;kwargs...)...)
     # end
-    QuadGKIntegrator([start, stop], zero(res_prototype), qgkkwargs)
+    QuadGKIntegrator([start, stop], zero(res_prototype), qgkkwargs, Ref(true), zero(res_prototype))
 end
 
 function (::ClenshawCurtisIntegrator)(xT, wT, start, stop, num) 
@@ -74,21 +75,33 @@ function (q::DiscreteIntegrator{intT, xT,wT})(f!, res, temp; Q_reinit_res = true
     if Q_reinit_res
         res .= zero(eltype(res))
     end
-    for (w,x) in zip(q.w,q.x)
-        f!(temp, x)
-        temp .*= w
-        res .+= temp
+    if q.Q_integrate[]
+        for (w,x) in zip(q.w,q.x)
+            f!(temp, x)
+            temp .*= w
+            res .+= temp
+        end
     end
 end
-function (q::DiscreteIntegrator)(f!)
-    q(f!, q.res)
+function (q::DiscreteIntegrator)(f!; kwargs...)
+    q(f!, q.res; kwargs...)
 end
-function (q::DiscreteIntegrator)(f!,res)
-    q(f!, res, q.temp)
+function (q::DiscreteIntegrator)(f!,res; kwargs...)
+    q(f!, res, q.temp; kwargs...)
 end
 
-function (q::QuadGKIntegrator)(f!,res)
-    quadgk!(f!, res, q.int_limits...; q.kwargs...)
+function (q::QuadGKIntegrator)(f!,res; Q_reinit_res = true, kwargs...)
+    if !Q_reinit_res
+        q.res0 .= res
+    end
+    if q.Q_integrate
+        quadgk!(f!, res, q.int_limits...; q.kwargs...)
+    else
+        res .= zero(eltype(res))
+    end
+    if !Q_reinit_res
+        res .+= res0
+    end
     nothing
 end
 function (q::QuadGKIntegrator)(f!)
@@ -140,7 +153,8 @@ function rescale_xw!(x,w,start,stop)
     w .= w .* scale
 end
 
-function rescale_discreteintegrator!(discreteintegrator<:DiscreteIntegrator{1}, sdestep<:SDEStep{d,d,m}, pdf; int_limit_thickness_multiplier = 6, kwargs...) where {d,m}
+function rescale_discreteintegrator!(discreteintegrator::DiscreteIntegrator{1}, sdestep::SDEStep{d,d,m}, pdf; int_limit_thickness_multiplier = 6, kwargs...) where {d,m}
+    discreteintegrator.Q_integrate[] = true
     σ = sqrt(_Δt(sdestep)*get_g(sdestep.sde)(d, sdestep.x0,_par(sdestep),_t0(sdestep))^2)
     mn = min(pdf.axes[d][end], max(pdf.axes[d][1],sdestep.x0[d] - int_limit_thickness_multiplier*σ))
     mx = max(pdf.axes[d][1],min(pdf.axes[d][end],sdestep.x0[d] + int_limit_thickness_multiplier*σ))
@@ -148,6 +162,7 @@ function rescale_discreteintegrator!(discreteintegrator<:DiscreteIntegrator{1}, 
     if mn ≈ mx
         mn = pdf.axes[d][1]
         mx = pdf.axes[d][end]
+        discreteintegrator.Q_integrate[] = false
     end
 
     rescale_to_limits!(discreteintegrator,mn,mx)
