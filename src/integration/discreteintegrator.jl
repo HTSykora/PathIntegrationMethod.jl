@@ -9,7 +9,7 @@ function DiscreteIntegrator(discreteintegrator,res_prototype, N::Union{NTuple{1,
 
     x,w = discreteintegrator(xT, wT, start, stop, _N)
     Q_integrate = Ref(true)
-    DiscreteIntegrator{1,typeof(discreteintegrator), typeof(x), typeof(w), typeof(res_prototype), typeof(res_prototype),typeof(Q_integrate)}(x,w,zero(res_prototype),zero(res_prototype),Q_integrate)
+    DiscreteIntegrator{1, typeof(x), typeof(w), typeof(res_prototype), typeof(res_prototype),typeof(Q_integrate)}(x,w,zero(res_prototype),zero(res_prototype),Q_integrate)
 end
 
 # QuadGKIntegrator() = QuadGKIntegrator(nothing,nothing,nothing)
@@ -64,7 +64,7 @@ function (::NewtonCotesIntegrator{N})(xT, wT, start, stop, num)  where N
     x, w
 end
 
-function (q::DiscreteIntegrator{intT, xT,wT})(f!, res, temp; Q_reinit_res = true) where {intT, xT<:AbstractVector{T1}, wT<:AbstractVector{T2}} where {T1<:Number, T2<:Number}
+function (q::DiscreteIntegrator{nT, xT,wT})(f!, res, temp; Q_reinit_res = true) where {nT, xT<:AbstractVector{T1}, wT<:AbstractVector{T2}} where {T1<:Number, T2<:Number}
     # f!(temp, q.x[1])
     # res .= q.w[1] .* temp
     

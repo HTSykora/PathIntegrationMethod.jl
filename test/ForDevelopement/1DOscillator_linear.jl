@@ -27,11 +27,14 @@ par = [0.05, 0.1]; # ζ, σ = p
 sde = SDE((f1,f2),g2,par)
 xmin = -2; xmax = 2; xN = 31;
 vmin = -2; vmax = 2; vN = 31;
-gridaxes = (GridAxis(xmin,xmax,xN,interpolation=:chebyshev),
-        GridAxis(vmin,vmax,vN,interpolation=:chebyshev))
+gridaxes = (ChebyshevAxis(xmin,xmax,xN),
+        ChebyshevAxis(vmin,vmax,vN))
+# gridaxes = (AxisGrid(xmin,xmax,xN,interpolation=:chebyshev),
+#         AxisGrid(vmin,vmax,vN,interpolation=:chebyshev))
 Δt = 0.025
 method = Euler(); method  = RK4()
-@time PI = PathIntegration(sde, method, [0.,Δt],gridaxes...; pre_compute=true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 21, smart_integration = true,int_limit_thickness_multiplier = 6);
+# @time PI = PathIntegration(sde, method, [0.,Δt],gridaxes...; pre_compute=true, discreteintegrator = ClenshawCurtisIntegrator(), di_N = 21, smart_integration = true,int_limit_thickness_multiplier = 6);
+PI = PathIntegration(sde, method, [0.,Δt],gridaxes...; pre_compute=true, discreteintegrator = GaussLegendreIntegrator(), di_N = 21, smart_integration = true,int_limit_thickness_multiplier = 6);
 
 @time recompute_stepMX!(PI,t=0.02)
 ##

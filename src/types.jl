@@ -235,7 +235,7 @@ struct QuadGKIntegrator{iT,rT,kT,qT} <:AbstractDiscreteIntegratorType{1}
     Q_integrate::qT
     res0::rT
 end
-struct DiscreteIntegrator{n,IType,xT,wT,resT,tempT,qT} <:AbstractDiscreteIntegratorType{n}
+struct DiscreteIntegrator{n,xT,wT,resT,tempT,qT} <:AbstractDiscreteIntegratorType{n}
     x::xT
     w::wT
     res::resT
