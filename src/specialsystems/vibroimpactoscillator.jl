@@ -44,7 +44,7 @@ function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pcl
         ti = Ref(zero(typeof(t0)));
     end
         
-    step1 = SDEStep{2,2,1,sdeT,typeof(_method),typeof(steptracers[1]),typeof(x0),typeof(x1),typeof(t0), Nothing, Nothing, Nothing}(sde, _method, similar(x0), similar(x1), t0, t1, steptracers[1], nothing, nothing, similar(x0))
+    step1 = SDEStep{2,2,1,typeof(sde.sde),typeof(_method),typeof(steptracers[1]),typeof(x0),typeof(x1),typeof(t0), Nothing, Nothing, typeof(x0)}(sde.sde, _method, similar(x0), similar(x1), t0, t1, steptracers[1], nothing, nothing, similar(x0))
     step2 = SDEStep{2,2,1,sdeT,typeof(_method),typeof(steptracers[2]),typeof(x0),typeof(x1),typeof(t0), typeof(ti), typeof(x0), typeof(x0)}(sde, _method, similar(x0), similar(x1), t0, t1, steptracers[2], ti, similar(x0), similar(x0))
     NonSmoothSDEStep(sde, step1, step2; kwargs...)
 end
@@ -91,27 +91,20 @@ function (pcl::PreComputeNewtonStep)(vi_sde::SDE_VIO, method::DiscreteTimeSteppi
     detJI⁻¹ =Tuple(build_inplace_diffsubstituted_function(detJI_inv, W, r, vi, [x0, v0], [x1, v1], [xi, vi], par, t0, t1, ti) for W in vi_sde.wall)
     # detJI⁻¹ = build_function(detJI_inv, [x0, v0], [xi, vi], par, r, t0, t1, ti, expression = Val{false})
 
-    _xi = [v0, v1]
-    step_sym_bi = eval_driftstep_xI_sym(vi_sde.sde, method, [xi, v0], par, t0, t1)
+    _xi = [v0, vi, v1]
+    # v0 is the velocity just before the impact
     step_sym_ai = eval_driftstep_xI_sym(vi_sde.sde, method, [xi, -r(v0)*v0], par, t0, t1)
-    _eq_bi = [
-        x1 - step_sym_bi[1],
-        v1 - step_sym_bi[2]
-    ]
-    _eq_ai = [
+    _eq_i = [
         x1 - step_sym_ai[1],
-        v1 - step_sym_ai[2]
+        v1 - step_sym_ai[2],
+        vi + r(v0)*v0
     ]
-    J_bi_sym = Symbolics.jacobian(_eq_bi,_xi)
-    J_ai_sym = Symbolics.jacobian(_eq_ai,_xi)
-    _corr_bi = lu(J_bi_sym) \ _eq_bi
-    _corr_ai = lu(J_ai_sym) \ _eq_ai
-    x_new_bi = [_xi[i] - _corr_bi[i] for i in 1:2]
-    x_new_ai = [_xi[i] - _corr_ai[i] for i in 1:2]
-    xI_0bi! = Tuple(build_inplace_diffsubstituted_function(x_new_bi, W, r, v0, [v0, v1], x1, xi, par, t0, t1) for W in vi_sde.wall)
-    xI_0ai! = Tuple(build_inplace_diffsubstituted_function(x_new_ai, W, r, v0, [v0, v1], x1, xi, par, t0, t1) for W in vi_sde.wall)
+    J_i_sym = Symbolics.jacobian(_eq_i,_xi)
+    _corr_i = lu(J_i_sym) \ _eq_i
+    x_new_i = [_xi[i] - _corr_i[i] for i in 1:3]
+    x_i! = Tuple(build_inplace_diffsubstituted_function(x_new_i, W, r, v0, [v0, vi, v1], x1, xi, par, t0, t1) for W in vi_sde.wall)
     # _, xII_1! = build_function(step_sym[k:d], x, par, dt, expression = Val{false})
-    tracer2 = VIO_SymbolicNewtonImpactStepTracer(xI_0i!, x_0i!, detJI⁻¹, similar(_x0,3), similar(_x0,4), xI_0bi!, xI_0ai!, similar(_x0,2), similar(_x0,2), similar(_x0,2))
+    tracer2 = VIO_SymbolicNewtonImpactStepTracer(xI_0i!, x_0i!, detJI⁻¹, similar(_x0,3), similar(_x0,4), x_i!, similar(_x0,3), similar(_x0,3))
     return (tracer1, tracer2)
 end
 
@@ -135,9 +128,7 @@ function _compute_velocities_to_impact!(temp, v_f!, vs, x1, xi, par, t0, t1; max
 end
 function compute_velocities_to_impact!(step::SDEStep{2,2,1,<:SDE_VIO,DiscreteTimeStepping{TDrift,TDiff}}, wallID; kwargs...) where {TDrift, TDiff}
     # Compute max v0, v1 just before impact happens
-    _compute_velocities_to_impact!(step.steptracer.vtemp,step.steptracer.v_beforeimpact![wallID], step.steptracer.v_b, step.x1[1], step.xi[1], _par(step), _t0(step), _t1(step); kwargs...)
-    _compute_velocities_to_impact!(step.steptracer.vtemp,step.steptracer.v_afterimpact![wallID], step.steptracer.v_a, step.x1[1], step.xi[1], _par(step), _t0(step), _t1(step); kwargs...)
-
+    _compute_velocities_to_impact!(step.steptracer.vitemp,step.steptracer.v_toimpact![wallID], step.steptracer.v_i, step.x1[1], step.xi[1], _par(step), _t0(step), _t1(step); kwargs...)
     nothing
 end
 ##

@@ -18,7 +18,7 @@ end
 #     par::parT
 # end
 
-struct SDE_VIO{wn, sdeT, wT, Q_cvT} <: AbstractSDE{2,2,1} # 1 DoF vibroimpact oscillator
+struct SDE_VIO{wn, sdeT, wT} <: AbstractSDE{2,2,1} # 1 DoF vibroimpact oscillator
     sde::sdeT
     wall::wT
     # wT<:Tuple{Wall} = it is assumed, that it is a bottom wall (going down)
@@ -101,17 +101,17 @@ struct SymbolicNewtonStepTracer{xIT, xT, detJIT,tempIT,tempT} <: AbstractSymboli
     tempI::tempIT
     temp::tempT
 end
-struct VIO_SymbolicNewtonImpactStepTracer{xIT, xT, detJIT, tempIT, tempT, vs_bT, vs_aT, vs_tT, vs_btT,vs_atT} <: AbstractSymbolicNewtonStepTracer
+struct VIO_SymbolicNewtonImpactStepTracer{xIT, xT, detJIT, tempIT, tempT, vi_fT, vi_tT, vi_T} <: AbstractSymbolicNewtonStepTracer
     xI_0!::xIT
     x_0!::xT
     detJI_inv::detJIT
     tempI::tempIT
     temp::tempT
-    v_beforeimpact!::vs_bT
-    v_afterimpact!::vs_aT
-    vtemp::vs_tT
-    v_b::vs_btT
-    v_a::vs_atT
+    v_toimpact!::vi_fT
+    # v_afterimpact!::vs_aT
+    vitemp::vi_tT
+    v_i::vi_T # [v_beforeimpact, v_afterimpact, v1]
+    # v_a::vs_atT
 end
 
 # struct StepJacobianLU{JT, JMT}

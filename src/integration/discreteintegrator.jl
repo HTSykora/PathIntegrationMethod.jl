@@ -121,7 +121,7 @@ function get_limits(di::QuadGKIntegrator)
     di.int_limits
 end
 function get_limits(di::DiscreteIntegrator{1})
-    di.x[1], di.x[end]
+    (di.x[1], di.x[end])
 end
 function rescale_to_limits!(di::QuadGKIntegrator,start,stop)
     di.int_limits[1] = start
