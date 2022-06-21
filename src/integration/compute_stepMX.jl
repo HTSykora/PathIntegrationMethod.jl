@@ -53,7 +53,6 @@ function fill_stepMX!(stepMX, IK; smart_integration = true, kwargs...)
         update_IK_state_x1!(IK, idx)
         update_dyn_state_x1!(IK, idx)
         if smart_integration
-            compute_initial_states_driftstep!(IK.sdestep; IK.kwargs...)
             rescale_discreteintegrator!(IK; IK.kwargs...)
         end
         get_IK_weights!(IK)
@@ -101,5 +100,6 @@ make_sparse(stepMX::AbstractVector{T}) where T<:Number = sparse(stepMX)
 make_sparse(stepMX::AbstractVector{T}) where T<:AbstractArray = sparse.(stepMX)
 
 function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; kwargs...) where dyn <:SDEStep{d,k,m} where {d,k,m}
+    compute_initial_states_driftstep!(IK.sdestep; IK.kwargs...)
     rescale_discreteintegrator!(IK.discreteintegrator, IK.sdestep, IK.pdf; kwargs...)
 end

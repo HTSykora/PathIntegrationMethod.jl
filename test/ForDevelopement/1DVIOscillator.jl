@@ -51,7 +51,7 @@ begin
     step2.xi2[1] = W.pos
     step2.ti[] = PathIntegrationMethod._Δt(step2)
     
-    @time PathIntegrationMethod.compute_missing_states_driftstep!(sdestep)
+    @time PathIntegrationMethod.compute_initial_states_driftstep!(sdestep)
 
     @show step2.x0
     @show step2.x1

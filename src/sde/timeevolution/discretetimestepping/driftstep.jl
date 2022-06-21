@@ -83,7 +83,7 @@ function eval_driftstep_xI_sym(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStep
     return temp
 end
 
-function update_drift_x!(step::SDEStep{d,k,m, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT}; kwargs...) where {d,k,m,sdeT,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT, tiT, xiT} where {TDrift}
+function update_drift_xI!(step::SDEStep{d,k,m, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT}; kwargs...) where {d,k,m,sdeT,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT, tiT, xiT} where {TDrift}
     for i in 1:k-1
         step.x0[i] = step.steptracer.tempI[i]
     end
@@ -94,29 +94,35 @@ end
 function compute_missing_states_driftstep!(step::SDEStep{d,1,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}; kwargs...) where {d,m,sdeT,TDrift, TDiff}
     eval_driftstep!(step)
 end
-compute_missing_states_driftstep!(step; kwargs...) = compute_missing_states_driftstep!(step, update_drift_x!; kwargs...)
-function compute_missing_states_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}, _update_drift_x!; max_iter = 100, atol = sqrt(eps()), kwargs...) where {d,k,m,sdeT,TDrift, TDiff}
+compute_missing_states_driftstep!(step; kwargs...) = compute_missing_states_driftstep!(step, update_drift_xI!; kwargs...)
+function compute_missing_states_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}, _update_drift_xI!; max_iter = 100, atol = sqrt(eps()), kwargs...) where {d,k,m,sdeT,TDrift, TDiff}
     i = 1
     x_change = 2atol
     while x_change > atol && i < max_iter
         apply_correction_to_xI0!(step; kwargs...)
         x_change = norm(step.x0[j] - step.steptracer.tempI[j] for j in 1:(k-1))
-        _update_drift_x!(step; kwargs...)
+        _update_drift_xI!(step; kwargs...)
         i = i + 1
     end
     # @show i-1
     # println("iterations: $(i-1)")
     nothing
 end
-function compute_initial_states_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}; max_iter = 100, atol = sqrt(eps()), kwargs...) where {d,k,m,sdeT,TDrift, TDiff}
+
+function update_drift_x!(step::SDEStep{d,k,m, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT}; kwargs...) where {d,k,m,sdeT,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT, tiT, xiT} where {TDrift}
+    for j in 1:d
+        step.x0[j] = step.steptracer.temp[j]
+    end
+end
+
+compute_initial_states_driftstep!(step; kwargs...) = compute_initial_states_driftstep!(step, update_drift_x!; kwargs...)
+function compute_initial_states_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}, _update_drift_x!; max_iter = 100, atol = sqrt(eps()), kwargs...) where {d,k,m,sdeT,TDrift, TDiff}
     i = 1
     x_change = 2atol
     while x_change > atol && i < max_iter
-        iterate_x0!(step)
+        apply_correction_to_x0!(step; kwargs...)
         x_change = norm(step.x0[j] - step.steptracer.temp[j] for j in 1:d)
-        for j in 1:d
-            step.x0[j] = step.steptracer.temp[j]
-        end
+        _update_drift_x!(step; kwargs...)
         i = i + 1
     end
     # println("iterations: $(i-1)")
