@@ -125,7 +125,7 @@ function get_limits(di::DiscreteIntegrator{1})
 end
 function rescale_to_limits!(di::QuadGKIntegrator,start,stop)
     if isapprox(start,stop, atol = 1.5e-8) || start > stop
-        discreteintegrator.Q_integrate[] = false
+        di.Q_integrate[] = false
         return nothing
     end
     di.int_limits[1] = start
@@ -134,7 +134,7 @@ function rescale_to_limits!(di::QuadGKIntegrator,start,stop)
 end
 function rescale_to_limits!(di::DiscreteIntegrator{1},start,stop)
     if isapprox(start,stop, atol = 1.5e-8)
-        discreteintegrator.Q_integrate[] = false
+        di.Q_integrate[] = false
         return nothing
     end
     rescale_xw!(di.x,di.w,start,stop)

@@ -12,7 +12,7 @@ function _p_an(x,v,p)
     exp(C0*(0.5*x^2  - 0.5*v^2 - 0.25*λ*x^4));
 end
 
-function compute_analyitical(xs::GridAxis,vs::GridAxis,par)
+function compute_analyitical(xs::AxisGrid,vs::AxisGrid,par)
     pij = [_p_an(x,v,par) for x in xs, v in vs]
     pd = PathIntegrationMethod.InterpolatedFunction(xs,vs)
     pd.p .= pij
@@ -32,10 +32,10 @@ function g2(u,p,t)
 end
 
 ## 
-xmin, xmax, Nx = -10, 10, 51
-vmin, vmax, Nv = -10, 10, 51
+xmin, xmax, Nx = -5, 5, 51
+vmin, vmax, Nv = -5, 5, 51
 
-gridaxes = [GridAxis(xmin,xmax,Nx,interpolation = :chebyshev),GridAxis(vmin,vmax,Nv,interpolation = :chebyshev)]
+gridaxes = [AxisGrid(xmin,xmax,Nx,interpolation = :chebyshev),AxisGrid(vmin,vmax,Nv,interpolation = :chebyshev)]
 # 
 par = [0.15, 0.25, sqrt(0.5)];
 # par = [0.2, 0.1, sqrt(0.2)];
@@ -43,11 +43,11 @@ par = [0.15, 0.25, sqrt(0.5)];
 # par = [0.02, 0.1, 0.2]
 
 sde = SDE((f1, f2), g2, par)
-Δt = 0.001;
-@time PI = PathIntegration(sde, Euler(), Δt, gridaxes..., pre_compute = true, σ_init = 0.5, μ_init = [0.0, 0.], discreteintegrator = ClenshawCurtisIntegrator(), stepMXtype = DenseMX());
+Δt = 0.01;
+@time PI = PathIntegration(sde, RK2(), Δt, gridaxes..., pre_compute = true, σ_init = 0.5, μ_init = [0.0, 0.], discreteintegrator = ClenshawCurtisIntegrator(), stepMXtype = DenseMX());
 # @btime PathIntegrationProblem($sde,$Δt,$xvs..., precompute = $true, σ_init = $0.5);
 
-@time for _ in 1:10000
+@time for _ in 1:2000
     advance!(PI)
 end
 
