@@ -128,15 +128,17 @@ function rescale_to_limits!(di::QuadGKIntegrator,start,stop)
         di.Q_integrate[] = false
         return nothing
     end
+    di.Q_integrate[] = true
     di.int_limits[1] = start
     di.int_limits[2] = stop
     return nothing
 end
 function rescale_to_limits!(di::DiscreteIntegrator{1},start,stop)
-    if isapprox(start,stop, atol = 1.5e-8)
+    if isapprox(start,stop, atol = 1.5e-8) || start > stop
         di.Q_integrate[] = false
         return nothing
     end
+    di.Q_integrate[] = true
     rescale_xw!(di.x,di.w,start,stop)
     return nothing
 end
@@ -162,7 +164,7 @@ function rescale_xw!(x,w,start,stop)
 end
 
 function rescale_discreteintegrator!(discreteintegrator::DiscreteIntegrator{1}, sdestep::SDEStep{d,d,m}, pdf; int_limit_thickness_multiplier = 6, kwargs...) where {d,m}
-    discreteintegrator.Q_integrate[] = true
+    # discreteintegrator.Q_integrate[] = true
     σ = sqrt(_Δt(sdestep)*get_g(sdestep.sde)(d, sdestep.x0,_par(sdestep),_t0(sdestep))^2)
     mn = min(pdf.axes[d][end], max(pdf.axes[d][1],sdestep.x0[d] - int_limit_thickness_multiplier*σ))
     mx = max(pdf.axes[d][1],min(pdf.axes[d][end],sdestep.x0[d] + int_limit_thickness_multiplier*σ))

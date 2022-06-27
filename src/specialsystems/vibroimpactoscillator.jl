@@ -278,34 +278,34 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thi
         # mixed: impact and non-impact
         if ID == 1
             # without impact
-            mx = step2.steptracer.v_i[2]
+            mx = min(step2.steptracer.v_i[2],IK.pdf.axes[2][end])
             step1.x1[2] = step1.x1[2] - s_σ
             compute_initial_states_driftstep!(step1, IK.kwargs...)
-            mn = step1.x0[2]
+            mn = max(step1.x0[2],IK.pdf.axes[2][1])
             rescale_to_limits!(IK.discreteintegrator[1], mn, mx)
             step1.x1[2] = step2.x1[2]
             
             # with impact
-            mx = step2.steptracer.v_i[1]
+            mx = min(step2.steptracer.v_i[1],IK.pdf.axes[2][end])
             step2.x1[2] = step2.x1[2] + s_σ
             compute_initial_states_driftstep!(step2, wallID = sdestep.ID[], IK.kwargs...)
-            mn = step2.x0[2]
+            mn = max(step2.x0[2],IK.pdf.axes[2][1])
             rescale_to_limits!(IK.discreteintegrator[2], mn, mx)
             step2.x1[2] = step1.x1[2]
         elseif ID == 2
             # without impact
-            mn = step2.steptracer.v_i[2]
+            mn = max(step2.steptracer.v_i[2],IK.pdf.axes[2][1])
             step1.x1[2] = step1.x1[2] + s_σ
             compute_initial_states_driftstep!(step1, IK.kwargs...)
-            mx = step1.x0[2]
+            mx = min(step1.x0[2],IK.pdf.axes[2][end])
             rescale_to_limits!(IK.discreteintegrator[1], mn, mx)
             step1.x1[2] = step2.x1[2]
             
             # with impact
-            mn = step2.steptracer.v_i[1]
+            mn = max(step2.steptracer.v_i[1],IK.pdf.axes[2][1])
             step2.x1[2] = step2.x1[2] - s_σ
             compute_initial_states_driftstep!(step2, wallID = sdestep.ID[], IK.kwargs...)
-            mx = step2.x0[2]
+            mx = min(step2.x0[2],IK.pdf.axes[2][end])
             rescale_to_limits!(IK.discreteintegrator[2], mn, mx)
             step2.x1[2] = step1.x1[2]
         end
