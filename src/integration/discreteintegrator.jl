@@ -64,7 +64,7 @@ function (::NewtonCotesIntegrator{N})(xT, wT, start, stop, num)  where N
     x, w
 end
 
-function (q::DiscreteIntegrator{nT, xT,wT})(f!, res, temp; Q_reinit_res = true) where {nT, xT<:AbstractVector{T1}, wT<:AbstractVector{T2}} where {T1<:Number, T2<:Number}
+function (q::DiscreteIntegrator{nT, xT,wT})(f!, res, temp; Q_reinit_res = true, kwargs...) where {nT, xT<:AbstractVector{T1}, wT<:AbstractVector{T2}} where {T1<:Number, T2<:Number}
     # f!(temp, q.x[1])
     # res .= q.w[1] .* temp
     

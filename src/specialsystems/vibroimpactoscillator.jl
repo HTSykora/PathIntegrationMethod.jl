@@ -22,16 +22,14 @@ get_Q_cv(::Tuple{wT1}) where wT1<:Wall = (signbit,)
 get_Q_cv(::Tuple{wT1,wT2}) where {wT1<:Wall, wT2<:Wall} = (signbit, !signbit)
 
 # sde/sdestep.jl
-function set_impact_ID!(sdestep::NonSmoothSDEStep, Q_switch, ID)
-    sdestep.Q_switch[] = Q_switch
-    sdestep.ID[] = ID
-end
 
 function NonSmoothSDEStep(sde::sdeT, sdesteps::Vararg{SDEStep, N}; Q_switch = Ref(false), ID = Ref(0), kwargs...) where {sdeT, N}
     @assert reduce(&, Q_compatible(sdesteps[1], sdesteps[i]) for i in 2:N) "Incompatible SDE steps provided"
     d,k,m = get_dkm(sdesteps[1])
+    ID_dyn = Ref(1)
+    ID_aux = Ref(1)
     Q_aux = Ref(false)
-    NonSmoothSDEStep{d,k,m,sdeT, 2, typeof(sdesteps), typeof(Q_switch),  typeof(Q_aux), typeof(ID)}(sde, sdesteps, Q_switch, Q_aux, ID)
+    NonSmoothSDEStep{d,k,m,sdeT, N, typeof(sdesteps),  typeof(ID_dyn), typeof(ID_aux), typeof(Q_aux)}(sde, sdesteps, ID_dyn, ID_aux, Q_aux)
 end
 
 function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pclT = PreComputeNewtonStep(), kwargs...) where {sdeT<:SDE_VIO, methodT <: DiscreteTimeSteppingMethod, pclT <: PreComputeLevel} where {d,k,m}
@@ -88,7 +86,7 @@ function (pcl::PreComputeNewtonStep)(vi_sde::SDE_VIO, method::DiscreteTimeSteppi
 
     detJI_inv = [1/Symbolics.derivative(x1 - substitute(step_sym_1[1], Dict(xi => step_sym_i[1], vi => step_sym_i[2])),x0)]
 
-    detJI⁻¹ =Tuple(build_inplace_diffsubstituted_function(detJI_inv, W, r, vi, [x0, v0], [x1, v1], [xi, vi], par, t0, t1, ti) for W in vi_sde.wall)
+    detJI⁻¹ = Tuple(build_inplace_diffsubstituted_function(detJI_inv, W, r, vi, [x0, v0], [x1, v1], [xi, vi], par, t0, t1, ti) for W in vi_sde.wall)
     # detJI⁻¹ = build_function(detJI_inv, [x0, v0], [xi, vi], par, r, t0, t1, ti, expression = Val{false})
 
     _xi = [v0, vi, v1]
@@ -134,15 +132,21 @@ function compute_velocities_to_impact!(step::SDEStep{2,2,1,<:SDE_VIO,DiscreteTim
     _compute_velocities_to_impact!(step.steptracer.vitemp,step.steptracer.v_toimpact![wallID], step.steptracer.v_i, step.x1[1], step.xi[1], _par(step), _t0(step), _t1(step); kwargs...)
     nothing
 end
+
+function get_detJinv(step::SDEStep{d,k,m, sdeT, methodT,tracerT}, wallID) where {d, k,m, sdeT<:SDE_VIO, methodT,tracerT<:SymbolicNewtonStepTracer}
+    step.steptracer.detJI_inv[wallID](step.x0, step.x1, step.xi, _par(step), _t0(step),_t1(step), _ti(step))
+end
+
+
 ##
 
 # driftstep.jl
 function compute_missing_states_driftstep!(step::NonSmoothSDEStep{d,k,m,sdeT}; kwargs...) where {d,k,m,sdeT<:SDE_VIO}
-    if step.Q_switch[]
-        update_impact_vio_xi_atwall!(step.sdesteps[2], step.ID[])
-        compute_missing_states_driftstep!(step.sdesteps[2],update_impact_vio_xI!, wallID = step.ID[]; kwargs...)
-    else
+    if step.ID_dyn[] == 1
         compute_missing_states_driftstep!(step.sdesteps[1]; kwargs...)
+    else 
+        update_impact_vio_xi_atwall!(step.sdesteps[2], step.ID_aux[])
+        compute_missing_states_driftstep!(step.sdesteps[2],update_impact_vio_xI!, wallID = step.ID_aux[]; kwargs...)
     end
 end
 function update_impact_vio_xi_atwall!(step::SDEStep{2,2,1, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT, xiT}, wallID;) where {sdeT<:SDE_VIO,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT, tiT, xiT} where {TDrift}
@@ -230,16 +234,16 @@ function get_and_set_potential_wallID!(IK::IntegrationKernel{1,dyn}) where dyn <
     get_and_set_potential_wallID!(IK.sdestep, IK.x1[1])
 end
 function get_and_set_potential_wallID!(sdestep::NonSmoothSDEStep{2,2,1,sdeT}, x1) where sdeT <: SDE_VIO{1}
-    sdestep.ID[] = 1
+    sdestep.ID_aux[] = 1
 end
 function get_and_set_potential_wallID!(sdestep::NonSmoothSDEStep{2,2,1,sdeT}, x1) where sdeT <: SDE_VIO{2}
     walls = sdestep.sde.walls
     ID = abs(walls[1].pos - x1) < abs(walls[2].pos - x1) ? 1 : 2
-    sdestep.ID[] = ID
+    sdestep.ID_aux[] = ID
 end
 function modify_x1_if_on_wall!(IK::IntegrationKernel{1,dyn}; wall_tol = 1.5e-8, kwargs... ) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO}
     # sqrt(eps()) ≈ 1.49e-8
-    ID = IK.sdestep.ID[];
+    ID = IK.sdestep.ID_aux[];
     wall = IK.sdestep.sde.wall[ID[]];
     if (isapprox(IK.x1[1], wall.pos, atol = wall_tol) && !(is_v_compatible(v, ID)))
         IK.sdestep.sdesteps[1].xi2[1] = IK.x1[1]
@@ -251,7 +255,6 @@ end
 
 function update_IK_state_x1!(IK::IntegrationKernel{1,dyn}, idx) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO}
     d=2
-    IK.sdestep.Q_switch[] = false
     IK.sdestep.Q_aux[] = false
 
     for i in 1:d
@@ -268,12 +271,26 @@ function update_dyn_state_x1!(IK::IntegrationKernel{1,dyn}, idx) where dyn <:Non
 end
 
 
+function Q_check_impact(step, walls, ID)
+    if ID == 1
+        return step.x0[1] < walls[1].pos
+    else
+        return step.x0[1] > walls[2].pos
+    end
+end
+
 function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thickness_multiplier = 6, kwargs...) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO}
+    
+    IK.discreteintegrator[1].Q_integrate[] = false
+    IK.discreteintegrator[2].Q_integrate[] = false
+    
     sdestep = IK.sdestep
     step1 = sdestep.sdesteps[1]
     step2 = sdestep.sdesteps[1]
-    compute_velocities_to_impact!(step2, sdestep.ID[])
+    compute_velocities_to_impact!(step2, sdestep.ID_aux[])
     s_σ = sqrt(_Δt(step1)*get_g(step1.sde)(d, step1.x1,_par(step1),_t0(step1))^2) * int_limit_thickness_multiplier
+
+
     if (step2.steptracer.v_i[3] - IK.x1[2]) ≤ s_σ && !(sdestep.Q_aux) # v1 after impact vs. v1 investigated
         # mixed: impact and non-impact
         if ID == 1
@@ -288,7 +305,7 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thi
             # with impact
             mx = min(step2.steptracer.v_i[1],IK.pdf.axes[2][end])
             step2.x1[2] = step2.x1[2] + s_σ
-            compute_initial_states_driftstep!(step2, wallID = sdestep.ID[], IK.kwargs...)
+            compute_initial_states_driftstep!(step2, wallID = sdestep.ID_aux[], IK.kwargs...)
             mn = max(step2.x0[2],IK.pdf.axes[2][1])
             rescale_to_limits!(IK.discreteintegrator[2], mn, mx)
             step2.x1[2] = step1.x1[2]
@@ -304,17 +321,20 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thi
             # with impact
             mn = max(step2.steptracer.v_i[1],IK.pdf.axes[2][1])
             step2.x1[2] = step2.x1[2] - s_σ
-            compute_initial_states_driftstep!(step2, wallID = sdestep.ID[], IK.kwargs...)
+            compute_initial_states_driftstep!(step2, wallID = sdestep.ID_aux[], IK.kwargs...)
             mx = min(step2.x0[2],IK.pdf.axes[2][end])
             rescale_to_limits!(IK.discreteintegrator[2], mn, mx)
             step2.x1[2] = step1.x1[2]
         end
     # TODO:
     else # check if there is a clean impact region or not?
-        IK.sdestep.Q_switch[] = false
-        IK.discreteintegrator[2].Q_integrate[] = false
         compute_initial_states_driftstep!(step1; IK.kwargs...)
+        if Q_check_impact(step1, step2.sde.walls, sdestep.ID_aux[])
+            compute_initial_states_driftstep!(step2; IK.kwargs...)
+            rescale_discreteintegrator!(IK.discreteintegrator[2], step2, IK.pdf; int_limit_thickness_multiplier = int_limit_thickness_multiplier, kwargs...)
+        else
         rescale_discreteintegrator!(IK.discreteintegrator[1], step1, IK.pdf; int_limit_thickness_multiplier = int_limit_thickness_multiplier, kwargs...)
+        end
     end
 end
 ## 
@@ -326,6 +346,36 @@ end
 # end
     
 ##
+# integrationkernel.jl
+
+function get_IK_weights!(IK::IntegrationKernel{1,stepT}; kwargs...)  where stepT<:NonSmoothSDEStep{d,k,m,sdeT,n} where {d,k,m,sdeT,n}
+    # function get_IK_weights!(IK::IntegrationKernel{1}; integ_limits = first(IK.int_axes), kwargs...)
+    IK.sdestep.ID_dyn[] = 1
+    IK.discreteintegrator[1](IK, IK.temp.itpM; Q_reinit_res = true,  kwargs...)
+    for i in 2:n
+        IK.sdestep.ID_dyn[] = i
+        IK.discreteintegrator[i](IK, IK.temp.itpM;  Q_reinit_res = false)
+    end
+        # quadgk!(IK, IK.temp.itpM, integ_limits...; cleanup_quadgk_keywords(;kwargs...)...)
+end
+function _getTPDF(sdestep::NonSmoothSDEStep{d,k,m}, x, x1)  where {dk,d,k,m}
+    ID_dyn = sdestep.ID_dyn[]
+    update_relevant_states!(sdestep[ID_dyn],x)
+    compute_missing_states_driftstep!(sdestep[ID_dyn])
+    transitionprobability(sdestep[ID_dyn],x1)
+end
+function detJ_correction(fx,sdestep::NonSmoothSDEStep{d,k,m})  where {dk,d,k,m}
+    fx*get_detJinv(sdestep[sdestep.ID_dyn[]])
+end
+
+function detJ_correction(fx,sdestep::NonSmoothSDEStep{d,k,m,sdeT})  where {sdeT<:SDE_VIO,dk,d,k,m}
+    if sdestep.Q_aux[]
+        return fx*get_detJinv(sdestep[2], sdestep.ID_aux[])
+    else
+        return fx*get_detJinv(sdestep[sdestep.ID_dyn[]], sdestep.ID_aux[])
+    end
+end
+
 # discreteintegrator.jl
 function DiscreteIntegrator(discreteintegrator, sdestep::NonSmoothSDEStep, res_prototype, N::Union{NTuple{1,<:Integer},<:Integer,AbstractArray{<:Integer}}, axes::GA; kwargs...) where GA
     discreteintegrators = Tuple(DiscreteIntegrator(discreteintegrator,res_prototype, N, axes; kwargs...) for _ in sdestep.sdesteps)

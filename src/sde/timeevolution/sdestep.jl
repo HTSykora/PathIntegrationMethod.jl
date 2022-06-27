@@ -101,7 +101,7 @@ function apply_correction_to_x0!(step::SDEStep{d,k,m, sdeT, methodT,tracerT}; kw
     step.steptracer.x_0!(step.steptracer.temp, step.x0,step.x1,_par(step),_t0(step),_t1(step))
 end
 
-function get_detJinv(step::SDEStep{d,k,m, sdeT, methodT,tracerT}) where {d, k,m, sdeT, methodT,tracerT<:SymbolicNewtonStepTracer}
+function get_detJinv(step::SDEStep{d,k,m, sdeT, methodT,tracerT}, args...) where {d, k,m, sdeT, methodT,tracerT<:SymbolicNewtonStepTracer}
     step.steptracer.detJI_inv(step.x0,step.sde.par,_t0(step),_t1(step)) |> abs
 end
 

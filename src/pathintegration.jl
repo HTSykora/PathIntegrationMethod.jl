@@ -61,6 +61,13 @@ function PathIntegration(sdestep::SDEStep{d,k,m}, _ts, axes::Vararg{Any,d};
     else
         _f = nothing
     end
+    for j in eachindex(sdestep.steptracer.temp)
+        sdestep.steptracer.temp[j] = zero(sdestep.steptracer.temp[j])
+    end
+    for j in eachindex(sdestep.steptracer.tempI)
+        sdestep.steptracer.tempI[j] = zero(sdestep.steptracer.tempI[j])
+    end
+
     pdf = InterpolatedFunction(axes...; f = _f, kwargs...)
     ts = get_ts(_ts);
     step_idx = 0

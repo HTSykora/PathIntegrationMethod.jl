@@ -10,26 +10,23 @@ end
 
 # Evaluating the integrals
 
-function get_IK_weights!(IK::IntegrationKernel{1}; Q_reinit_discreteintegrator = true)
+function get_IK_weights!(IK::IntegrationKernel{1}; kwargs...)
 # function get_IK_weights!(IK::IntegrationKernel{1}; integ_limits = first(IK.int_axes), kwargs...)
-    IK.discreteintegrator(IK, IK.temp.itpM)
+    IK.discreteintegrator(IK, IK.temp.itpM; kwargs...)
     # quadgk!(IK, IK.temp.itpM, integ_limits...; cleanup_quadgk_keywords(;kwargs...)...)
 end
 
 # multivariate smooth problem
 function (IK::IntegrationKernel{dk,sdeT})(vals,x) where sdeT<:SDEStep{d,k,m} where {dk,d,k,m}
-    update_relevant_states!(IK,x)
-    compute_missing_states_driftstep!(IK.sdestep)
-
-    # * if m ≠ 1 and d ≠ k: figure out a rework
-    _fx = transitionprobability(IK.sdestep,IK.x1)
-
     ## Get interpolation values
+    _fx = _getTPDF(IK.sdestep, x, IK.x1)
+    
+    # * if m ≠ 1 and d ≠ k: figure out a rework
     set_oldvals_tozero!(vals, IK)
     if isapprox(_fx,zero(_fx), atol=1e-8)
         all_zero!(vals, IK)
     else
-        fx = detJ_correction(_fx,IK)
+        fx = detJ_correction(_fx,IK.sdestep)
         basefun_vals_safe!(IK)
         fill_vals!(vals,IK,fx,_idx_it(IK), _val_it(IK))
     end
@@ -37,20 +34,30 @@ function (IK::IntegrationKernel{dk,sdeT})(vals,x) where sdeT<:SDEStep{d,k,m} whe
     vals
 end
 
-# Utility functions:
-function detJ_correction(fx,IK::IntegrationKernel{dk,sdeT}) where sdeT<:SDEStep{d,1,m} where {dk,d,m}
-    fx
-end
-function detJ_correction(fx,IK::IntegrationKernel{dk,sdeT}) where sdeT<:SDEStep{d,k,m} where {dk,k,d,m}
-    fx*get_detJinv(IK.sdestep)
+function _getTPDF(sdestep, x, x1)
+    update_relevant_states!(sdestep,x)
+    compute_missing_states_driftstep!(sdestep)
+    transitionprobability(sdestep,x1)
 end
 
-function update_relevant_states!(IK::IntegrationKernel{dk,sdeT},x::Number) where sdeT<:SDEStep{d,d,m} where {dk,d,m}
-    IK.sdestep.x0[d] = x
+# Utility functions:
+function detJ_correction(fx,sdestep::SDEStep{d,1,m})where {d,m}
+    fx
 end
-function update_relevant_states!(IK::IntegrationKernel{dk,sdeT},x::Vararg{Any,N}) where sdeT<:SDEStep{d,k,m} where {dk,d,k,m,N}
+function detJ_correction(fx,sdestep::SDEStep{d,k,m}) where {k,d,m}
+    fx*get_detJinv(sdestep)
+end
+
+function update_relevant_states!(IK::IntegrationKernel{dk,sdeT},x) where sdeT<:SDEStep{d,k,m} where {dk,d,k,m,N}
+        update_relevant_states!(IK.sdestep, x)
+end
+
+function update_relevant_states!(sdestep::sdeT,x::Number) where sdeT<:SDEStep{d,d,m} where {dk,d,m}
+    sdestep.x0[d] = x
+end
+function update_relevant_states!(sdestep::sdeT,x::Vararg{Any,N}) where sdeT<:SDEStep{d,k,m} where {dk,d,k,m,N}
     for (i,j) in enumerate(k:d)
-        IK.sdestep.x0[j] = x[i]
+        sdestep.x0[j] = x[i]
     end
 end
 

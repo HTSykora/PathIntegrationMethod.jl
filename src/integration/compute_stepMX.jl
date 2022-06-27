@@ -55,7 +55,7 @@ function fill_stepMX!(stepMX, IK; smart_integration = true, kwargs...)
         if smart_integration
             rescale_discreteintegrator!(IK; IK.kwargs...)
         end
-        get_IK_weights!(IK)
+        get_IK_weights!(IK; IK.kwargs...)
         fill_to_stepMX!(stepMX,IK,i; IK.kwargs...)
     end
 end
