@@ -1,3 +1,4 @@
+getintegration_dimensions(::AbstractDiscreteIntegratorType{n}) where n = n
 function DiscreteIntegrator(discreteintegrator, sdestep::AbstractSDEStep, res_prototype, N::Union{NTuple{1,<:Integer},<:Integer,AbstractArray{<:Integer}}, axes::GA; kwargs...) where GA
     DiscreteIntegrator(discreteintegrator,res_prototype, N, axes; kwargs...)
 end

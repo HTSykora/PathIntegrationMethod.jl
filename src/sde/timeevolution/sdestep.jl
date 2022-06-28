@@ -3,6 +3,9 @@ Q_compatible(::SDEStep, ::SDEStep) = false
 Q_compatible(::SDEStep{d,k,m}, ::SDEStep{d,k,m}) where {d,k,m}= true
 number_of_sdesteps(sdestep::AbstractSDEStep) = 1
 number_of_sdesteps(sdestep::NonSmoothSDEStep{d,k,m,sdeT, n}) where {d,k,m,sdeT, n} = n
+
+similar_to_x1(sdestep::SDEStep, args...) = similar(sdestep.x1, args...)
+
 function SDEStep(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMethod, ts; kwargs...) where {d,k,m}
     x0 = zeros(d) # * not type safe for autodiff
     x1 = similar(x0)
@@ -106,6 +109,16 @@ function get_detJinv(step::SDEStep{d,k,m, sdeT, methodT,tracerT}, args...) where
 end
 
 # Utility
+function set_t0!(sdestep::AbstractSDEStep,t) 
+    sdestep.t0[] = t
+end
+function set_t1!(sdestep::AbstractSDEStep,t) 
+    sdestep.t1[] = t
+end
+function set_t0t1!(sdestep::AbstractSDEStep,t0,t1)
+    set_t0!(sdestep,t0)
+    set_t1!(sdestep,t1)
+end
 _Δt(step) = _t1(step) - _t0(step)
 _Δt0i(step) = _ti(step) - _t0(step)
 _Δti1(step) = _t1(step) - _ti(step)

@@ -1,10 +1,7 @@
 function IntegrationKernel(sdestep, f, discreteintegrator, ts, pdf, ikt, kwargs = nothing)
-    x1 = similar(sdestep.x1)
-    if discreteintegrator isa QuadGKIntegrator
-        kd = 1
-    else
-        kd = length(first(discreteintegrator.x))
-    end
+    x1 = similar_to_x1(sdestep)
+    kd = getintegration_dimensions(discreteintegrator)
+
     IntegrationKernel{kd, typeof(sdestep), typeof(x1), typeof(discreteintegrator), typeof(f), typeof(pdf), typeof(ts), typeof(ikt), typeof(kwargs)}(sdestep,x1, f, discreteintegrator, ts, pdf, ikt, kwargs)
 end
 
@@ -17,7 +14,7 @@ function get_IK_weights!(IK::IntegrationKernel{1}; kwargs...)
 end
 
 # multivariate smooth problem
-function (IK::IntegrationKernel{dk,sdeT})(vals,x) where sdeT<:SDEStep{d,k,m} where {dk,d,k,m}
+function (IK::IntegrationKernel{dk,sdeT})(vals,x) where sdeT<:AbstractSDEStep{d,k,m} where {dk,d,k,m}
     ## Get interpolation values
     _fx = _getTPDF(IK.sdestep, x, IK.x1)
     
@@ -75,11 +72,15 @@ end
 function all_zero!(vals::AbstractArray{<:T}, IK::IntegrationKernel{kd,sdeT,x1T,xT,fT,pdfT}) where {kd,sdeT,x1T,xT,fT,pdfT<:InterpolatedFunction{T,N, itp_type}} where {T,N,itp_type <: SparseInterpolationType}
 end
 
-function basefun_vals_safe!(IK::IntegrationKernel{dk,sdeT}) where sdeT<:SDEStep{d} where {dk,d}
-    for (it,ax,x0) in zip(IK.temp.itpVs,IK.pdf.axes,IK.sdestep.x0)
+function basefun_vals_safe!(IK::IntegrationKernel{dk,sdeT}) where sdeT<:AbstractSDEStep{d} where {dk,d}
+    for (it,ax,x0) in zip(IK.temp.itpVs,IK.pdf.axes,get_sdestep_x0(IK))
         basefun_vals_safe!(it,ax,x0; IK.kwargs...)
     end
     nothing
+end
+
+function get_sdestep_x0(IK::IntegrationKernel)
+    IK.sdestep.x0
 end
 
 _idx_it(IK::IntegrationKernel) = _idx_it(IK.temp)
@@ -90,7 +91,7 @@ _val_it(IK::IntegrationKernel) = _val_it(IK.temp)
 _val_it(IKT::IK_temp) = IKT.val_it
 
 # get_tempval(str::AbstractVector, i) = str[i]
-function fill_vals!(vals::AbstractArray{T,d}, IK::IntegrationKernel{dk,sdeT}, fx, idx_it, val_it;) where {T,sdeT<:SDEStep{d}} where {dk,d}
+function fill_vals!(vals::AbstractArray{T,d}, IK::IntegrationKernel{dk,sdeT}, fx, idx_it, val_it;) where {T,sdeT<:AbstractSDEStep{d}} where {dk,d}
     for (idx, val) in zip(idx_it, val_it)
         vals[idx...] = fx * prod(val)# reduce_tempprod(zip(IK.temp.itpVs,idx)...)
         # prod(IK.temp.itpVs[i][idx[i]] for (i,idx) in enumerate(idxs))

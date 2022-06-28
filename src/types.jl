@@ -67,7 +67,7 @@ struct DiscreteTimeStepping{TDrift,TDiff} <:DiscreteTimeSteppingMethod
     diffusion::TDiff
 end
 abstract type AbstractSDEStep{d,k,m} end
-struct NonSmoothSDEStep{d,k,m,sdeT,n,snsT,iddT,idaT,qT}
+struct NonSmoothSDEStep{d,k,m,sdeT,n,snsT,iddT,idaT,qT} <: AbstractSDEStep{d,k,m}
     sde::sdeT
     sdesteps::snsT
     ID_dyn::iddT

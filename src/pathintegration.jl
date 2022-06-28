@@ -10,7 +10,7 @@ Compute a `PathIntegration` object for computing the response probability densit
 - `axes::Vararg{aT,d} where aT<:GridAxis`: The axes spanning the space where the transitional PDF is computed for the dynamical system `sde`.
 
 # Keyword Arguments
-- `discreteintegrator = ClenshawCurtisIntegrator(): Discrete integrator to evaluate the Chapman-Kolmogorov equation
+- `discreteintegrator = ClenshawCurtisIntegrator()`: Discrete integrator to evaluate the Chapman-Kolmogorov equation
 - `di_N = 31`: Resolution of the discrete integrator. Can be an `NTuple{d-k+1,<:Integer}` or an `AbstractArray{<:Integer}` to define resolution to each integration variable
 - `smart_integration = true`: Only integrate where the transitional PDF has nonzero elements. It is approximated with the step function. Use `false` if (time step * diffusion) results in a wide TPDF. Usually `true` is the better choice.
 - `int_limit_thickness_multiplier = 6`: The "thickness" scaling of the TPDF during smart integration.
@@ -41,7 +41,7 @@ Compute a `PathIntegration` object for computing the response probability densit
 ----
 For methods, discrete integrators, interpolators, and examples please refer to the documentation. 
 """
-function PathIntegration(sdestep::SDEStep{d,k,m}, _ts, axes::Vararg{Any,d}; 
+function PathIntegration(sdestep::AbstractSDEStep{d,k,m}, _ts, axes::Vararg{Any,d}; 
     discreteintegrator = ClenshawCurtisIntegrator(),
     di_N = 31,  # discrete integration resolution
     initialise_pdf = true, f_init = nothing, pre_compute = true, stepMXtype = nothing, sparse_tol = 1e-6,
@@ -61,12 +61,12 @@ function PathIntegration(sdestep::SDEStep{d,k,m}, _ts, axes::Vararg{Any,d};
     else
         _f = nothing
     end
-    for j in eachindex(sdestep.steptracer.temp)
-        sdestep.steptracer.temp[j] = zero(sdestep.steptracer.temp[j])
-    end
-    for j in eachindex(sdestep.steptracer.tempI)
-        sdestep.steptracer.tempI[j] = zero(sdestep.steptracer.tempI[j])
-    end
+    # for j in eachindex(sdestep.steptracer.temp)
+    #     sdestep.steptracer.temp[j] = zero(sdestep.steptracer.temp[j])
+    # end
+    # for j in eachindex(sdestep.steptracer.tempI)
+    #     sdestep.steptracer.tempI[j] = zero(sdestep.steptracer.tempI[j])
+    # end
 
     pdf = InterpolatedFunction(axes...; f = _f, kwargs...)
     ts = get_ts(_ts);
@@ -229,8 +229,15 @@ function reinit_PI_pdf!(PI::PathIntegration,f = nothing, reset_t= true, reset_st
     end
 end
 
-
-function recompute_stepMX!(PI::PathIntegration; par = nothing, t = nothing, f = nothing, Q_reinit_pdf = false, reset_t= true, reset_step_index = true)
+function recompute_PI!(PI::PathIntegration; par = nothing, t = nothing, f = nothing, Q_reinit_pdf = false, reset_t= true, reset_step_index = true, Q_recompute_stepMX = true)
+    if Q_reinit_pdf
+        reinit_PI_pdf!(PI, f)
+    end
+    if Q_recompute_stepMX
+        recompute_stepMX!(PI, par = par, t = t, reset_t = reset_t, reset_step_index = reset_step_index)
+    end
+end
+function recompute_stepMX!(PI::PathIntegration; par = nothing, t = nothing, reset_t= true, reset_step_index = true)
     if !(par isa Nothing)
         PI.IK.sdestep.sde.par .= par;
     end
@@ -245,9 +252,7 @@ function recompute_stepMX!(PI::PathIntegration; par = nothing, t = nothing, f = 
         PI.IK.t[1] = zero(eltype(PI.IK.t))
         PI.IK.t[2] = t
     end
-    if Q_reinit_pdf
-        reinit_PI_pdf!(PI, f)
-    end
+
 
     reinit_stepMX!(PI.stepMX)
     fill_stepMX_ts!(PI.stepMX, PI.IK; PI.IK.kwargs...)

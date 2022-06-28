@@ -19,17 +19,37 @@ function get_PI_err(N, Δt, itpf, method; xmin = -3.0, xmax = 3.0, _testN = 1000
     axisgrid = itpf(_x[1],_x[end],N)
     PI = PathIntegration(sde, method, Δt, axisgrid; kwargs...);
     advance_till_converged!(PI, Tmax = Tmax)
-    err = sum(abs, PI.pdf.(_x) .- p_AN(_x)) * ((_x[end] - _x[1])/length(_x));
-    err
+    err1 = sum(abs, PI.pdf.(_x) .- p_AN(_x)) * ((_x[end] - _x[1])/length(_x));
+    recompute_PI!(PI)
+    advance_till_converged!(PI, Tmax = Tmax)
+    err2 = sum(abs, PI.pdf.(_x) .- p_AN(_x)) * ((_x[end] - _x[1])/length(_x));
+    err1, err2
 end
 
 ##
-euler = Euler()
+methods = (LinearAxis, CubicAxis, QuinticAxis, ChebyshevAxis, TrigonometricAxis)
+err_refs = ([0.0175,0.027,0.027],
+            [0.0081,0.011,0.011],
+            [0.009,0.0115,0.0115],
+            [0.009,0.0115,0.0115],
+            [0.009,0.0115,0.0115])
+
+rk1 = Euler()
 rk2 = RK2()
 rk4 = RK4()
 
 testresults = BitArray(undef,0)
-push!(testresults, get_PI_err(51, 0.001, ChebyshevAxis, euler) < 0.0009)
-push!(testresults, get_PI_err(51, 0.001, ChebyshevAxis, rk2) < 0.0012)
-push!(testresults, get_PI_err(51, 0.001, ChebyshevAxis, rk4) < 0.0012)
+for (i,method) in enumerate(methods)
+    err_ref = err_refs[i]
+    err_rk1_1, err_rk1_2 = get_PI_err(71, 0.01, method, rk1)
+    err_rk2_1, err_rk2_2 = get_PI_err(71, 0.01, method, rk2)
+    err_rk4_1, err_rk4_2 = get_PI_err(71, 0.01, method, rk4)
+
+    push!(testresults, isapprox(err_rk1_1, err_rk1_2, atol = 1.5e-8))
+    push!(testresults, isapprox(err_rk2_1, err_rk2_2, atol = 1.5e-8))
+    push!(testresults, isapprox(err_rk4_1, err_rk4_2, atol = 1.5e-8))
+    push!(testresults, err_rk1_1 < err_ref[1])
+    push!(testresults, err_rk2_1 < err_ref[2])
+    push!(testresults, err_rk4_1 < err_ref[3])
+end
 reduce(&, testresults)

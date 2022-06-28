@@ -38,8 +38,7 @@ end
 
 function fill_stepMX_ts!(stepMX::AbstractVector{aT}, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, aT<:AbstractMatrix{T},tT<:AbstractArray} where T<:Number
     for jₜ in 1:length(IK.t)-1
-        IK.sdestep.t0[] = IK.t[jₜ]
-        IK.sdestep.t1[] = IK.t[jₜ+1]
+        set_t0t1!(IK.sdestep, IK.t[jₜ], IK.t[jₜ+1])
         fill_stepMX!(stepMX[jₜ], IK; kwargs...)
     end
 end
