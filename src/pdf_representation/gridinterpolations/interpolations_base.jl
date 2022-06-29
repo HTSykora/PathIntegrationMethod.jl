@@ -23,6 +23,8 @@ function find_idx(xs::Vx,x::xT; allow_extrapolation::Bool = false, zero_extrapol
         if i==zero(i)  # it can happen if t ≈ t0
             do_interpolation = false
             i = one(i)
+        elseif i == length(xs)
+            do_interpolation = false
         elseif isapprox(xs[i+1], x, atol = 100eps(xT))
             do_interpolation = false
             i = i + one(i)

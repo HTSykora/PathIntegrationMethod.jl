@@ -65,6 +65,10 @@ function build_inplace_diffsubstituted_function(expr, W, r, v, args...; kwargs..
     _, f! = build_function(new_expr, args...; expression = Val{false})
     return f!
 end
+function build_inplace_function(expr, args...; kwargs...)
+    _, f! = build_function(expr, args...; expression = Val{false})
+    return f!
+end
 
 function build_diffsubstituted_function(expr, W, r, v, args...; kwargs...)
     new_expr = expand_derivatives(substitute(expr,Dict(r(v)=>W(v))))
@@ -78,31 +82,33 @@ function (pcl::PreComputeNewtonStep)(vi_sde::SDE_VIO, method::DiscreteTimeSteppi
     @variables par[1:(_par(vi_sde) isa Nothing ? 1 : length(_par(vi_sde)))]
     @syms r(v)
     step_sym_i = eval_driftstep_xI_sym(vi_sde.sde, method, [x0, v0], par, t0, ti)
-    step_sym_1 = eval_driftstep_xI_sym(vi_sde.sde, method, [xi, -r(vi)*vi], par, ti, t1)
-    _eq = [
+    step_sym_1s = Tuple(eval_driftstep_xI_sym(vi_sde.sde, method, [xi, -W(vi)*vi], par, ti, t1) for W in vi_sde.wall)
+    _eqs = Tuple([
         xi - step_sym_i[1],
         vi - step_sym_i[2],
         x1 - step_sym_1[1],
         v1 - step_sym_1[2]
-    ]
+    ] for step_sym_1 in step_sym_1s)
     _x = (x0, v0, ti, vi)
-    J_sym = [Symbolics.derivative(eq,x) for eq in _eq, x in _x]#Symbolics.jacobian(_eq,_x);
-    _corr = lu(J_sym)\_eq
-    x_new = [_x[i] - _corr[i] for i in 1:4]
-    x_0i! = Tuple(build_inplace_diffsubstituted_function(x_new, W, r, vi, [x0, v0], [x1, v1], [xi, vi], par, t0, t1, ti) for W in vi_sde.wall)
+    J_syms =Tuple([Symbolics.derivative(eq,x) for eq in _eq, x in _x] for _eq in _eqs)#Symbolics.jacobian(_eq,_x);
+    _corrs = Tuple(lu(J_sym)\_eq for( J_sym,_eq) in zip(J_syms,_eqs))
+    x_news = Tuple([_x[i] - _corr[i] for i in 1:4] for _corr in _corrs)
+    x_0i! = Tuple(build_inplace_function(x_new, [x0, v0], [x1, v1], [xi, vi], par, t0, t1, ti) for x_new in x_news)
 
     _x = (x0,  ti, vi)
-    _eq13 = collect(_eq[1:3])
-    JI_sym = [Symbolics.derivative(eq,x) for eq in _eq13, x in _x]
+    _eq13s = Tuple(collect(_eq[1:3]) for _eq in _eqs)
+    JI_syms = Tuple([Symbolics.derivative(eq,x) for eq in _eq13, x in _x] for _eq13 in _eq13s)
     # JI_sym = collect(J_sym[1:3, 1:3]) |> lu
-    _corr = JI_sym\_eq13
-    x_new = [_x[i] - _corr[i] for i in 1:3]
-    xI_0i! = Tuple(build_inplace_diffsubstituted_function(x_new, W, r, vi, [x0, v0], [x1, v1], [xi, vi], par, t0, t1, ti) for W in vi_sde.wall)
+    _corrs = Tuple(JI_sym\_eq13 for (JI_sym,_eq13) in zip(JI_syms,_eq13s))
+    x_news = Tuple([_x[i] - _corr[i] for i in 1:3] for _corr in _corrs)
+    xI_0i! = Tuple(build_inplace_function(x_new, [x0, v0], [x1, v1], [xi, vi], par, t0, t1, ti) for x_new in x_news)
 
-    # TODO: 
-    detJI_inv = Tuple(1/Symbolics.derivative(x1 - substitute(step_sym_1[1], Dict(xi => substitute(step_sym_i[1],Dict(r(vi) => W(vi))), vi => substitute(step_sym_i[2])),Dict(r(vi) => W(vi))), x0)  for W in vi_sde.wall)
+    # TODO:
+    # step_sym_1_Ws = Tuple(Tuple(substitute(expr,Dict(r(vi)=>W(vi),xi => step_sym_i[1], vi => step_sym_i[2])) for expr in step_sym_1) for W in vi_sde.wall)
+    detJI_invs = Tuple(1/Symbolics.derivative(x1 - substitute(step_sym_1[1], Dict(xi => step_sym_i[1], vi => step_sym_i[2])), x0) for step_sym_1 in step_sym_1s)
 
-    detJI⁻¹ = Tuple(build_diffsubstituted_function(detJI_inv, W, r, vi, [x0, v0], [x1, v1], [xi, vi], par, t0, t1, ti) for W in vi_sde.wall)
+
+    detJI⁻¹ = Tuple(build_function(detJI_inv, [x0, v0], [x1, v1], [xi, vi], par, t0, t1, ti; expression = Val{false}) for detJI_inv in detJI_invs)
     # detJI⁻¹ = build_function(detJI_inv, [x0, v0], [xi, vi], par, r, t0, t1, ti, expression = Val{false})
 
     _xi = [v0, vi, v1]
@@ -150,9 +156,8 @@ function compute_velocities_to_impact!(step::SDEStep{2,2,1,<:SDE_VIO,DiscreteTim
 end
 
 function get_detJinv(step::SDEStep{d,k,m, sdeT, methodT,tracerT}, wallID) where {d, k,m, sdeT<:SDE_VIO, methodT,tracerT<:VIO_SymbolicNewtonImpactStepTracer}
-    step.steptracer.detJI_inv[wallID](step.x0, step.x1, step.xi, _par(step), _t0(step),_t1(step), _ti(step))
+    step.steptracer.detJI_inv[wallID](step.x0, step.x1, step.xi, _par(step), _t0(step),_t1(step), _ti(step)) |> abs
 end
-
 
 ##
 
@@ -350,7 +355,14 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thi
             compute_initial_states_driftstep!(step2; IK.kwargs...)
             rescale_discreteintegrator!(IK.discreteintegrator[2], step2, IK.pdf; int_limit_thickness_multiplier = int_limit_thickness_multiplier, kwargs...)
         else
-        rescale_discreteintegrator!(IK.discreteintegrator[1], step1, IK.pdf; int_limit_thickness_multiplier = int_limit_thickness_multiplier, kwargs...)
+            checkbit = sdestep.Q_aux[] && abs(step1.x1[2])<1.4e-5
+            rescale_discreteintegrator!(IK.discreteintegrator[1], step1, IK.pdf; int_limit_thickness_multiplier = int_limit_thickness_multiplier, kwargs...)
+            if checkbit
+                @show IK.discreteintegrator[1].x[1]
+                @show IK.discreteintegrator[1].x[end]
+                @show IK.discreteintegrator[1].Q_integrate
+                @show IK.discreteintegrator[2].Q_integrate
+            end
         end
     end
 end

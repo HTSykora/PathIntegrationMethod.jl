@@ -160,12 +160,12 @@ function advance!(PI::PathIntegration)
     _corr_to_temp!(PI.pdf.p,PI.p_temp,PI)
     nothing
 end
-function _advance_to_temp!(p_temp::tT,PI::PathIntegration{dynT}) where {tT<:AbstractArray{T,d},dynT<:SDEStep{d}} where {T,d}
+function _advance_to_temp!(p_temp::tT,PI::PathIntegration{dynT}) where {tT<:AbstractArray{T,d},dynT<:AbstractSDEStep{d}} where {T,d}
     mul!(vec(p_temp), next_stepMX(PI), vec(PI.pdf.p))
     PI.t = PI.t + get_PIdt(PI)
     nothing
 end
-function _corr_to_temp!(res::tT,p_temp::tT,PI::PathIntegration{dynT}) where {tT<:AbstractArray{T,d},dynT<:SDEStep{d}} where {T,d}
+function _corr_to_temp!(res::tT,p_temp::tT,PI::PathIntegration{dynT}) where {tT<:AbstractArray{T,d},dynT<:AbstractSDEStep{d}} where {T,d}
     _I = 1/_integrate(p_temp, PI.pdf.axes...);
     @. res = PI.p_temp * _I
     nothing
@@ -227,6 +227,7 @@ function reinit_PI_pdf!(PI::PathIntegration,f = nothing, reset_t= true, reset_st
     if reset_step_index
         PI.step_idx = zero(PI.step_idx)
     end
+    PI
 end
 
 function recompute_PI!(PI::PathIntegration; par = nothing, t = nothing, f = nothing, Q_reinit_pdf = false, reset_t= true, reset_step_index = true, Q_recompute_stepMX = true)
