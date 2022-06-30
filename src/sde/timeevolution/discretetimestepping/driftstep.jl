@@ -95,7 +95,7 @@ function compute_missing_states_driftstep!(step::SDEStep{d,1,m,sdeT,DiscreteTime
     eval_driftstep!(step)
 end
 compute_missing_states_driftstep!(step; kwargs...) = compute_missing_states_driftstep!(step, update_drift_xI!; kwargs...)
-function compute_missing_states_driftstep!(step::SDEStep{d,k,m,sdeT,DiscreteTimeStepping{TDrift,TDiff}}, _update_drift_xI!; max_iter = 100, atol = sqrt(eps()), kwargs...) where {d,k,m,sdeT,TDrift, TDiff}
+function compute_missing_states_driftstep!(step::SDEStep{d,k,m,sdeT}, _update_drift_xI!; max_iter = 100, atol = sqrt(eps()), kwargs...) where {d,k,m,sdeT}
     i = 1
     x_change = 2atol
     while x_change > atol && i < max_iter

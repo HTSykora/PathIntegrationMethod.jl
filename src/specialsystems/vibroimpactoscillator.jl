@@ -54,9 +54,15 @@ function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pcl
         
     step1 = SDEStep{2,2,1,typeof(sde.sde),typeof(_method),typeof(steptracers[1]),typeof(x0),typeof(x1),typeof(t0), Nothing, Nothing, typeof(x0)}(sde.sde, _method, similar(x0), similar(x1), t0, t1, steptracers[1], nothing, nothing, similar(x0))
     step2 = SDEStep{2,2,1,sdeT,typeof(_method),typeof(steptracers[2]),typeof(x0),typeof(x1),typeof(t0), typeof(ti), typeof(x0), typeof(x0)}(sde, _method, similar(x0), similar(x1), t0, t1, steptracers[2], ti, similar(x0), similar(x0))
+    preset_xi_vals!(step2)
     NonSmoothSDEStep(sde, step1, step2; kwargs...)
 end
-
+preset_xi_vals!(step::SDEStep) = step
+function preset_xi_vals!(step2::SDEStep{2,2,1,sdeT}) where sdeT<:SDE_VIO{1}
+    step2.xi[1] = step2.sde.wall[1].pos
+    step2.xi2[1] = step2.xi[1]
+    step2
+end
 function substitute_w_to_rdiff(exprs, W, r, v)
     [expand_derivatives(substitute(expr,Dict(r(v)=>W(v)))) for expr in exprs] |> collect
 end
@@ -162,19 +168,20 @@ end
 ##
 
 # driftstep.jl
-function compute_missing_states_driftstep!(step::NonSmoothSDEStep{d,k,m,sdeT}; kwargs...) where {d,k,m,sdeT<:SDE_VIO}
-    if step.ID_dyn[] == 1
-        compute_missing_states_driftstep!(step.sdesteps[1]; kwargs...)
-    else 
-        update_impact_vio_xi_atwall!(step.sdesteps[2], step.ID_aux[])
-        compute_missing_states_driftstep!(step.sdesteps[2],update_impact_vio_xI!, wallID = step.ID_aux[]; kwargs...)
-    end
-end
-function update_impact_vio_xi_atwall!(step::SDEStep{2,2,1, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT, xiT}, wallID; kwargs...) where {sdeT<:SDE_VIO,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT, tiT, xiT} where {TDrift}
-    xi = step.sde.wall[wallID].pos
-    step.xi[1] = xi
-    step.xi2[1] = xi
-end
+compute_missing_states_driftstep!(step::SDEStep{d,k,m,sdeT}; kwargs...) where {d,k,m,sdeT<:SDE_VIO} = compute_missing_states_driftstep!(step, update_impact_vio_xI!; kwargs...)
+# compute_missing_states_driftstep!(step.sdesteps[2],update_impact_vio_xI!, wallID = step.ID_aux[]; kwargs...)
+# function compute_missing_states_driftstep!(step::NonSmoothSDEStep{d,k,m,sdeT}; kwargs...) where {d,k,m,sdeT<:SDE_VIO}
+#     if step.ID_dyn[] == 1
+#         compute_missing_states_driftstep!(step.sdesteps[1]; kwargs...)
+#     else 
+#         compute_missing_states_driftstep!(step.sdesteps[2],update_impact_vio_xI!, wallID = step.ID_aux[]; kwargs...)
+#     end
+# end
+# function update_impact_vio_xi_atwall!(step::SDEStep{2,2,1, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT, xiT}, wallID; kwargs...) where {sdeT<:SDE_VIO,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT, tiT, xiT} where {TDrift}
+#     xi = step.sde.wall[wallID].pos
+#     step.xi[1] = xi
+#     step.xi2[1] = xi
+# end
 
 function update_impact_vio_xI!(step::SDEStep{2,2,1, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT, xiT}; wallID = 1) where {sdeT<:SDE_VIO,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT, tiT, xiT} where {TDrift}
 
@@ -255,12 +262,17 @@ function get_and_set_potential_wallID!(IK::IntegrationKernel{1,dyn}) where dyn <
     get_and_set_potential_wallID!(IK.sdestep, IK.x1[1])
 end
 function get_and_set_potential_wallID!(sdestep::NonSmoothSDEStep{2,2,1,sdeT}, x1) where sdeT <: SDE_VIO{1}
-    sdestep.ID_aux[] = 1
+    # sdestep.ID_aux[] = 1
 end
 function get_and_set_potential_wallID!(sdestep::NonSmoothSDEStep{2,2,1,sdeT}, x1) where sdeT <: SDE_VIO{2}
     walls = sdestep.sde.wall
     ID = abs(walls[1].pos - x1) < abs(walls[2].pos - x1) ? 1 : 2
     sdestep.ID_aux[] = ID
+    W_pos = walls[ID].pos
+    # update_impact_vio_xi_atwall!(sdestep[2], ID)
+
+    sdestep[2].xi[1] = W_pos
+    sdestep[2].xi2[1] = W_pos
 end
 function modify_x1_if_on_wall!(IK::IntegrationKernel{1,dyn}; wall_tol = 1.5e-8, kwargs... ) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO}
     # sqrt(eps()) ≈ 1.49e-8
@@ -355,14 +367,14 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thi
             compute_initial_states_driftstep!(step2; IK.kwargs...)
             rescale_discreteintegrator!(IK.discreteintegrator[2], step2, IK.pdf; int_limit_thickness_multiplier = int_limit_thickness_multiplier, kwargs...)
         else
-            checkbit = sdestep.Q_aux[] && abs(step1.x1[2])<1.4e-5
+            # checkbit = sdestep.Q_aux[] && abs(step1.x1[2])<1.4e-5
             rescale_discreteintegrator!(IK.discreteintegrator[1], step1, IK.pdf; int_limit_thickness_multiplier = int_limit_thickness_multiplier, kwargs...)
-            if checkbit
-                @show IK.discreteintegrator[1].x[1]
-                @show IK.discreteintegrator[1].x[end]
-                @show IK.discreteintegrator[1].Q_integrate
-                @show IK.discreteintegrator[2].Q_integrate
-            end
+            # if checkbit
+            #     @show IK.discreteintegrator[1].x[1]
+            #     @show IK.discreteintegrator[1].x[end]
+            #     @show IK.discreteintegrator[1].Q_integrate
+            #     @show IK.discreteintegrator[2].Q_integrate
+            # end
         end
     end
 end

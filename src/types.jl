@@ -210,7 +210,6 @@ struct IK_temp{VT,MT,idxT,valT}
     val_it::valT# = Base.Iterators.product(eachindex.(IK.temp.itpVs)...)
     itpVs::VT
     itpM::MT
-    # impactinterval::iiT
 end
 struct Slicer{n,N,idT,slT}
     slicer::slT

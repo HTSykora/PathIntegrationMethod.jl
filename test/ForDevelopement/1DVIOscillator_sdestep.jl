@@ -16,16 +16,15 @@ method = Euler()
 # method = RK2()
 
 W = Wall(x->0.7-0.05x,-1.)
-W = Wall(0.7,-1.)
+W = Wall(0.7,-0.1)
 sde = SDE_VIO(f2,g2,W, par)
 
 
 @time sdestep = SDEStep(sde, method, 0.1);
 
-sdestep.Q_switch[] = false
 step1 = sdestep.sdesteps[1]
 step2 = sdestep.sdesteps[2]
-step2.x0 .= [1.05, -1.]
+step2.x1 .= [-0.095, -1.]
 
 begin
     step1.x0 .=  [1.05, -0.75]
@@ -61,10 +60,9 @@ begin
 end;
 ##
 begin
-    sdestep.Q_switch[] = true
-    sdestep.ID[] = 1
+    sdestep.ID_aux[] = 1
     step2.x0 .= [-0.98, -1.]
-    step2.x1 .= [-0.95, 0.5]
+    step2.x1 .= [-0.099, -3.]
 
     step2.xi[1] = W.pos
     step2.xi[2] = step2.x0[2]
@@ -73,7 +71,7 @@ begin
     
     # step2.x1 .= [0.95, 0.5]
     # step2.x1 .= [0.99, 1.]
-    @time PathIntegrationMethod.compute_velocities_to_impact!(step2, sdestep.ID[])
+    @time PathIntegrationMethod.compute_velocities_to_impact!(step2, sdestep.ID_aux[])
 
     v_i = step2.steptracer.v_i
     @show v_i # [v_beforeimpact, v_afterimpact, v1]

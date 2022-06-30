@@ -1,3 +1,8 @@
+using PyPlot, LaTeXStrings; pygui(true);
+PyPlot.rc("text", usetex=true);
+py_colors=PyPlot.PyDict(PyPlot.matplotlib."rcParams")["axes.prop_cycle"].by_key()["color"];
+##
+
 using Revise, BenchmarkTools
 using PathIntegrationMethod
 
@@ -17,7 +22,7 @@ par = [0.1,0.5]
 W = Wall(x->0.7-0.05x,-1.)
 W = Wall(0.7,-0.1)
 sde = SDE_VIO(f2,g2,W, par)
-axisgrid = (QuinticAxis(W.pos,3.,51), QuinticAxis(-3.05,3.,51))
+axisgrid = (QuinticAxis(W.pos,3.,51), QuinticAxis(-3.0,3.,51))
 
 # Ws = (Wall(0.7,-1.),Wall(0.7,1.))
 # sde = SDE_VIO(f2,g2,Ws, par)
@@ -31,18 +36,14 @@ method = Euler()
 Δt = 0.01
 ##
 
-PI = PathIntegration(sde, method, Δt, axisgrid...);
+@time PI = PathIntegration(sde, method, Δt, axisgrid...);
 reinit_PI_pdf!(PI)
 for _ in 1:50
     advance!(PI)
 end
-advance_till_converged!(PI)
+# advance_till_converged!(PI)
 
 ##
-using PyPlot, LaTeXStrings; pygui(true);
-PyPlot.rc("text", usetex=true);
-py_colors=PyPlot.PyDict(PyPlot.matplotlib."rcParams")["axes.prop_cycle"].by_key()["color"];
-
 begin
     figure(1); clf()
     
@@ -54,8 +55,8 @@ begin
     # scatter3D(X, Y, abs.(PI.pdf.p) .|> log10)
     scatter3D(X, Y, PI.pdf.p)
     ax = gca()
-    ax.elev = 20
-    ax.azim = -160
+    ax.elev = 25
+    ax.azim = 25
     # scatter3D(xvs[1],-1 .+ 0.25*xvs[1].^3,zero(xvs[1]))
     # xlim(left=-6,right=6)
     # ylim(bottom=-6,top=6)
@@ -68,4 +69,18 @@ end
 
 
 ##
-    # @run PathIntegration(sde, method, Δt, axisgrid...);
+@run PathIntegration(sde, method, Δt, axisgrid...);
+
+
+## TO check in debug
+
+IK.x1
+step1.x1
+step2.steptracer.v_i
+
+
+idxs = PathIntegrationMethod.dense_idx_it(PI.IK) |> collect;
+getindex.(PI.pdf.axes,idxs[61])
+
+sum(abs,stepMX(PI)[61,:])
+
