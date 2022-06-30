@@ -16,7 +16,8 @@ is_x_inimpactzone(x, xi, ID; wall_tol = 1.5e-8, kwargs...) =
 
 function SDE_VIO(f::fT,g::gT, wall::Union{Tuple{wT1},Tuple{wT1,wT2}}, par=nothing) where {fT<:Function,gT<:Function, wT1<:Wall, wT2<:Wall}
     sde = SDE((osc_f1,f), g, par);
-    SDE_VIO{length(wall),typeof(sde), typeof(wall)}(sde, wall)
+    ID = Ref(1)
+    SDE_VIO{length(wall),typeof(sde), typeof(wall), typeof(ID)}(sde, wall, ID)
 end
 SDE_VIO(f::fT,g::gT, w::Wall, par = nothing; kwargs...) where {fT<:Function,gT<:Function} = SDE_VIO(f, g, (w,), par; kwargs...)
 get_Q_cv(::Tuple{wT1}) where wT1<:Wall = (signbit,)
@@ -35,12 +36,16 @@ function NonSmoothSDEStep(sde::sdeT, sdesteps::Vararg{SDEStep, N}; kwargs...) wh
     @assert reduce(&, Q_compatible(sdesteps[1], sdesteps[i]) for i in 2:N) "Incompatible SDE steps provided"
     d,k,m = get_dkm(sdesteps[1])
     ID_dyn = Ref(1)
-    ID_aux = Ref(1)
+    ID_aux = get_ID_aux(sde)
     Q_aux = Ref(false)
     NonSmoothSDEStep{d,k,m,sdeT, N, typeof(sdesteps),  typeof(ID_dyn), typeof(ID_aux), typeof(Q_aux)}(sde, sdesteps, ID_dyn, ID_aux, Q_aux)
 end
 Base.getindex(sdestep::NonSmoothSDEStep,idx...) = sdestep.sdesteps[idx...]
 Base.size(::NonSmoothSDEStep{d,k,m,sdeT,n}) where {d,k,m,sdeT,n} = n
+get_ID_aux(sde::AbstractSDE) = Ref(1)
+get_ID_aux(sde::SDE_VIO) = sde.ID
+
+
 
 function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pclT = PreComputeNewtonStep(), kwargs...) where {sdeT<:SDE_VIO, methodT <: DiscreteTimeSteppingMethod, pclT <: PreComputeLevel} where {d,k,m}
     
@@ -427,3 +432,14 @@ function DiscreteIntegrator(discreteintegrator, sdestep::NonSmoothSDEStep, res_p
     
     NonSmoothDiscreteIntegrator{1,number_of_sdesteps(sdestep),typeof(discreteintegrators)}(discreteintegrators)
 end
+
+# transitionprobabilities.jl
+# function transitionprobability(step::SDEStep{d,d,m,sdeT,method},x) where {d,m,sdeT<:SDE_VIO, method<:DiscreteTimeStepping{TDrift, TDiff}} where {TDrift, TDiff<:Maruyama}
+#     g = get_g(step.sde)
+#     r = step.sde.wall[step.sde.ID[]]
+#     σ2 = _Δt0i(step) * (g(d, step.x0,_par(step),_t0(step))^ 2)
+#     σ2 = σ2 * (r(step.xi[2])^2)
+#     σ2 = σ2 + _Δti1(step) * (g(d, step.xi2,_par(step),_ti(step))^ 2) 
+#     # detJ_correction = _detJ(step, x)
+#     normal1D_σ2(step.x1[d], σ2, x[d]);
+# end

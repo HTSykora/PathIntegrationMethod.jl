@@ -18,9 +18,10 @@ end
 #     par::parT
 # end
 
-struct SDE_VIO{wn, sdeT, wT} <: AbstractSDE{2,2,1} # 1 DoF vibroimpact oscillator
+struct SDE_VIO{wn, sdeT, wT, idT} <: AbstractSDE{2,2,1} # 1 DoF vibroimpact oscillator
     sde::sdeT
     wall::wT
+    ID::idT
     # wT<:Tuple{Wall} = it is assumed, that it is a bottom wall (going down)
 end
 

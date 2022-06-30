@@ -22,7 +22,7 @@ par = [0.1,0.5]
 W = Wall(x->0.7-0.05x,-1.)
 W = Wall(0.7,-0.1)
 sde = SDE_VIO(f2,g2,W, par)
-axisgrid = (QuinticAxis(W.pos,3.,51), QuinticAxis(-3.0,3.,51))
+axisgrid = (QuinticAxis(W.pos,3.,31), QuinticAxis(-3.0,3.,31))
 
 # Ws = (Wall(0.7,-1.),Wall(0.7,1.))
 # sde = SDE_VIO(f2,g2,Ws, par)
