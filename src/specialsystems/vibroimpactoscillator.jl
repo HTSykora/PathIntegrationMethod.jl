@@ -36,16 +36,27 @@ function NonSmoothSDEStep(sde::sdeT, sdesteps::Vararg{SDEStep, N}; kwargs...) wh
     @assert reduce(&, Q_compatible(sdesteps[1], sdesteps[i]) for i in 2:N) "Incompatible SDE steps provided"
     d,k,m = get_dkm(sdesteps[1])
     ID_dyn = Ref(1)
-    ID_aux = get_ID_aux(sde)
+    ID_aux = nothing
     Q_aux = Ref(false)
     NonSmoothSDEStep{d,k,m,sdeT, N, typeof(sdesteps),  typeof(ID_dyn), typeof(ID_aux), typeof(Q_aux)}(sde, sdesteps, ID_dyn, ID_aux, Q_aux)
 end
 Base.getindex(sdestep::NonSmoothSDEStep,idx...) = sdestep.sdesteps[idx...]
 Base.size(::NonSmoothSDEStep{d,k,m,sdeT,n}) where {d,k,m,sdeT,n} = n
-get_ID_aux(::AbstractSDE) = Ref(1)
-# get_ID_aux(sde::SDE_VIO) = sde.ID
-
-
+function set_wall_ID!(sde::SDE_VIO,ID)
+    sde.ID[] = ID
+end
+function set_wall_ID!(sdestep::SDEStep{d,k,m,sdeT},ID) where {d,k,m,sdeT<:SDE_VIO}
+    set_wall_ID!(sdestep.sde,ID)
+end
+function set_wall_ID!(sdestep::NonSmoothSDEStep{d,k,m,sdeT},ID) where {d,k,m,sdeT<:SDE_VIO}
+    set_wall_ID!(sdestep[2],ID)
+end
+get_wall_ID(sde::SDE_VIO) = sde.ID[]
+get_wall_ID(sdestep::SDEStep{d,k,m,sdeT}) where {d,k,m,sdeT<:SDE_VIO} = get_wall_ID(sdestep.sde)
+get_wall_ID(sdestep::NonSmoothSDEStep{d,k,m,sdeT}) where {d,k,m,sdeT<:SDE_VIO} = get_wall_ID(sdestep[2])
+get_wall(sde::SDE_VIO) = sde.wall[sde.ID[]]
+get_wall(sdestep::SDEStep{d,k,m,sdeT}) where {d,k,m,sdeT<:SDE_VIO} = get_wall(sdestep.sde)
+get_wall(sdestep::NonSmoothSDEStep{d,k,m,sdeT}) where {d,k,m,sdeT<:SDE_VIO} = get_wall(sdestep[2])
 
 function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pclT = PreComputeNewtonStep(), kwargs...) where {sdeT<:SDE_VIO, methodT <: DiscreteTimeSteppingMethod, pclT <: PreComputeLevel} where {d,k,m}
     
@@ -141,11 +152,11 @@ function (pcl::PreComputeNewtonStep)(vi_sde::SDE_VIO, method::DiscreteTimeSteppi
     return (tracer1, tracer2)
 end
 
-function apply_correction_to_xI0!(step::SDEStep{d,k,m, sdeT, methodT,tracerT}; wallID = 1, kwargs...) where {d, k,m, sdeT, methodT,tracerT<:VIO_SymbolicNewtonImpactStepTracer}
-    step.steptracer.xI_0![wallID](step.steptracer.tempI, step.x0, step.x1, step.xi, _par(step), _t0(step),_t1(step), _ti(step))
+function apply_correction_to_xI0!(step::SDEStep{d,k,m, sdeT, methodT,tracerT}; kwargs...) where {d, k,m, sdeT, methodT,tracerT<:VIO_SymbolicNewtonImpactStepTracer}
+    step.steptracer.xI_0![get_wall_ID(step)](step.steptracer.tempI, step.x0, step.x1, step.xi, _par(step), _t0(step),_t1(step), _ti(step))
 end
-function apply_correction_to_x0!(step::SDEStep{d,k,m, sdeT, methodT,tracerT}; wallID = 1, kwargs...) where {d, k,m, sdeT, methodT,tracerT<:VIO_SymbolicNewtonImpactStepTracer}
-    step.steptracer.x_0![wallID](step.steptracer.temp, step.x0, step.x1, step.xi, _par(step), _t0(step),_t1(step), _ti(step))
+function apply_correction_to_x0!(step::SDEStep{d,k,m, sdeT, methodT,tracerT}; kwargs...) where {d, k,m, sdeT, methodT,tracerT<:VIO_SymbolicNewtonImpactStepTracer}
+    step.steptracer.x_0![get_wall_ID(step)](step.steptracer.temp, step.x0, step.x1, step.xi, _par(step), _t0(step),_t1(step), _ti(step))
 end
 
 # To update the 
@@ -162,14 +173,14 @@ function _compute_velocities_to_impact!(temp, v_f!, vs, x1, xi, par, t0, t1; max
     end
     nothing
 end
-function compute_velocities_to_impact!(step::SDEStep{2,2,1,<:SDE_VIO,DiscreteTimeStepping{TDrift,TDiff}}, wallID; kwargs...) where {TDrift, TDiff}
+function compute_velocities_to_impact!(step::SDEStep{2,2,1,<:SDE_VIO,DiscreteTimeStepping{TDrift,TDiff}}; kwargs...) where {TDrift, TDiff}
     # Compute max v0, v1 just before impact happens
-    _compute_velocities_to_impact!(step.steptracer.vitemp,step.steptracer.v_toimpact![wallID], step.steptracer.v_i, step.x1[1], step.xi[1], _par(step), _t0(step), _t1(step); kwargs...)
+    _compute_velocities_to_impact!(step.steptracer.vitemp,step.steptracer.v_toimpact![get_wall_ID(step)], step.steptracer.v_i, step.x1[1], step.xi[1], _par(step), _t0(step), _t1(step); kwargs...)
     nothing
 end
 
-function get_detJinv(step::SDEStep{d,k,m, sdeT, methodT,tracerT}, wallID) where {d, k,m, sdeT<:SDE_VIO, methodT,tracerT<:VIO_SymbolicNewtonImpactStepTracer}
-    step.steptracer.detJI_inv[wallID](step.x0, step.x1, step.xi, _par(step), _t0(step),_t1(step), _ti(step)) |> abs
+function get_detJinv(step::SDEStep{d,k,m, sdeT, methodT,tracerT}) where {d, k,m, sdeT<:SDE_VIO, methodT,tracerT<:VIO_SymbolicNewtonImpactStepTracer}
+    step.steptracer.detJI_inv[get_wall_ID(step)](step.x0, step.x1, step.xi, _par(step), _t0(step),_t1(step), _ti(step)) |> abs
 end
 
 ##
@@ -177,18 +188,18 @@ end
 # driftstep.jl
 compute_missing_states_driftstep!(step::SDEStep{d,k,m,sdeT}; kwargs...) where {d,k,m,sdeT<:SDE_VIO} = compute_missing_states_driftstep!(step, update_impact_vio_xI!; kwargs...)
 
-function update_impact_vio_xI!(step::SDEStep{2,2,1, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT, xiT}; wallID = 1) where {sdeT<:SDE_VIO,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT, tiT, xiT} where {TDrift}
+function update_impact_vio_xI!(step::SDEStep{2,2,1, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT, xiT}) where {sdeT<:SDE_VIO,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT, tiT, xiT} where {TDrift}
 
     step.x0[1] = step.steptracer.tempI[1]
 
     step.ti[] = step.steptracer.tempI[2]
 
     step.xi[2] = step.steptracer.tempI[3] # vi
-    step.xi2[2] = - step.sde.wall[wallID](step.xi[2])*step.xi[2]
+    step.xi2[2] = - get_wall(step)(step.xi[2])*step.xi[2]
 
     update_x1_kd!(step)
 end
-function update_impact_vio_x!(step::SDEStep{2,2,1, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT, xiT}; wallID = 1, kwargs...) where {sdeT<:SDE_VIO,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT, tiT, xiT} where {TDrift}
+function update_impact_vio_x!(step::SDEStep{2,2,1, sdeT, methodT,tracerT,x0T,x1T,tT, tiT, xiT, xiT}; kwargs...) where {sdeT<:SDE_VIO,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT, tiT, xiT} where {TDrift}
 
     step.x0[1] = step.steptracer.temp[1]
     step.x0[2] = step.steptracer.temp[2]
@@ -196,12 +207,12 @@ function update_impact_vio_x!(step::SDEStep{2,2,1, sdeT, methodT,tracerT,x0T,x1T
     step.ti[] = step.steptracer.temp[3]
 
     step.xi[2] = step.steptracer.temp[4] # vi
-    step.xi2[2] = - step.sde.wall[wallID](step.xi[2])*step.xi[2]
+    step.xi2[2] = - get_wall(step)(step.xi[2])*step.xi[2]
 end
 
 
-function compute_initial_states_driftstep!(step2::SDEStep{d,k,m,sdeT}; wallID = 1, kwargs...) where {d,k,m,sdeT<:SDE_VIO}
-    compute_initial_states_driftstep!(step2, update_impact_vio_x!; wallID = wallID, kwargs...)
+function compute_initial_states_driftstep!(step2::SDEStep{d,k,m,sdeT}; kwargs...) where {d,k,m,sdeT<:SDE_VIO}
+    compute_initial_states_driftstep!(step2, update_impact_vio_x!; kwargs...)
 end
 
 function update_x1_kd!(step::SDEStep{2,2,1, sdeT, methodT,tracerT,x0T,x1T,tT}) where {sdeT<:SDE_VIO,methodT<:DiscreteTimeStepping{TDrift},tracerT,x0T,x1T,tT} where {TDrift<:Euler}
@@ -255,15 +266,12 @@ end
 function get_and_set_potential_wallID!(IK::IntegrationKernel{1,dyn}) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO}
     get_and_set_potential_wallID!(IK.sdestep, IK.x1[1])
 end
-function get_and_set_potential_wallID!(sdestep::NonSmoothSDEStep{2,2,1,sdeT}, x1) where sdeT <: SDE_VIO{1}
-    # sdestep.ID_aux[] = 1
-end
+get_and_set_potential_wallID!(::NonSmoothSDEStep{2,2,1,sdeT}, x1) where sdeT <: SDE_VIO{1} = nothing
 function get_and_set_potential_wallID!(sdestep::NonSmoothSDEStep{2,2,1,sdeT}, x1) where sdeT <: SDE_VIO{2}
     walls = sdestep.sde.wall
     ID = abs(walls[1].pos - x1) < abs(walls[2].pos - x1) ? 1 : 2
-    sdestep.ID_aux[] = ID
-    sdestep.sde.ID[] = ID
-    W_pos = walls[ID].pos
+    set_wall_ID!(sdestep,ID)
+    W_pos = get_wall(sdestep).pos
     # update_impact_vio_xi_atwall!(sdestep[2], ID)
 
     sdestep[2].xi[1] = W_pos
@@ -271,8 +279,8 @@ function get_and_set_potential_wallID!(sdestep::NonSmoothSDEStep{2,2,1,sdeT}, x1
 end
 function modify_x1_if_on_wall!(IK::IntegrationKernel{1,dyn}; wall_tol = 1.5e-8, kwargs... ) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO}
     # sqrt(eps()) ≈ 1.49e-8
-    ID = IK.sdestep.ID_aux[];
-    wall = IK.sdestep.sde.wall[ID[]];
+    ID = get_wall_ID(IK.sdestep);
+    wall = get_wall(IK.sdestep);
     x1,v1 = IK.x1
     if (isapprox(x1, wall.pos, atol = wall_tol) && !(is_v_compatible(v1, ID)))
         IK.sdestep.sdesteps[1].xi2[1] = x1
@@ -316,13 +324,13 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thi
     sdestep = IK.sdestep
     step1 = sdestep.sdesteps[1]
     step2 = sdestep.sdesteps[2]
-    compute_velocities_to_impact!(step2, sdestep.ID_aux[])
+    compute_velocities_to_impact!(step2)
     s_σ = sqrt(_Δt(step1)*get_g(step1.sde)(2, step1.x1,_par(step1),_t0(step1))^2) * int_limit_thickness_multiplier
 
 
     if abs(step2.steptracer.v_i[3] - IK.x1[2]) ≤ s_σ && !(sdestep.Q_aux[]) # v1 after impact vs. v1 investigated
         # mixed: impact and non-impact
-        wallID = sdestep.ID_aux[]
+        wallID = get_wall_ID(sdestep)
         if wallID == 1
             # without impact
             mx = min(step2.steptracer.v_i[2],IK.pdf.axes[2][end])
@@ -335,7 +343,7 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thi
             # with impact
             mx = min(step2.steptracer.v_i[1],IK.pdf.axes[2][end])
             step2.x1[2] = step2.x1[2] + s_σ
-            compute_initial_states_driftstep!(step2; wallID = wallID, IK.kwargs...)
+            compute_initial_states_driftstep!(step2; IK.kwargs...)
             mn = max(step2.x0[2],IK.pdf.axes[2][1])
             rescale_to_limits!(IK.discreteintegrator[2], mn, mx)
             step2.x1[2] = step1.x1[2]
@@ -408,9 +416,17 @@ end
 
 function detJ_correction(fx,sdestep::NonSmoothSDEStep{d,k,m,sdeT})  where {sdeT<:SDE_VIO,dk,d,k,m}
     if sdestep.Q_aux[]
-        return fx * get_detJinv(sdestep[2], sdestep.ID_aux[])
+        step1 = sdestep[1]
+        step2 = sdestep[2]
+        step2.x0 .= step1.x0
+        step2.x1 .= step1.x1
+        step2.xi .= step1.x1
+        step2.xi2 .= step2.xi
+        step2.xi2[2] = -get_wall(step2)(step2.xi2[2])*step2.xi2[2]
+        step2.ti[] = _t1(step1)
+        return fx * get_detJinv(sdestep[2])
     else
-        return fx * get_detJinv(sdestep[sdestep.ID_dyn[]], sdestep.ID_aux[])
+        return fx * get_detJinv(sdestep[sdestep.ID_dyn[]])
     end
 end
 
@@ -424,13 +440,13 @@ function DiscreteIntegrator(discreteintegrator, sdestep::NonSmoothSDEStep, res_p
 end
 
 ## transitionprobabilities.jl
-# function transitionprobability(step::SDEStep{d,d,m,sdeT,method},x) where {d,m,sdeT<:SDE_VIO, method<:DiscreteTimeStepping{TDrift, TDiff}} where {TDrift, TDiff<:Maruyama}
-#     g = get_g(step.sde)
-#     r = step.sde.wall[1]
-#     σ2 = _Δt0i(step) * (g(d, step.x0,_par(step),_t0(step))^ 2)
-#     σ2 = σ2 * (r(step.xi[2])^2)
-#     σ2 = σ2 + _Δti1(step) * (g(d, step.xi2,_par(step),_ti(step))^ 2) 
-#     # @show σ2
-#     # detJ_correction = _detJ(step, x)
-#     normal1D_σ2(step.x1[d], σ2, x[d]);
-# end
+function transitionprobability(step::SDEStep{d,d,m,sdeT,method},x) where {d,m,sdeT<:SDE_VIO, method<:DiscreteTimeStepping{TDrift, TDiff}} where {TDrift, TDiff<:Maruyama}
+    g = get_g(step.sde)
+    r = get_wall(step)
+    σ2 = _Δt0i(step) * (g(d, step.x0,_par(step),_t0(step))^ 2)
+    σ2 = σ2 * (r(step.xi[2])^2)
+    σ2 = σ2 + _Δti1(step) * (g(d, step.xi2,_par(step),_ti(step))^ 2) 
+    @show σ2
+    # detJ_correction = _detJ(step, x)
+    normal1D_σ2(step.x1[d], σ2, x[d]);
+end

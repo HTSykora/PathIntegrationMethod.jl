@@ -15,16 +15,16 @@ end
 function g2(x,p,t)
     p[2] # = σ
 end
-par = [0.1,0.5]
+par = [0.0,1.0]
 ##
 # method = RK2()
 
 W = Wall(x->0.7-0.05x,-1.)
 W = Wall(0.7,-0.0)
 sde = SDE_VIO(f2,g2,W, par)
-axisgrid = (QuinticAxis(W.pos,3.,31), QuinticAxis(-3.0,3.,31))
+axisgrid = (QuinticAxis(W.pos,3.,51), QuinticAxis(-3.0,3.,51))
 
-# Ws = (Wall(0.7,-1.),Wall(0.7,1.))
+# Ws = (Wall(0.7,-0.5),Wall(0.7,0.5))
 # sde = SDE_VIO(f2,g2,Ws, par)
 # axisgrid = (QuinticAxis(Ws[1].pos,Ws[2].pos,51), QuinticAxis(-3.,3.,51))
 
