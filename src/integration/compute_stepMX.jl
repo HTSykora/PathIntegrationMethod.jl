@@ -75,6 +75,7 @@ function update_dyn_state_x1!(IK::IntegrationKernel{kd,dyn}, idx) where dyn <:SD
 end
 function update_dyn_state_x1!(sdestep::SDEStep{d,k,m}, x1) where {d,k,m}
     sdestep.x1 .= x1
+    sdestep.x0 .= x1
 end
 
 @inline function fill_to_stepMX!(stepMX::AbstractMatrix,IK,i; kwargs...)

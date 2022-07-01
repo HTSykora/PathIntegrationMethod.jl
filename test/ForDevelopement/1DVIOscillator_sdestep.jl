@@ -36,7 +36,7 @@ begin
     step1.x1 .= [-0.095, 1.]
 
     step1.x0 .= [0.,0.0]
-    step1.x1 .= [0.,-0.0]
+    step1.x1 .= [0.,-0.1]
     @time PathIntegrationMethod.compute_missing_states_driftstep!(step1)
     @show step1.x0
     @show step1.x1
@@ -49,12 +49,16 @@ end
 @run PathIntegrationMethod._getTPDF(sdestep,step1.x0[2],step1.x1)
 
 begin
-    sdestep.ID_dyn[] = 2
-    sdestep.ID_aux[] = 1
-    step2.x0 .= [-0.05, -1.]
-    step2.x1 .= [-0.075, -0.714285714285715]
-
-
+    PathIntegrationMethod.set_wall_ID!(step2,1)
+    step2.x0 .= [PathIntegrationMethod.get_wall(step2).pos,-0.001]
+    step2.x1 .= [PathIntegrationMethod.get_wall(step2).pos, 0.0]
+    
+    step2.ti[] = Δt
+    step2.xi[1] = pos
+    step2.xi[2] = step2.x0[2]
+    step2.xi2[1] = pos
+    step2.xi2[2] = -step2.x0[2]*W(step2.x0[2])
+    # step2.ti[] = 0*PathIntegrationMethod._Δt(step2)/2
 
     # step2.xi[1] = W.pos
     # step2.xi[2] = step2.x0[2]
@@ -77,13 +81,14 @@ end
 ##
 begin
     PathIntegrationMethod.set_wall_ID!(step2,1)
+    pos =W.pos
+    step2.x0 .= [0.1, -5.]
+    step2.x1 .= [pos+0.05, -5.]
 
-    step2.x0 .= [0.0, -1.]
-    step2.x1 .= [-0.0, -3.]
-
-    step2.xi[1] = W.pos
+    step2.xi[1] = pos
     step2.xi[2] = step2.x0[2]
-    step2.xi2[1] = W.pos
+    step2.xi2[1] = pos
+    step2.xi2[2] = -step2.x0[2]*W(step2.x0[2])
     step2.ti[] = PathIntegrationMethod._Δt(step2)/2
     
     # step2.x1 .= [0.95, 0.5]
@@ -106,14 +111,14 @@ PI = PathIntegration(sde, method, Δt, axisgrid; kwargs...);
 begin
     sdestep.ID_dyn[] = 2
     PathIntegrationMethod.set_wall_ID!(sdestep,1)
-    step2.x0 .= [(0.01),-20.1000]
+    step2.x0 .= [(0.01),-5.000]
     # step2.x0 .= [0.0014430014430014432, -0.014430014430014432]
     # step2.x0 .= rand(2)
     # step2.x1 .= [0.,-0.3]
-    step2.x1 .= [W.pos,1.5e-8*rand()]
-    step2.xi2[2] = step2.x1[2]
+    step2.x1 .= [W.pos,0.]
+    step2.xi2[2] = step2.x0[2]
     step2.xi[2] = -step2.xi2[2]/0.7
-    step2.ti[] = 0.01
+    step2.ti[] = 0.005
 
 
     # step2.xi[1] = W.pos

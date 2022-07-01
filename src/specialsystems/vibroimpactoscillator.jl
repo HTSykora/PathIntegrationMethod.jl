@@ -10,7 +10,7 @@ get_dkm(sde::SDE_VIO) = (2,2,1) # (d,k,m)
 function osc_f1(u,p,t)
     u[2]
 end
-is_v_compatible(v, ID) = !xor(signbit(v), ID == 1)
+is_v_compatible(v, ID; v_tol = 1.5e-8) = abs(v)<v_tol || !xor(signbit(v), ID == 1)
 is_x_inimpactzone(x, xi, ID; wall_tol = 1.5e-8, kwargs...) = 
     isapprox(x, xi, atol = wall_tol) ? false : xor(ID == 1, x<xi)
 
@@ -176,6 +176,7 @@ end
 function compute_velocities_to_impact!(step::SDEStep{2,2,1,<:SDE_VIO,DiscreteTimeStepping{TDrift,TDiff}}; kwargs...) where {TDrift, TDiff}
     # Compute max v0, v1 just before impact happens
     _compute_velocities_to_impact!(step.steptracer.vitemp,step.steptracer.v_toimpact![get_wall_ID(step)], step.steptracer.v_i, step.x1[1], step.xi[1], _par(step), _t0(step), _t1(step); kwargs...)
+    abs(step.steptracer.v_i[1])<1.5e-8, step.steptracer.v_i
     nothing
 end
 
@@ -277,36 +278,33 @@ function get_and_set_potential_wallID!(sdestep::NonSmoothSDEStep{2,2,1,sdeT}, x1
     sdestep[2].xi[1] = W_pos
     sdestep[2].xi2[1] = W_pos
 end
-function modify_x1_if_on_wall!(IK::IntegrationKernel{1,dyn}; wall_tol = 1.5e-8, kwargs... ) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO}
-    # sqrt(eps()) ≈ 1.49e-8
-    ID = get_wall_ID(IK.sdestep);
-    wall = get_wall(IK.sdestep);
-    x1,v1 = IK.x1
-    if (isapprox(x1, wall.pos, atol = wall_tol) && !(is_v_compatible(v1, ID)))
-        IK.sdestep.sdesteps[1].xi2[1] = x1
-        IK.sdestep.sdesteps[1].xi2[2] = v1
-        IK.x1[2] = get_v_beforeimpact(v1, wall; kwargs...)
-        IK.sdestep.Q_aux[] = true
-    end
-end
 
 function update_IK_state_x1!(IK::IntegrationKernel{1,dyn}, idx) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO}
     d=2
-    IK.sdestep.Q_aux[] = false
 
     for i in 1:d
         IK.x1[i] = getindex(IK.pdf.axes[i],idx[i])
     end
 
     get_and_set_potential_wallID!(IK)
-    modify_x1_if_on_wall!(IK)
 end
 function update_dyn_state_x1!(IK::IntegrationKernel{1,dyn}, idx) where dyn <:NonSmoothSDEStep{d,k,m, sdeT} where {d,k,m,sdeT}
     for sdestep in IK.sdestep.sdesteps
         update_dyn_state_x1!(sdestep,IK.x1)
     end
 end
+function update_dyn_state_x1!(sdestep::SDEStep{d,k,m,sdeT}, x1) where {d,k,m,sdeT<:SDE_VIO}
+    sdestep.x1 .= x1
 
+    sdestep.xi2[2] = x1[2]
+    sdestep.xi[2] = -x1[2]/get_wall(sdestep)(x1[2])
+
+    sdestep.x0[1] = x1[1]
+    sdestep.x0[2] = sdestep.xi[2]
+
+    sdestep.ti[] = init_ti(_t0(sdestep),_t1(sdestep)) |> get_val
+
+end
 
 function Q_check_impact(step, walls, ID)
     if ID == 1
@@ -324,16 +322,23 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thi
     sdestep = IK.sdestep
     step1 = sdestep.sdesteps[1]
     step2 = sdestep.sdesteps[2]
-    compute_velocities_to_impact!(step2)
+    Q_at_wall, v_i = compute_velocities_to_impact!(step2)
+    IK.sdestep.Q_aux[] = Q_at_wall
+    # v_i == [v_beforeimpact, v_afterimpact, v1]
+    if Q_at_wall
+        v_i[3] = zero(v_i[3])
+        v_i[1] = get_wall_ID(step2) == 1 ?  -1.5e-8 : 1.5e-8
+        v_i[2] =  -v_i[1]*get_wall(step2)(v_i[1])
+    end
     s_σ = sqrt(_Δt(step1)*get_g(step1.sde)(2, step1.x1,_par(step1),_t0(step1))^2) * int_limit_thickness_multiplier
+    # TODO: handle impact when v_0 == 0 at wall!
 
-
-    if abs(step2.steptracer.v_i[3] - IK.x1[2]) ≤ s_σ && !(sdestep.Q_aux[]) # v1 after impact vs. v1 investigated
+    if abs(v_i[3] - IK.x1[2]) ≤ s_σ # v1 after impact vs. v1 investigated
         # mixed: impact and non-impact
         wallID = get_wall_ID(sdestep)
         if wallID == 1
             # without impact
-            mx = min(step2.steptracer.v_i[2],IK.pdf.axes[2][end])
+            mx = min(v_i[2], IK.pdf.axes[2][end])
             step1.x1[2] = step1.x1[2] - s_σ
             compute_initial_states_driftstep!(step1; IK.kwargs...)
             mn = max(step1.x0[2],IK.pdf.axes[2][1])
@@ -341,7 +346,7 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thi
             step1.x1[2] = step2.x1[2]
             
             # with impact
-            mx = min(step2.steptracer.v_i[1],IK.pdf.axes[2][end])
+            mx = min(v_i[1], IK.pdf.axes[2][end])
             step2.x1[2] = step2.x1[2] + s_σ
             compute_initial_states_driftstep!(step2; IK.kwargs...)
             mn = max(step2.x0[2],IK.pdf.axes[2][1])
@@ -349,7 +354,7 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thi
             step2.x1[2] = step1.x1[2]
         elseif wallID == 2
             # without impact
-            mn = max(step2.steptracer.v_i[2],IK.pdf.axes[2][1])
+            mn = max(v_i[2], IK.pdf.axes[2][1])
             step1.x1[2] = step1.x1[2] + s_σ
             compute_initial_states_driftstep!(step1; IK.kwargs...)
             mx = min(step1.x0[2],IK.pdf.axes[2][end])
@@ -357,26 +362,28 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thi
             step1.x1[2] = step2.x1[2]
             
             # with impact
-            mn = max(step2.steptracer.v_i[1],IK.pdf.axes[2][1])
+            mn = max(v_i[1], IK.pdf.axes[2][1])
             step2.x1[2] = step2.x1[2] - s_σ
-            compute_initial_states_driftstep!(step2; wallID = wallID, IK.kwargs...)
+            compute_initial_states_driftstep!(step2; IK.kwargs...)
             mx = min(step2.x0[2],IK.pdf.axes[2][end])
             rescale_to_limits!(IK.discreteintegrator[2], mn, mx)
             step2.x1[2] = step1.x1[2]
         end
     else # check if there is a clean impact region or not?
         compute_initial_states_driftstep!(step1; IK.kwargs...)
-        if Q_check_impact(step1, step2.sde.wall, sdestep.ID_aux[])
+        if Q_check_impact(step1, step2.sde.wall, get_wall_ID(sdestep))
             compute_initial_states_driftstep!(step2; IK.kwargs...)
             rescale_discreteintegrator!(IK.discreteintegrator[2], step2, IK.pdf; int_limit_thickness_multiplier = int_limit_thickness_multiplier, kwargs...)
         else
-            # checkbit = sdestep.Q_aux[] && abs(step1.x1[2])<1.4e-5
             rescale_discreteintegrator!(IK.discreteintegrator[1], step1, IK.pdf; int_limit_thickness_multiplier = int_limit_thickness_multiplier, kwargs...)
-            # if checkbit
-            #     @show IK.discreteintegrator[1].x[1]
-            #     @show IK.discreteintegrator[1].x[end]
-            #     @show IK.discreteintegrator[1].Q_integrate
-            #     @show IK.discreteintegrator[2].Q_integrate
+            # if sdestep.Q_aux[]
+            #     (mn, mx) = get_limits(IK.discreteintegrator[1])
+            #     if get_wall_ID(sdestep) == 1
+            #         mx = min(zero(mx),mx)
+            #     else
+            #         mn = max(zero(mn),mn)
+            #     end
+            #     rescale_to_limits!(IK.discreteintegrator[2], mn, mx)
             # end
         end
     end
@@ -415,19 +422,7 @@ function detJ_correction(fx,sdestep::NonSmoothSDEStep{d,k,m})  where {dk,d,k,m}
 end
 
 function detJ_correction(fx,sdestep::NonSmoothSDEStep{d,k,m,sdeT})  where {sdeT<:SDE_VIO,dk,d,k,m}
-    if sdestep.Q_aux[]
-        step1 = sdestep[1]
-        step2 = sdestep[2]
-        step2.x0 .= step1.x0
-        step2.x1 .= step1.x1
-        step2.xi .= step1.x1
-        step2.xi2 .= step2.xi
-        step2.xi2[2] = -get_wall(step2)(step2.xi2[2])*step2.xi2[2]
-        step2.ti[] = _t1(step1)
-        return fx * get_detJinv(sdestep[2])
-    else
-        return fx * get_detJinv(sdestep[sdestep.ID_dyn[]])
-    end
+    return fx * get_detJinv(sdestep[sdestep.ID_dyn[]])
 end
 
 # discreteintegrator.jl
