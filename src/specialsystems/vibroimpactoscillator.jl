@@ -262,6 +262,7 @@ function get_and_set_potential_wallID!(sdestep::NonSmoothSDEStep{2,2,1,sdeT}, x1
     walls = sdestep.sde.wall
     ID = abs(walls[1].pos - x1) < abs(walls[2].pos - x1) ? 1 : 2
     sdestep.ID_aux[] = ID
+    sdestep.sde.ID[] = ID
     W_pos = walls[ID].pos
     # update_impact_vio_xi_atwall!(sdestep[2], ID)
 
@@ -422,13 +423,14 @@ function DiscreteIntegrator(discreteintegrator, sdestep::NonSmoothSDEStep, res_p
     NonSmoothDiscreteIntegrator{1,number_of_sdesteps(sdestep),typeof(discreteintegrators)}(discreteintegrators)
 end
 
-# transitionprobabilities.jl
+## transitionprobabilities.jl
 # function transitionprobability(step::SDEStep{d,d,m,sdeT,method},x) where {d,m,sdeT<:SDE_VIO, method<:DiscreteTimeStepping{TDrift, TDiff}} where {TDrift, TDiff<:Maruyama}
 #     g = get_g(step.sde)
-#     r = step.sde.wall[step.sde.ID[]]
+#     r = step.sde.wall[1]
 #     σ2 = _Δt0i(step) * (g(d, step.x0,_par(step),_t0(step))^ 2)
 #     σ2 = σ2 * (r(step.xi[2])^2)
 #     σ2 = σ2 + _Δti1(step) * (g(d, step.xi2,_par(step),_ti(step))^ 2) 
+#     # @show σ2
 #     # detJ_correction = _detJ(step, x)
 #     normal1D_σ2(step.x1[d], σ2, x[d]);
 # end
