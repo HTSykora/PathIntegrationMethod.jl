@@ -20,7 +20,7 @@ par = [0.1,0.5]
 # method = RK2()
 
 W = Wall(x->0.7-0.05x,-1.)
-W = Wall(0.7,-0.1)
+W = Wall(0.7,-0.0)
 sde = SDE_VIO(f2,g2,W, par)
 axisgrid = (QuinticAxis(W.pos,3.,31), QuinticAxis(-3.0,3.,31))
 
@@ -36,11 +36,11 @@ method = Euler()
 Δt = 0.01
 ##
 
-@time PI = PathIntegration(sde, method, Δt, axisgrid...);
-reinit_PI_pdf!(PI)
-for _ in 1:50
+@time PI = PathIntegration(sde, method, Δt, axisgrid..., di_N = 31);
+for _ in 1:100
     advance!(PI)
 end
+# reinit_PI_pdf!(PI)
 # advance_till_converged!(PI)
 
 ##
