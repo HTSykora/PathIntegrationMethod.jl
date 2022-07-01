@@ -83,7 +83,7 @@ begin
     PathIntegrationMethod.set_wall_ID!(step2,1)
     pos =W.pos
     step2.x0 .= [0.1, -5.]
-    step2.x1 .= [pos+0.05, -5.]
+    step2.x1 .= [pos+0.5, -5.]
 
     step2.xi[1] = pos
     step2.xi[2] = step2.x0[2]
@@ -115,10 +115,10 @@ begin
     # step2.x0 .= [0.0014430014430014432, -0.014430014430014432]
     # step2.x0 .= rand(2)
     # step2.x1 .= [0.,-0.3]
-    step2.x1 .= [W.pos,0.]
+    step2.x1 .= [W.pos,-0.5]
     step2.xi2[2] = step2.x0[2]
     step2.xi[2] = -step2.xi2[2]/0.7
-    step2.ti[] = 0.005
+    step2.ti[] = 0.000
 
 
     # step2.xi[1] = W.pos
@@ -126,7 +126,7 @@ begin
     # step2.xi2[1] = W.pos
     # step2.ti[] = PathIntegrationMethod._Δt(step2)
     
-    @time PathIntegrationMethod.compute_missing_states_driftstep!(step2)
+    @time PathIntegrationMethod.compute_initial_states_driftstep!(step2)
 
     @show step2.x0
     @show step2.x1

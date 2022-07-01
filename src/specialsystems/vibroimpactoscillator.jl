@@ -177,7 +177,7 @@ function compute_velocities_to_impact!(step::SDEStep{2,2,1,<:SDE_VIO,DiscreteTim
     # Compute max v0, v1 just before impact happens
     _compute_velocities_to_impact!(step.steptracer.vitemp,step.steptracer.v_toimpact![get_wall_ID(step)], step.steptracer.v_i, step.x1[1], step.xi[1], _par(step), _t0(step), _t1(step); kwargs...)
     abs(step.steptracer.v_i[1])<1.5e-8, step.steptracer.v_i
-    nothing
+    # nothing
 end
 
 function get_detJinv(step::SDEStep{d,k,m, sdeT, methodT,tracerT}) where {d, k,m, sdeT<:SDE_VIO, methodT,tracerT<:VIO_SymbolicNewtonImpactStepTracer}
@@ -329,6 +329,7 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thi
         v_i[3] = zero(v_i[3])
         v_i[1] = get_wall_ID(step2) == 1 ?  -1.5e-8 : 1.5e-8
         v_i[2] =  -v_i[1]*get_wall(step2)(v_i[1])
+        step2.ti[] = zero(step2.ti[])
     end
     s_σ = sqrt(_Δt(step1)*get_g(step1.sde)(2, step1.x1,_par(step1),_t0(step1))^2) * int_limit_thickness_multiplier
     # TODO: handle impact when v_0 == 0 at wall!
@@ -441,7 +442,7 @@ function transitionprobability(step::SDEStep{d,d,m,sdeT,method},x) where {d,m,sd
     σ2 = _Δt0i(step) * (g(d, step.x0,_par(step),_t0(step))^ 2)
     σ2 = σ2 * (r(step.xi[2])^2)
     σ2 = σ2 + _Δti1(step) * (g(d, step.xi2,_par(step),_ti(step))^ 2) 
-    @show σ2
+    println(σ2)
     # detJ_correction = _detJ(step, x)
     normal1D_σ2(step.x1[d], σ2, x[d]);
 end
