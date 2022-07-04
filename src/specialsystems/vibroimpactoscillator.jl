@@ -193,7 +193,7 @@ function update_impact_vio_xI!(step::SDEStep{2,2,1, sdeT, methodT,tracerT,x0T,x1
 
     step.x0[1] = step.steptracer.tempI[1]
 
-    step.ti[] = step.steptracer.tempI[2]
+    step.ti[] = clamp(step.steptracer.tempI[2],_t0(step),_t1(step))
 
     step.xi[2] = step.steptracer.tempI[3] # vi
     step.xi2[2] = - get_wall(step)(step.xi[2])*step.xi[2]
@@ -205,7 +205,7 @@ function update_impact_vio_x!(step::SDEStep{2,2,1, sdeT, methodT,tracerT,x0T,x1T
     step.x0[1] = step.steptracer.temp[1]
     step.x0[2] = step.steptracer.temp[2]
 
-    step.ti[] = step.steptracer.temp[3]
+    step.ti[] = clamp(step.steptracer.tempI[3],_t0(step),_t1(step))
 
     step.xi[2] = step.steptracer.temp[4] # vi
     step.xi2[2] = - get_wall(step)(step.xi[2])*step.xi[2]
@@ -277,6 +277,9 @@ function get_and_set_potential_wallID!(sdestep::NonSmoothSDEStep{2,2,1,sdeT}, x1
 
     sdestep[2].xi[1] = W_pos
     sdestep[2].xi2[1] = W_pos
+
+    # sdestep[2].Q_aux[] = abs(W_pos - x1) < 1e-10
+    nothing
 end
 
 function update_IK_state_x1!(IK::IntegrationKernel{1,dyn}, idx) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO}
@@ -294,15 +297,19 @@ function update_dyn_state_x1!(IK::IntegrationKernel{1,dyn}, idx) where dyn <:Non
     end
 end
 function update_dyn_state_x1!(sdestep::SDEStep{d,k,m,sdeT}, x1) where {d,k,m,sdeT<:SDE_VIO}
-    sdestep.x1 .= x1
+    _corr = get_wall_ID(sdestep) == 1 ? 1.5e-10 : -1.5e-10
+    sdestep.x1[1] = x1[1] + _corr
+    sdestep.x1[2] = x1[2] + _corr
+    # _corr = _Δt(sdestep)*1.5e-6
+    # Q_ID1 =
+    sdestep.xi2[2] = x1[2] + _corr
+    sdestep.xi[2] = -sdestep.xi2[2]/get_wall(sdestep)(sdestep.xi2[2])
 
-    sdestep.xi2[2] = x1[2]
-    sdestep.xi[2] = -x1[2]/get_wall(sdestep)(x1[2])
-
-    sdestep.x0[1] = x1[1]
+    sdestep.x0[1] = x1[1] + _corr
     sdestep.x0[2] = sdestep.xi[2]
 
-    sdestep.ti[] = init_ti(_t0(sdestep),_t1(sdestep)) |> get_val
+    # sdestep.ti[] = init_ti(_t0(sdestep),_t1(sdestep)) |> get_val
+    sdestep.ti[] = _t1(sdestep)
 
 end
 
@@ -324,12 +331,12 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thi
     step2 = sdestep.sdesteps[2]
     Q_at_wall, v_i = compute_velocities_to_impact!(step2)
     IK.sdestep.Q_aux[] = Q_at_wall
-    # v_i == [v_beforeimpact, v_afterimpact, v1]
+    # # v_i == [v_beforeimpact, v_afterimpact, v1]
     if Q_at_wall
         v_i[3] = zero(v_i[3])
         v_i[1] = get_wall_ID(step2) == 1 ?  -1.5e-8 : 1.5e-8
         v_i[2] =  -v_i[1]*get_wall(step2)(v_i[1])
-        step2.ti[] = zero(step2.ti[])
+        step2.ti[] = _t1(step2)
     end
     s_σ = sqrt(_Δt(step1)*get_g(step1.sde)(2, step1.x1,_par(step1),_t0(step1))^2) * int_limit_thickness_multiplier
     # TODO: handle impact when v_0 == 0 at wall!
@@ -388,6 +395,9 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thi
             # end
         end
     end
+    if Q_at_wall
+        update_dyn_state_x1!(step2,step1.x1)
+    end
 end
 ## 
 
@@ -416,6 +426,11 @@ function _getTPDF(sdestep::NonSmoothSDEStep{d,k,m}, x, x1)  where {dk,d,k,m}
     ID_dyn = sdestep.ID_dyn[]
     update_relevant_states!(sdestep[ID_dyn],x)
     compute_missing_states_driftstep!(sdestep[ID_dyn])
+    if sdestep.Q_aux[] && ID_dyn == 2
+        sdestep[ID_dyn].x1[2] = sdestep[ID_dyn].xi2[2]
+        # println("ti adjusted")
+        sdestep[ID_dyn].ti[] = _t1(sdestep[ID_dyn])
+    end
     transitionprobability(sdestep[ID_dyn],x1)
 end
 function detJ_correction(fx,sdestep::NonSmoothSDEStep{d,k,m})  where {dk,d,k,m}
@@ -442,7 +457,7 @@ function transitionprobability(step::SDEStep{d,d,m,sdeT,method},x) where {d,m,sd
     σ2 = _Δt0i(step) * (g(d, step.x0,_par(step),_t0(step))^ 2)
     σ2 = σ2 * (r(step.xi[2])^2)
     σ2 = σ2 + _Δti1(step) * (g(d, step.xi2,_par(step),_ti(step))^ 2) 
-    println(σ2)
+    # println(σ2)
     # detJ_correction = _detJ(step, x)
     normal1D_σ2(step.x1[d], σ2, x[d]);
 end

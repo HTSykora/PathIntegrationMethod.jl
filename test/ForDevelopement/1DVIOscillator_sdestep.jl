@@ -16,7 +16,7 @@ method = Euler()
 # method = RK2()
 
 W = Wall(x->0.7-0.05x,-1.)
-W = Wall(0.7,-0.1)
+W = Wall(0.7,-0.0)
 sde = SDE_VIO(f2,g2,W, par)
 Δt = 0.01
 
@@ -111,26 +111,40 @@ PI = PathIntegration(sde, method, Δt, axisgrid; kwargs...);
 begin
     sdestep.ID_dyn[] = 2
     PathIntegrationMethod.set_wall_ID!(sdestep,1)
-    step2.x0 .= [(0.01),-5.000]
     # step2.x0 .= [0.0014430014430014432, -0.014430014430014432]
     # step2.x0 .= rand(2)
     # step2.x1 .= [0.,-0.3]
-    step2.x1 .= [W.pos,-0.5]
-    step2.xi2[2] = step2.x0[2]
-    step2.xi[2] = -step2.xi2[2]/0.7
-    step2.ti[] = 0.000
-
-
+    # step2.x1 .= [W.pos,-0.000]
+    # step2.xi2[2] = step2.x0[2]
+    # step2.xi[2] = -step2.xi2[2]/0.7
+    # step2.ti[] = 0.00
+    
     # step2.xi[1] = W.pos
     # step2.xi[2] = step2.x0[2]
     # step2.xi2[1] = W.pos
     # step2.ti[] = PathIntegrationMethod._Δt(step2)
     
-    @time PathIntegrationMethod.compute_initial_states_driftstep!(step2)
-
+    PathIntegrationMethod.update_dyn_state_x1!(step2,[1e-4,0.])
     @show step2.x0
     @show step2.x1
     @show step2.xi
     @show step2.xi2
     @show step2.ti[]
+
+    @time PathIntegrationMethod.compute_initial_states_driftstep!(step2)
+    @show step2.x0
+    @show step2.x1
+    @show step2.xi
+    @show step2.xi2
+    @show step2.ti[]
+    @show step2.steptracer.temp
+
+    PathIntegrationMethod.update_dyn_state_x1!(step2,[1e-4,0.0])
+    @time PathIntegrationMethod.compute_missing_states_driftstep!(step2)
+    @show step2.x0
+    @show step2.x1
+    @show step2.xi
+    @show step2.xi2
+    @show step2.ti[]
+    @show step2.steptracer.tempI
 end;
