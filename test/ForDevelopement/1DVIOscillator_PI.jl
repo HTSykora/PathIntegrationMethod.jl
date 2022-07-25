@@ -16,11 +16,29 @@ function g2(x,p,t)
     p[2] # = σ
 end
 par = [0.1,0.5]
+
+struct WallFunction{mnT, aT, dT, dxT, sfT} <: Function
+    mn::mnT
+    a::aT
+    dx::dxT
+    d::dT
+    sigmoidfunction::sfT
+end
+function (w::WallFunction)(x)
+    w.mn + w.d * w.sigmoidfunction(-w.a*x + w.dx)
+end
+
+function WallFunction(mn, mx, a = 1.; sigmoidfunction::T = tanh, dx = 4.) where T<:typeof(tanh)
+    d = (mx - mn)/2
+    WallFunction(mn + d, a, dx, d, tanh)
+end
+
 ##
 # method = RK2()
 
 #  W = Wall(x->0.7-0.001x^2,-0.)
-W = Wall(0.7,-0.0)
+W = Wall(WallFunction(0.25,0.7,1.0; dx = 3.),-0.)
+# W = Wall(0.7,-0.0)
 sde = SDE_VIO(f2,g2,W, par)
 axisgrid = (QuinticAxis(W.pos,4.,101), QuinticAxis(-3.0,3.,101))
 
@@ -37,7 +55,7 @@ method = Euler()
 ##
 
 @time PI = PathIntegration(sde, method, Δt, axisgrid..., di_N = 31);
-for _ in 1:30
+for _ in 1:300
     advance!(PI)
 end
 # reinit_PI_pdf!(PI)
@@ -71,12 +89,13 @@ begin
     plot(vs,PI.(PI.pdf.axes[1][2],vs))
     plot(vs,PI.(PI.pdf.axes[1][3],vs))
     plot(vs,PI.(PI.pdf.axes[1][4],vs))
+    xlabel(L"v"); ylabel(L"p")
+    
+    plot(vs,W.(vs))
 end
 
 
-
 ##
-@run PathIntegration(sde, method, Δt, axisgrid...);
 
 
 ## TO check in debug
