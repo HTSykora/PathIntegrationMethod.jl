@@ -58,10 +58,13 @@ function multiply_weightMX!(res::AbstractArray{T,N}, ws::AbstractVector{wT},dim:
 end
 
 
-function update_mPDF!(mpdf::MarginalPDF,pdf::InterpolatedFunction)
+function update_mPDF!(mpdf::MarginalPDF,pdf::InterpolatedFunction; detached = false, kwargs...)
     mpdf.temp .= mpdf.wMX .* pdf.p
 
     mpdf.p0 .= sum(mpdf.temp, dims=mpdf.dims)
+    if detached # In case the structure is reconstructed using JLD2 we should use `detached = true`
+        mpdf.pdf.p .= mpdf.p0
+    end
     nothing
 end
 
