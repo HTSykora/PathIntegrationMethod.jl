@@ -63,7 +63,9 @@ function update_mPDF!(mpdf::MarginalPDF,pdf::InterpolatedFunction; detached = fa
 
     mpdf.p0 .= sum(mpdf.temp, dims=mpdf.dims)
     if detached # In case the structure is reconstructed using JLD2 we should use `detached = true`
-        mpdf.pdf.p .= mpdf.p0
+        for i in eachindex(mpdf.p0)
+            @inbounds mpdf.pdf.p[i] = mpdf.p0[i]
+        end
     end
     nothing
 end
