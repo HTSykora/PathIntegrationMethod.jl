@@ -112,11 +112,8 @@ advance_till_conv(PI,  Tmax = 50., rtol = 1e-6, check_dt = 1.)
 ```
 We can also include a condition that the computation stops in case we reach `PI.t == Tmax`.
 
-We can now check the values of the PDF by `PI(x,v) ≈ p(x,v,PI.t)`.
+We can now access the (interpolated) values of the PDF $p(x,v,$`PI.t`$)$ by using `PI(x,v)`.
 Note that if `x` or `v` lies outside of the region of interest then `PI(x,v) == 0`.
-
-We can create an animated evolution of the PDF of the cubic oscillator Plotting the results in each time steps
-![](./assets/CubicOsc.gif)
 
 We can reinitialise the response PDF with
 ```julia
@@ -128,3 +125,5 @@ or if we want to obtain the response PDF evolution of the same system with diffe
 new_par = ...
 recompute_PI!(PI::PathIntegration; par = new_par, f = nothing, Q_reinit_pdf = false, reset_t= true)
 ```
+
+![](./assets/CubicOsc.gif)
