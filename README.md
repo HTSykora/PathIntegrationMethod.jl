@@ -4,7 +4,7 @@
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/HTSykora/PathIntegrationMethod.jl?svg=true)](https://ci.appveyor.com/project/HTSykora/PathIntegrationMethod-jl)
 [![Coverage](https://codecov.io/gh/HTSykora/PathIntegrationMethod.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/HTSykora/PathIntegrationMethod.jl)
 
-This package implements the step matrix multiplication path integration (SMM-PI) method for the computation of the response probability function of a system described by a $d$-dimensional stochastic differential equation of the form
+This package implements the step matrix multiplication path integration (SMM-PI) method to compute of the response probability function of a system described by a $d$-dimensional stochastic differential equation of the form
 
 $$ \mathrm{d} x  = f(x,t) \mathrm{d} t + g(x,t) \mathrm{d} W (t).$$
 
