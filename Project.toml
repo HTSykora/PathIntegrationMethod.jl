@@ -15,6 +15,7 @@ Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 ThreadedSparseArrays = "59d54670-b8ac-4d81-ab7a-bb56233e17ab"
 
 [compat]
+ThreadedSparseArrays = "0.2"
 Distributions = "0.25"
 Reexport = "1"
 FFTW = "1"
