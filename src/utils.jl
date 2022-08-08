@@ -1,8 +1,7 @@
-function (f::Scalar_Or_Function{rT})(x) where rT<:Number
-    f.f
-end
-function (f::Scalar_Or_Function{rT})(x) where rT<:Function
-    f.f(x)
+reduce_tempprod(head::Tuple) = get_tempval(head...)
+function reduce_tempprod(head, tail::Vararg{Any,N}) where N
+    val = get_tempval(head...)
+    val * reduce_tempprod(tail...)
 end
 
-get_f_type(f::Scalar_Or_Function{rT}) where rT<:Number = rT
+BI_product = Base.Iterators.product
