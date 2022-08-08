@@ -16,6 +16,7 @@ ThreadedSparseArrays = "59d54670-b8ac-4d81-ab7a-bb56233e17ab"
 
 [compat]
 FFTW = "1"
+StaticArrays = "1"
 julia = "1"
 
 [extras]
