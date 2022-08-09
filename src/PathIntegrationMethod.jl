@@ -20,7 +20,6 @@ export SDE, DriftTerm, DiffusionTerm,
     DiscreteIntegrator, QuadGKIntegrator, ClenshawCurtisIntegrator, GaussLegendreIntegrator, GaussRadauIntegrator, GaussLobattoIntegrator, TrapezoidalIntegrator, NewtonCotesIntegrator,
     DenseMX, SparseMX,
     SDE_VIO, Wall
-    
 
 include("types.jl")
 include("pathintegration.jl")
@@ -45,7 +44,15 @@ include("sde/timeevolution/discretetimestepping/diffusionstep.jl")
 include("integration/integrationkernel.jl")
 include("integration/compute_stepMX.jl")
 include("integration/discreteintegrator.jl")
-include("specialsystems/vibroimpactoscillator.jl")
-
 include("utils.jl")
+
+# Includes for vibro impact systems
+include("specialsystems/vibroimpactoscillator/sde/sde.jl")
+include("specialsystems/vibroimpactoscillator/sde/sdestep.jl")
+include("specialsystems/vibroimpactoscillator/timeevolution/transitionprobabilities.jl")
+include("specialsystems/vibroimpactoscillator/timeevolution/discretetimestepping/driftstep.jl")
+include("specialsystems/vibroimpactoscillator/integration/integrationkernel.jl")
+include("specialsystems/vibroimpactoscillator/integration/compute_stepMX.jl")
+include("specialsystems/vibroimpactoscillator/integration/discreteintegrator.jl")
+
 end
