@@ -26,7 +26,7 @@ step1, step2 = IK.sdestep.sdesteps
 di1, di2 = IK.discreteintegrator.discreteintegrators
 ##
 
-idx = (1,26);
+idx = (1,28);
 getindex.(axisgrid,idx) |>println
 
 PathIntegrationMethod.update_IK_state_x1!(IK, idx)
@@ -52,6 +52,7 @@ begin
     @show step1.x0
     @show step1.x1
     @show step1.steptracer.tempI
+    @show PathIntegrationMethod.get_detJinv(IK.sdestep[1])
 end
 begin
     @show IK.x1
@@ -64,6 +65,7 @@ begin
     @show step2.xi2
     @show step2.ti[]
     @show step2.steptracer.tempI
+    @show PathIntegrationMethod.get_detJinv(IK.sdestep[2])
 end
 
 

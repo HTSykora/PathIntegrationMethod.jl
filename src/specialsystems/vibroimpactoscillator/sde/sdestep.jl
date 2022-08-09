@@ -104,9 +104,11 @@ function (pcl::PreComputeNewtonStep)(vi_sde::SDE_VIO, method::DiscreteTimeSteppi
     x_news = Tuple([_x[i] - _corr[i] for i in 1:3] for _corr in _corrs)
     xI_0i! = Tuple(build_inplace_function(x_new, [x0, v0], [x1, v1], [xi, vi], par, t0, t1, ti) for x_new in x_news)
 
-    detJI_invs = Tuple(1/Symbolics.derivative(x1 - substitute(step_sym_1[1], Dict(xi => step_sym_i[1], vi => step_sym_i[2])), x0) for step_sym_1 in step_sym_1s)
 
-
+    dtidx0 = -Symbolics.derivative(step_sym_i[1], x0)/Symbolics.derivative(step_sym_i[1], ti)
+    fullstep_sym_1s = Tuple(substitute(step_sym_1[1], Dict(xi => step_sym_i[1], vi => step_sym_i[2])) for step_sym_1 in step_sym_1s)
+    detJI_invs = Tuple(-1/(Symbolics.derivative(step_sym_1, x0) + Symbolics.derivative(step_sym_1, ti)*dtidx0) for step_sym_1 in fullstep_sym_1s)
+    
     detJI⁻¹ = Tuple(build_function(detJI_inv, [x0, v0], [x1, v1], [xi, vi], par, t0, t1, ti; expression = Val{false}) for detJI_inv in detJI_invs)
 
     _xi = [v0, vi, v1]
