@@ -1,14 +1,20 @@
+get_N(N::Integer, dim) = Tuple(N for _ in 1:dim)
+function get_N(N::NTuple{n,Integer}, dim) where n 
+    @assert dim == n "ERROR: incompatible integrator dimensions: length(N) != dim!"
+    Tuple(N for _ in 1:dim)
+end
+defaultdiscreteintegrator(sde::AbstractSDE{d,k,m}, di_N = 31) where {d,k,m} = GaussLegendreIntegrator(di_N, dim = d-k+1)
+
 getintegration_dimensions(::AbstractDiscreteIntegratorType{n}) where n = n
-function DiscreteIntegrator(discreteintegrator, sdestep::AbstractSDEStep, res_prototype, N::Union{NTuple{1,<:Integer},<:Integer,AbstractArray{<:Integer}}, axes::GA; kwargs...) where GA
+function DiscreteIntegrator(discreteintegrator, sdestep::AbstractSDEStep, res_prototype, axes::GA; kwargs...) where GA
     DiscreteIntegrator(discreteintegrator,res_prototype, N, axes; kwargs...)
 end
 
-function DiscreteIntegrator(discreteintegrator,res_prototype, N::Union{NTuple{1,<:Integer},<:Integer,AbstractArray{<:Integer}}, axes::GA; xT = Float64, wT = Float64, kwargs...) where GA<:AxisGrid
+function DiscreteIntegrator(discreteintegrator::AbstractDiscreteIntegratorMethod{1},res_prototype, axes::GA; xT = Float64, wT = Float64, kwargs...) where GA<:AxisGrid
     start = axes[1]
     stop = axes[end]
-    _N = N isa Number ? N : first(N)
 
-    x,w = discreteintegrator(xT, wT, start, stop, _N)
+    x,w = discreteintegrator(xT, wT, start, stop)
     Q_integrate = Ref(true)
     DiscreteIntegrator{1, typeof(x), typeof(w), typeof(res_prototype), typeof(res_prototype),typeof(Q_integrate)}(x,w,zero(res_prototype),zero(res_prototype),Q_integrate)
 end
@@ -29,39 +35,40 @@ function DiscreteIntegrator(discreteintegrator::QuadGKIntegrator{T1,T2,Tkwarg},r
     QuadGKIntegrator([start, stop], zero(res_prototype), qgkkwargs, Ref(true), zero(res_prototype))
 end
 
-function (::ClenshawCurtisIntegrator)(xT, wT, start, stop, num) 
-    chebygrid(xT, start, stop, num), clenshawcurtisweights(wT, start, stop, num)
+function (di::ClenshawCurtisIntegrator{1})(xT, wT, start, stop) 
+    chebygrid(xT, start, stop, first(di.N)), clenshawcurtisweights(wT, start, stop, first(di.N))
 end
-function (::GaussLegendreIntegrator)(xT, wT, start, stop, num)
-    x0,w0 = gausslegendre(num)
+function (di::GaussLegendreIntegrator{1})(xT, wT, start, stop)
+    x0,w0 = gausslegendre(first(di.N))
     x = rescale_x(x0, xT, start, stop)
     w = rescale_w(w0, wT, start, stop)
     x, w
 end
-function (::GaussRadauIntegrator)(xT, wT, start, stop, num)
-    x0,w0 = gaussradau(num)
+function (di::GaussRadauIntegrator{1})(xT, wT, start, stop)
+    x0,w0 = gaussradau(first(di.N))
     x = rescale_x(x0, xT, start, stop)
     w = rescale_w(w0, wT, start, stop)
     x, w
 end
-function (::GaussLobattoIntegrator)(xT, wT, start, stop, num)
-    x0,w0 = gausslobatto(num)
+function (di::GaussLobattoIntegrator{1})(xT, wT, start, stop)
+    x0,w0 = gausslobatto(first(di.N))
     x = rescale_x(x0, xT, start, stop)
     w = rescale_w(w0, wT, start, stop)
     x, w
 end
 
-function (::TrapezoidalIntegrator)(xT, wT, start, stop, num) 
+function (di::TrapezoidalIntegrator{1})(xT, wT, start, stop) 
+    num = first(di.N)
     x = LinRange{xT}(start,stop,num)
     Δ = wT((stop-start)/(num-1));
     w = collect(TrapezoidalWeights(num,Δ))
     x, w
 end
-NewtonCotesIntegrator(N) = NewtonCotesIntegrator{N}()
-function (::NewtonCotesIntegrator{N})(xT, wT, start, stop, num)  where N
+function (di::NewtonCotesIntegrator{1, ord})(xT, wT, start, stop)  where ord
+    num = first(di.N)
     x = LinRange{xT}(start,stop,num)
     Δ = wT((stop-start)/(num-1));
-    w = collect(NewtonCotesWeights(N,num,Δ))
+    w = collect(NewtonCotesWeights(ord,num,Δ))
     x, w
 end
 
@@ -164,11 +171,15 @@ function rescale_xw!(x,w,start,stop)
     w .= w .* scale
 end
 
-function rescale_discreteintegrator!(discreteintegrator::DiscreteIntegrator{1}, sdestep::SDEStep{d,d,m}, pdf; int_limit_thickness_multiplier = 6, kwargs...) where {d,m}
+function rescale_discreteintegrator!(discreteintegrator::DiscreteIntegrator{1}, sdestep::SDEStep{d,d,m}, pdf; kwargs...) where {d,m}
     # discreteintegrator.Q_integrate[] = true
+    mn, mx = get_rescale_limits(sdestep, pdf; kwargs...)
+    rescale_to_limits!(discreteintegrator, mn, mx)
+end
+
+function get_rescale_limits(sdestep::SDEStep{d,d,m}, pdf; int_limit_thickness_multiplier = 6, kwargs...) where {d,m}
     σ = sqrt(_Δt(sdestep)*get_g(sdestep.sde)(d, sdestep.x0,_par(sdestep),_t0(sdestep))^2)
     mn = min(pdf.axes[d][end], max(pdf.axes[d][1],sdestep.x0[d] - int_limit_thickness_multiplier*σ))
     mx = max(pdf.axes[d][1],min(pdf.axes[d][end],sdestep.x0[d] + int_limit_thickness_multiplier*σ))
-
-    rescale_to_limits!(discreteintegrator,mn,mx)
+    mn, mx
 end

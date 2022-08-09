@@ -10,17 +10,20 @@ Compute a `PathIntegration` object for computing the response probability densit
 - `axes::Vararg{aT,d} where aT<:GridAxis`: The axes spanning the space where the transitional PDF is computed for the dynamical system `sde`.
 
 # Keyword Arguments
-- `discreteintegrator = ClenshawCurtisIntegrator()`: Discrete integrator to evaluate the Chapman-Kolmogorov equation
-- `di_N = 31`: Resolution of the discrete integrator. Can be an `NTuple{d-k+1,<:Integer}` or an `AbstractArray{<:Integer}` to define resolution to each integration variable
+- `discreteintegrator = defaultdiscreteintegrator(sde, di_N = 31)`: Discrete integrator to evaluate the Chapman-Kolmogorov equation
+    - The default discrete integrator algorithms are
+        - `defaultdiscreteintegrator(sde::AbstractSDE{d,k,m}, di_N = 31) = GaussLegendreIntegrator(di_N)`
+        - `defaultdiscreteintegrator(sde::SDE_VIO, di_N = 31) = Tuple(GaussLegendreIntegrator(di_N) for _ in 1:2)`
+    - `di_N = 31`: Resolution of the discrete integrator. Can be a `Integer` or `NTuple{d-k+1,<:Integer}` that defines the discrete integration resolution in each `d-k+1` integration direction.
 - `smart_integration = true`: Only integrate where the transitional PDF has nonzero elements. It is approximated with the step function. Use `false` if (time step * diffusion) results in a wide TPDF. Usually `true` is the better choice.
 - `int_limit_thickness_multiplier = 6`: The "thickness" scaling of the TPDF during smart integration.
 - `initialise_pdf = true`: Initialize the response probability density function. If false, then the RPDF is initialzed as p(x) ≡ 0.
 - `f_init = nothing`: Initial RPDF as a function. If `f_init` is a `Nothing` and `initialise_pdf = true` then a diagonal Gaussian distribution is used as initial distribution
-- `μ_init = nothing`: Mean of the initial Gaussian distribution. 
+- `μ_init = nothing`: Mean of the initial Gaussian distribution used in case `f_init = nothing`. 
     - `Nothing`: Uses the middle of the range defined by the axis
     - `Number`: Uses the single value `μ_init` for each axis direction
     - `Union{NTuple{d,<:Number},AbstractVector{<:Number}}`: Individual means for each axis.
-- `σ_init = nothing`: Standard deviation of the initial diagonal Gaussian distribution. 
+- `σ_init = nothing`: Standard deviation of the initial diagonal Gaussian distribution used in case `f_init = nothing`. 
     - `Nothing`: Uses the 1/12th of the range width in each direction defined by the `axes`.
     - `Number`: Uses the single value `σ_init` for each axis direction
     - `Union{NTuple{d,<:Number},AbstractVector{<:Number}}`: Individual standard deviations for each axis.
@@ -42,8 +45,7 @@ Compute a `PathIntegration` object for computing the response probability densit
 For methods, discrete integrators, interpolators, and examples please refer to the documentation. 
 """
 function PathIntegration(sdestep::AbstractSDEStep{d,k,m}, _ts, axes::Vararg{Any,d}; 
-    discreteintegrator = ClenshawCurtisIntegrator(),
-    di_N = 31,  # discrete integration resolution
+    di_N = 31, discreteintegrator = defaultdiscreteintegrator(sdestep.sde, di_N),
     initialise_pdf = true, f_init = nothing, pre_compute = true, stepMXtype = nothing, sparse_tol = 1e-6,
     mPDF_IDs = nothing, extract_IK = Val{false}(), kwargs...) where {d,k,m}
     if stepMXtype isa StepMatrixRepresentation
@@ -80,18 +82,8 @@ function PathIntegration(sdestep::AbstractSDEStep{d,k,m}, _ts, axes::Vararg{Any,
                         BI_product(_val.(itpVs)...), # = val_it
                         itpVs, # = itpVs
                         zero(pdf.p)) # = itpM
-        if di_N isa Number
-            di_res = Tuple(di_N for _ in 1:k-d+1)
-        elseif di_N isa NTuple{d-k+1,<:Integer}
-            di_res = di_N
-        elseif di_N isa AbstractArray{<:Integer}
-            if length(di_res) == d-k+1
-                di_res = di_N
-            end
-        else
-            error("di_N is not a Union{Number, NTuple{M,Integer}, AbstractArray{Integer}} with length $(d-k+1)")
-        end
-        di = DiscreteIntegrator(discreteintegrator, sdestep, pdf.p, di_res, axes[k:end]...; kwargs...)
+
+        di = DiscreteIntegrator(discreteintegrator, sdestep, pdf.p, axes[k:end]...; kwargs...)
         IK = IntegrationKernel(sdestep, nothing, di, ts, pdf, ikt, (;sparse_tol = get_tol(_stepMXtype), kwargs...))
         
         if extract_IK isa Val{true}

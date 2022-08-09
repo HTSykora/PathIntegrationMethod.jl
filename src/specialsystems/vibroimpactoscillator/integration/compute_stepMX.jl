@@ -89,7 +89,7 @@ function Q_check_impact(step, walls, ID)
     end
 end
 
-function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thickness_multiplier = 6, kwargs...) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO}
+function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; impact_int_limit_thickness_multiplier = 6, kwargs...) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO}
     
     IK.discreteintegrator[1].Q_integrate[] = false
     IK.discreteintegrator[2].Q_integrate[] = false
@@ -108,7 +108,7 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thi
         v_i[2] =  -v_i[1]*get_wall(step2)(v_i[1])
         step2.ti[] = _t1(step2)
     end
-    s_σ = sqrt(_Δt(step1)*get_g(step1.sde)(2, step1.x1,_par(step1),_t0(step1))^2) * int_limit_thickness_multiplier
+    s_σ = sqrt(_Δt(step1)*get_g(step1.sde)(2, step1.x1,_par(step1),_t0(step1))^2) * impact_int_limit_thickness_multiplier
     # TODO: handle impact when v_0 == 0 at wall!
 
     if abs(v_i[3] - IK.x1[2]) ≤ s_σ # v1 after impact vs. v1 investigated
@@ -116,12 +116,9 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thi
         wallID = get_wall_ID(sdestep)
         if wallID == 1
             # without impact
-            mx = min(v_i[2], IK.pdf.axes[2][end])
-            step1.x1[2] = step1.x1[2] - s_σ
-            compute_initial_states_driftstep!(step1; IK.kwargs...)
-            mn = max(step1.x0[2],IK.pdf.axes[2][1])
+            mn, mx = get_rescale_limits(step1, IK.pdf; kwargs..., IK.kwargs...)
+            mx = min(v_i[2], mx)
             rescale_to_limits!(IK.discreteintegrator[1], mn, mx)
-            step1.x1[2] = step2.x1[2]
             
             # with impact
             mx = min(v_i[1], IK.pdf.axes[2][end])
@@ -132,12 +129,9 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thi
             step2.x1[2] = step1.x1[2]
         elseif wallID == 2
             # without impact
-            mn = max(v_i[2], IK.pdf.axes[2][1])
-            step1.x1[2] = step1.x1[2] + s_σ
-            compute_initial_states_driftstep!(step1; IK.kwargs...)
-            mx = min(step1.x0[2],IK.pdf.axes[2][end])
+            mn, mx = get_rescale_limits(step1, IK.pdf; kwargs..., IK.kwargs...)
+            mn = max(v_i[2], mn)
             rescale_to_limits!(IK.discreteintegrator[1], mn, mx)
-            step1.x1[2] = step2.x1[2]
             
             # with impact
             mn = max(v_i[1], IK.pdf.axes[2][1])
@@ -151,9 +145,9 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; int_limit_thi
         compute_initial_states_driftstep!(step1; IK.kwargs...)
         if Q_check_impact(step1, step2.sde.wall, get_wall_ID(sdestep))
             compute_initial_states_driftstep!(step2; IK.kwargs...)
-            rescale_discreteintegrator!(IK.discreteintegrator[2], step2, IK.pdf; int_limit_thickness_multiplier = int_limit_thickness_multiplier, kwargs...)
+            rescale_discreteintegrator!(IK.discreteintegrator[2], step2, IK.pdf; kwargs...)
         else
-            rescale_discreteintegrator!(IK.discreteintegrator[1], step1, IK.pdf; int_limit_thickness_multiplier = int_limit_thickness_multiplier, kwargs...)
+            rescale_discreteintegrator!(IK.discreteintegrator[1], step1, IK.pdf; kwargs...)
             # if sdestep.Q_aux[]
             #     (mn, mx) = get_limits(IK.discreteintegrator[1])
             #     if get_wall_ID(sdestep) == 1

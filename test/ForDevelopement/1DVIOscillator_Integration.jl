@@ -20,19 +20,20 @@ sde = SDE_VIO(f2,g2,W, par)
 Δt = 0.1
 axisgrid = (QuinticAxis(W.pos,1.,101), QuinticAxis(-3.0,3.,51))
 
-@time IK = PathIntegration(sde, method, Δt, axisgrid..., di_N = 11, extract_IK = Val{true}());
+discreteintegrator = (GaussLegendreIntegrator(31),GaussLegendreIntegrator(201))
+@time IK = PathIntegration(sde, method, Δt, axisgrid..., discreteintegrator = discreteintegrator, extract_IK = Val{true}());
 step1, step2 = IK.sdestep.sdesteps
 di1, di2 = IK.discreteintegrator.discreteintegrators
 ##
 
-idx = (2,27);
+idx = (1,26);
 getindex.(axisgrid,idx) |>println
 
 PathIntegrationMethod.update_IK_state_x1!(IK, idx)
 PathIntegrationMethod.update_dyn_state_x1!(IK, idx)
 
 
-PathIntegrationMethod.rescale_discreteintegrator!(IK)
+PathIntegrationMethod.rescale_discreteintegrator!(IK, int_limit_thickness_multiplier = 10, impact_int_limit_thickness_multiplier = 10)
 
 begin
     @show IK.x1
@@ -64,4 +65,9 @@ begin
     @show step2.ti[]
     @show step2.steptracer.tempI
 end
+
+
+PathIntegrationMethod.rescale_discreteintegrator!(IK, int_limit_thickness_multiplier = 6, impact_int_limit_thickness_multiplier = 999)
+PathIntegrationMethod.get_IK_weights!(IK; IK.kwargs...)
+sum(abs,IK.temp.itpM) |> println
 
