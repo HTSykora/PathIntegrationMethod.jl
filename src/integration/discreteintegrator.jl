@@ -7,7 +7,7 @@ defaultdiscreteintegrator(sde::AbstractSDE{d,k,m}, di_N = 31) where {d,k,m} = Ga
 
 getintegration_dimensions(::AbstractDiscreteIntegratorType{n}) where n = n
 function DiscreteIntegrator(discreteintegrator, sdestep::AbstractSDEStep, res_prototype, axes::GA; kwargs...) where GA
-    DiscreteIntegrator(discreteintegrator,res_prototype, N, axes; kwargs...)
+    DiscreteIntegrator(discreteintegrator, res_prototype, axes; kwargs...)
 end
 
 function DiscreteIntegrator(discreteintegrator::AbstractDiscreteIntegratorMethod{1},res_prototype, axes::GA; xT = Float64, wT = Float64, kwargs...) where GA<:AxisGrid

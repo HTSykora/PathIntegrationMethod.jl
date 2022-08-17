@@ -30,8 +30,8 @@ Compute a `PathIntegration` object for computing the response probability densit
 - `pre_compute = true`: Compute the `stepMX`. This should be left unchanged if the RPDF computation is the goal.
 - `stepMXtype = nothing`: Step matrix representation type. The default representation depends on `d` and the interpolation used (see Interpolation): `d ≤ 2` with sparse interpolation the `stepMX` is a multithreaded sparse matrix, for dense interpolations it is dense, and for `d>2` the default is a multithreaded sparse
     Possible options:
-        - `SparseMX(; threaded = true, sparse_tol = 1e-6)`
-        - `DenseMX()`
+    - `SparseMX(; threaded = true, sparse_tol = 1e-6)`
+    - `DenseMX()`
 - `multithreaded_sparse = true`: is the sparse `stepMX` multithreaded if no `stepMXtype` is specified
 - `sparse_tol = 1e-6`: absolute tolerance for the elements considered as zero values in the sparse stepMX if no `stepMXtype` is specified
 - `mPDF_IDs = nothing`: Marginal PDF (mPDF) for IDinates specified by `mPDF_IDs`
