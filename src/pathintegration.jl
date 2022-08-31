@@ -175,7 +175,7 @@ end
     PI.ts
 end
 @inline function get_PIdt(PI::PathIntegration{dynT, pdT,tsT}) where {dynT, pdT,tsT<:AbstractArray}
-    PI.ts[PI.step_idx+1]
+    PI.ts[PI.step_idx+1]-PI.ts[PI.step_idx]
 end
 # Computations utilites
 function init_DiagonalNormalPDF(axes...; μ_init = nothing, σ_init = nothing, kwargs...)
