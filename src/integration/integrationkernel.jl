@@ -50,18 +50,18 @@ function update_relevant_states!(IK::IntegrationKernel{dk,sdeT},x) where sdeT<:S
 end
 
 function update_relevant_states!(sdestep::sdeT,x::Number) where sdeT<:SDEStep{d,d,m} where {dk,d,m}
-    sdestep.x0[d] = x
+    @inbounds sdestep.x0[d] = x
 end
 function update_relevant_states!(sdestep::sdeT,x::Vararg{Any,N}) where sdeT<:SDEStep{d,k,m} where {dk,d,k,m,N}
     for (i,j) in enumerate(k:d)
-        sdestep.x0[j] = x[i]
+        @inbounds sdestep.x0[j] = x[i]
     end
 end
 
 function set_oldvals_tozero!(vals, IK::IntegrationKernel)
 end
 function set_oldvals_tozero!(vals, IK::IntegrationKernel{kd,sdeT,x1T,xT,fT,pdfT}) where {kd,sdeT,x1T,xT,fT,pdfT<:InterpolatedFunction{T,N, itp_type}} where {T,N,itp_type <: SparseInterpolationType}
-    for idx in _idx_it(IK)
+    @inbounds for idx in _idx_it(IK)
         vals[idx...] = zero(eltype(vals))
     end
 end

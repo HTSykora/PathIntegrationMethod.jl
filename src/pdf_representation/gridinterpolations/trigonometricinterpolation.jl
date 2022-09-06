@@ -10,7 +10,7 @@ function basefun_vals!(vals,itp::TrigonometricInterpolation{true},xs::Vx,x) wher
     # i = 0... N-1
     Nc = itp.N*itp.c*0.5
     c = itp.c*0.5
-    for j in 1:itp.N
+    @inbounds for j in 1:itp.N
         vals[j] = sin(Nc*(x-xs[j]))/(itp.N*sin(c*(x-xs[j])))
         # vals[j] = sinc(0.5*Nc*(x-xs[j]))/sinc(0.5*c*(x-xs[j]))
     end
@@ -22,7 +22,7 @@ function basefun_vals!(vals,itp::TrigonometricInterpolation{false},xs::Vx,x) whe
     # i = 0... N-1
     Nc = itp.N*itp.c*0.5
     c = itp.c*0.5
-    for j in 1:itp.N
+    @inbounds for j in 1:itp.N
         vals[j] = sin(Nc*(x-xs[j]))/(itp.N*tan(c*(x-xs[j])))
     end
     # vals[1] *= 0.5
