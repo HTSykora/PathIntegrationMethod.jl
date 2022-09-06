@@ -43,9 +43,13 @@ end
 # Multivariate interopolation
 get_tempval(axis::AxisGrid,i) = axis.temp[i]
 function interpolate(p::MX,axes, x::Vararg{Any,N}; idx_it = BI_product(_eachindex.(axes)...), val_it = BI_product(_gettempvals.(axes)...), kwargs...) where MX<:AbstractArray{T,N} where {T,N} #xs <: NTuple{<:gridAxis}
-    for (axis, _x) in zip(axes,x)
-        basefun_vals_safe!(axis,_x; kwargs...)
+    # map(basefun_vals_safe!,axes,x)
+    map(axes,x) do ax,_x
+        basefun_vals_safe!(ax,_x)
     end
+    # for (axis, _x) in zip(axes,x)
+    #     basefun_vals_safe!(axis,_x; kwargs...)
+    # end
     val = zero(eltype(p))
     @inbounds for (idx, _val) in zip(idx_it, val_it)
         val += p[idx...] * prod(_val)#reduce_tempprod(zip(axes,idx)...)

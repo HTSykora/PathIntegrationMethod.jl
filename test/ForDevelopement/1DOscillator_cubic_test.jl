@@ -44,7 +44,7 @@ par = [0.15, 0.25, sqrt(0.5)];
 
 sde = SDE((f1, f2), g2, par)
 Δt = 0.01;
-@time PI = PathIntegration(sde, RK2(), Δt, gridaxes..., pre_compute = true, σ_init = 0.5, μ_init = [0.0, 0.], discreteintegrator = ClenshawCurtisIntegrator(), stepMXtype = DenseMX());
+@time PI = PathIntegration(sde, RK2(), Δt, gridaxes...);
 # @btime PathIntegrationProblem($sde,$Δt,$xvs..., precompute = $true, σ_init = $0.5);
 
 @time for _ in 1:2000
