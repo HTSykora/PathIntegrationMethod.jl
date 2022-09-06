@@ -7,7 +7,6 @@ using Symbolics
 using FFTW
 using FastGaussQuadrature
 using SparseArrays, ThreadedSparseArrays, StaticArrays
-using Unrolled
 
 export SDE, DriftTerm, DiffusionTerm,
     Euler, RungeKutta, RK2, RK4, Maruyama,

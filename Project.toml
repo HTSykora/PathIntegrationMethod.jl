@@ -14,7 +14,6 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 ThreadedSparseArrays = "59d54670-b8ac-4d81-ab7a-bb56233e17ab"
-Unrolled = "9602ed7d-8fef-5bc8-8597-8f21381861e8"
 
 [compat]
 Distributions = "0.25"
