@@ -5,12 +5,12 @@ end
 #     sum(axis.wts[i]*_p for (i,_p) in enumerate(p))
 # end
 function _integrate(p::AbstractArray{<:Number,N}, axes::Vararg{Any,N}) where {N}
-    # xs = Iterators.product((ax.wts for ax in p.axes)...)
+    # xs = Iterators.product((ax.xs for ax in p.axes)...)
     ws = Iterators.product((ax.wts for ax in axes)...)
     sum(prod(_w for _w in w)*p[i] for (i,w) in enumerate(ws))
 end
 function integrate(f::Function, p::InterpolatedFunction)
-    xs = Iterators.product((ax.wts for ax in p.axes)...)
+    xs = Iterators.product((ax.xs for ax in p.axes)...)
     ws = Iterators.product((ax.wts for ax in p.axes)...)
     sum(f(x...)*prod(_w for _w in w)*p.p[i] for (i,(x,w)) in enumerate(zip(xs,ws)))
 end 
