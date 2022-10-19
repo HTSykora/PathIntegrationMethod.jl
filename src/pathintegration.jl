@@ -205,7 +205,7 @@ end
 (PI::PathIntegration)(x...) = PI.pdf(x...)
 
 ## Recompute functions
-function reinit_PI_pdf!(PI::PathIntegration,f = nothing, reset_t= true, reset_step_index = true)
+function reinit_PI_pdf!(PI::PathIntegration,f = nothing; reset_t= true, reset_step_index = true)
     if f isa Nothing
         _f = init_DiagonalNormalPDF(PI.pdf.axes...; PI.IK.kwargs...)
     elseif f isa Function
