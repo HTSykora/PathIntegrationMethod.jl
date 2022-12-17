@@ -16,9 +16,9 @@ method = Euler()
 # method = RK2()
 
 W = Wall(x->0.7-0.05x,-1.)
-W = Wall(0.7,-0.0)
+W = Wall(0.7,-0.1)
 sde = SDE_VIO(f2,g2,W, par)
-Δt = 0.01
+Δt = 0.1
 
 @time sdestep = SDEStep(sde, method,Δt);
 step1 = sdestep.sdesteps[1]
@@ -46,7 +46,7 @@ begin
     step1.x1[2] += 0.1
     PathIntegrationMethod._getTPDF(sdestep,step1.x0[2],step1.x1)
 end
-@run PathIntegrationMethod._getTPDF(sdestep,step1.x0[2],step1.x1)
+# @run PathIntegrationMethod._getTPDF(sdestep,step1.x0[2],step1.x1)
 
 begin
     PathIntegrationMethod.set_wall_ID!(step2,1)
@@ -77,7 +77,7 @@ end;
 begin
     PathIntegrationMethod._getTPDF(sdestep,step2.x0[2],step2.x1 +[0,0.1])
 end
-@run PathIntegrationMethod._getTPDF(sdestep,step2.x0[2],step2.x1 +[0,0.1])
+# @run PathIntegrationMethod._getTPDF(sdestep,step2.x0[2],step2.x1 +[0,0.1])
 ##
 begin
     PathIntegrationMethod.set_wall_ID!(step2,1)
@@ -124,7 +124,7 @@ begin
     # step2.xi2[1] = W.pos
     # step2.ti[] = PathIntegrationMethod._Δt(step2)
     
-    PathIntegrationMethod.update_dyn_state_x1!(step2,[1e-4,0.])
+    PathIntegrationMethod.update_dyn_state_x1!(step2,[W.pos,0.])
     @show step2.x0
     @show step2.x1
     @show step2.xi
@@ -139,7 +139,7 @@ begin
     @show step2.ti[]
     @show step2.steptracer.temp
 
-    PathIntegrationMethod.update_dyn_state_x1!(step2,[1e-4,0.0])
+    PathIntegrationMethod.update_dyn_state_x1!(step2,[W.pos,0.0])
     @time PathIntegrationMethod.compute_missing_states_driftstep!(step2)
     @show step2.x0
     @show step2.x1
