@@ -22,7 +22,7 @@ FastGaussQuadrature = "0.4"
 QuadGK = "2"
 Reexport = "1"
 StaticArrays = "1"
-Symbolics = "4"
+Symbolics = "4, 5"
 ThreadedSparseArrays = "0.2"
 julia = "1"
 
