@@ -49,8 +49,8 @@ end
 fill_stepMX!(stepMX::Transpose, IK; kwargs...) = fill_stepMX!(stepMX.parent, IK; kwargs...)
 function fill_stepMX!(stepMX, IK; smart_integration = true, kwargs...)
     for (i, idx) in enumerate(dense_idx_it(IK))
-        update_IK_state_x1!(IK, idx)
-        update_dyn_state_x1!(IK, idx)
+        update_IK_state_x1_by_idx!(IK, idx)
+        update_dyn_state_xs!(IK)
         if smart_integration
             rescale_discreteintegrator!(IK; IK.kwargs...)
         end
@@ -59,23 +59,29 @@ function fill_stepMX!(stepMX, IK; smart_integration = true, kwargs...)
     end
 end
 
-function update_IK_state_x1!(IK::IntegrationKernel{kd,dyn}, idx) where dyn <:SDEStep{d,k,m} where {kd,d,k,m}
+function update_IK_state_x1_by_idx!(IK::IntegrationKernel{kd,dyn}, idx) where dyn <:SDEStep{d,k,m} where {kd,d,k,m}
     for i in 1:d
         IK.x1[i] = getindex(IK.pdf.axes[i],idx[i])
     end
 end
 
-function update_dyn_state_x1!(IK::IntegrationKernel{kd,dyn}, idx) where dyn <:SDEStep{d,k,m} where {kd, d,k,m}
+function update_dyn_state_xs!(IK::IntegrationKernel{kd,dyn}) where dyn <:SDEStep{d,k,m} where {kd, d,k,m}
 
-    update_dyn_state_x1!(IK.sdestep,IK.x1)
+    update_dyn_state_xs!(IK.sdestep,IK.x1)
     # IK.sdestep.x1 .=  getindex.(IK.pdf.axes,idx) # ? check allocations
     # for i in 1:d
     #     IK.sdestep.x1[i] = getindex(IK.pdf.axes[i],idx[i])
     # end
 end
+function update_dyn_state_xs!(sdestep::SDEStep{d,k,m}, x) where {d,k,m}
+    update_dyn_state_x0!(sdestep,x)
+    update_dyn_state_x1!(sdestep,x)
+end
 function update_dyn_state_x1!(sdestep::SDEStep{d,k,m}, x1) where {d,k,m}
     sdestep.x1 .= x1
-    sdestep.x0 .= x1
+end
+function update_dyn_state_x0!(sdestep::SDEStep{d}, x0) where d
+    sdestep.x0 .= x0
 end
 
 @inline function fill_to_stepMX!(stepMX::AbstractMatrix,IK,i; kwargs...)

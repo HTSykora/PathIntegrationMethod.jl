@@ -146,7 +146,7 @@ begin
     # step2.xi2[1] = W.pos
     # step2.ti[] = PathIntegrationMethod._Δt(step2)
     
-    PathIntegrationMethod.update_dyn_state_x1!(step2,[1e-4,0.])
+    PathIntegrationMethod.update_dyn_state_xs!(step2,[1e-4,0.])
     @show step2.x0
     @show step2.x1
     @show step2.xi
@@ -161,7 +161,7 @@ begin
     @show step2.ti[]
     @show step2.steptracer.temp
 
-    PathIntegrationMethod.update_dyn_state_x1!(step2,[1e-4,0.0])
+    PathIntegrationMethod.update_dyn_state_xs!(step2,[1e-4,0.0])
     @time PathIntegrationMethod.compute_missing_states_driftstep!(step2)
     @show step2.x0
     @show step2.x1

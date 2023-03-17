@@ -29,8 +29,8 @@ di1, di2 = IK.discreteintegrator.discreteintegrators
 idx = (1,28);
 getindex.(axisgrid,idx) |>println
 
-PathIntegrationMethod.update_IK_state_x1!(IK, idx)
-PathIntegrationMethod.update_dyn_state_x1!(IK, idx)
+PathIntegrationMethod.update_IK_state_x1_by_idx!(IK, idx)
+PathIntegrationMethod.update_dyn_state_xs!(IK)
 
 
 PathIntegrationMethod.rescale_discreteintegrator!(IK, int_limit_thickness_multiplier = 10, impact_int_limit_thickness_multiplier = 10)

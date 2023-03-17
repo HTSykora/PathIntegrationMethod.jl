@@ -53,7 +53,7 @@ function get_and_set_potential_wallID!(sdestep::NonSmoothSDEStep{2,2,1,sdeT}, x1
     nothing
 end
 
-function update_IK_state_x1!(IK::IntegrationKernel{1,dyn}, idx) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO}
+function update_IK_state_x1_by_idx!(IK::IntegrationKernel{1,dyn}, idx) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO}
     d=2
 
     for i in 1:d
@@ -62,12 +62,12 @@ function update_IK_state_x1!(IK::IntegrationKernel{1,dyn}, idx) where dyn <:NonS
 
     get_and_set_potential_wallID!(IK)
 end
-function update_dyn_state_x1!(IK::IntegrationKernel{1,dyn}, idx) where dyn <:NonSmoothSDEStep{d,k,m, sdeT} where {d,k,m,sdeT}
+function update_dyn_state_xs!(IK::IntegrationKernel{1,dyn}) where dyn <:NonSmoothSDEStep{d,k,m, sdeT} where {d,k,m,sdeT}
     for sdestep in IK.sdestep.sdesteps
-        update_dyn_state_x1!(sdestep,IK.x1)
+        update_dyn_state_xs!(sdestep,IK.x1)
     end
 end
-function update_dyn_state_x1!(sdestep::SDEStep{d,k,m,sdeT}, x1) where {d,k,m,sdeT<:SDE_VIO}
+function update_dyn_state_xs!(sdestep::SDEStep{d,k,m,sdeT}, x1) where {d,k,m,sdeT<:SDE_VIO}
     _corr = get_wall_ID(sdestep) == 1 ? 1.5e-10 : -1.5e-10
     sdestep.x1[1] = x1[1] + _corr
     sdestep.x1[2] = x1[2] + _corr
@@ -160,6 +160,6 @@ function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; impact_int_li
         end
     end
     if Q_at_wall
-        update_dyn_state_x1!(step2,step1.x1)
+        update_dyn_state_xs!(step2,step1.x1)
     end
 end
