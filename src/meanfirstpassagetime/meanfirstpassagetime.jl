@@ -128,10 +128,10 @@ function get_IK_weights!(IK::MFPTIntegrationKernel; kwargs...)
 end
 
 function (IK::MFPTIntegrationKernel{dk})(vals,x) where dk
-    fx = transitionprobability(IK.sdestep,x)
     # * if m ≠ 1 and d ≠ k: figure out a rework
     set_oldvals_tozero!(vals, IK)
     update_relevant_states!(IK,x)
+    fx = transitionprobability(IK.sdestep,IK.x1)
 
     if isapprox(fx,zero(fx), atol=1e-8) || IK.condition(x)
         all_zero!(vals, IK)
