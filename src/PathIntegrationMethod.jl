@@ -7,6 +7,7 @@ using Symbolics
 using FFTW
 using FastGaussQuadrature
 using SparseArrays, ThreadedSparseArrays, StaticArrays
+using InvertedIndices
 
 export SDE, DriftTerm, DiffusionTerm,
     Euler, RungeKutta, RK2, RK4, Maruyama,
@@ -19,7 +20,8 @@ export SDE, DriftTerm, DiffusionTerm,
     integrate, integrate_diff,
     DiscreteIntegrator, QuadGKIntegrator, ClenshawCurtisIntegrator, GaussLegendreIntegrator, GaussRadauIntegrator, GaussLobattoIntegrator, TrapezoidalIntegrator, NewtonCotesIntegrator,
     DenseMX, SparseMX,
-    SDE_VIO, Wall
+    SDE_VIO, Wall,
+    MeanFirstPassageTime
 
 include("types.jl")
 include("pathintegration.jl")
@@ -54,5 +56,8 @@ include("specialsystems/vibroimpactoscillator/timeevolution/discretetimestepping
 include("specialsystems/vibroimpactoscillator/integration/integrationkernel.jl")
 include("specialsystems/vibroimpactoscillator/integration/compute_stepMX.jl")
 include("specialsystems/vibroimpactoscillator/integration/discreteintegrator.jl")
+
+# Includes for mean first passage time computations
+include("meanfirstpassagetime/meanfirstpassagetime.jl")
 
 end

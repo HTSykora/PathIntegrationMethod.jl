@@ -65,7 +65,7 @@ function set_oldvals_tozero!(vals, IK::IntegrationKernel{kd,sdeT,x1T,xT,fT,pdfT}
         vals[idx...] = zero(eltype(vals))
     end
 end
-function all_zero!(vals::AbstractArray{<:T}, IK::IntegrationKernel) where T
+function all_zero!(vals::AbstractArray{<:T}, IK) where T
     vals .= zero(T)
     nothing
 end
@@ -91,7 +91,7 @@ _val_it(IK::IntegrationKernel) = _val_it(IK.temp)
 _val_it(IKT::IK_temp) = IKT.val_it
 
 # get_tempval(str::AbstractVector, i) = str[i]
-function fill_vals!(vals::AbstractArray{T,d}, IK::IntegrationKernel{dk,sdeT}, fx, idx_it, val_it;) where {T,sdeT<:AbstractSDEStep{d}} where {dk,d}
+function fill_vals!(vals::AbstractArray{T,d}, IK, fx, idx_it, val_it;) where {T,sdeT<:AbstractSDEStep{d}} where {dk,d}
     for (idx, val) in zip(idx_it, val_it)
         vals[idx...] = fx * prod(val)# reduce_tempprod(zip(IK.temp.itpVs,idx)...)
         # prod(IK.temp.itpVs[i][idx[i]] for (i,idx) in enumerate(idxs))

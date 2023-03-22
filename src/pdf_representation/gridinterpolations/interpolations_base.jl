@@ -35,7 +35,7 @@ function find_idx(xs::Vx,x::xT; allow_extrapolation::Bool = false, zero_extrapol
     else
         do_interpolation = allow_extrapolation
         _ze = zero_extrapolation && !(allow_extrapolation)
-        i = x<xs[1] ? 1 : length(xs);
+        i = x<xs[1] ? 2 : length(xs)-1;
     end
     return do_interpolation, _ze, i
 end
@@ -45,7 +45,7 @@ get_tempval(axis::AxisGrid,i) = axis.temp[i]
 function interpolate(p::MX,axes, x::Vararg{Any,N}; idx_it = BI_product(_eachindex.(axes)...), val_it = BI_product(_gettempvals.(axes)...), kwargs...) where MX<:AbstractArray{T,N} where {T,N} #xs <: NTuple{<:gridAxis}
     # map(basefun_vals_safe!,axes,x)
     map(axes,x) do ax,_x
-        basefun_vals_safe!(ax,_x)
+        basefun_vals_safe!(ax,_x; kwargs...)
     end
     # for (axis, _x) in zip(axes,x)
     #     basefun_vals_safe!(axis,_x; kwargs...)
@@ -66,10 +66,10 @@ function basefun_vals_safe!(axis::AxisGrid,x; kwargs...)
     basefun_vals_safe!(axis.temp, axis,x; kwargs...)
     nothing
 end
-function basefun_vals_safe(axis,x) where Vx<:AbstractVector{Tx} where Tx<:Number
+function basefun_vals_safe(axis,x; kwargs...) where Vx<:AbstractVector{Tx} where Tx<:Number
     # i = 0... N
     vals = zeros(length(axis));
-    basefun_vals_safe!(vals,axis,x)
+    basefun_vals_safe!(vals,axis,x; kwargs...)
     return vals
 end
 

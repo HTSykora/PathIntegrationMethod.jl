@@ -6,8 +6,41 @@ struct MeanFirstPassageTime{dynT,TT,cT,IKT,MXT, kwargT}
     MFPTMX::MXT
     kwargs::kwargT
 end
+function MeanFirstPassageTime(sdestep::AbstractSDEStep{d,k,m}, condition::cT, axes::Vararg{Any,d};
+    di_N = 31, discreteintegrator = defaultdiscreteintegrator(sdestep.sde,di_N),
+    mfptMXtype = nothing, sparse_tol = 1e-6, kwargs...) where {cT<:Function, d,k,m}
 
-struct MFPTIntegrationKernel{kd,dynT,cT,diT,x0T,x1T,TT,tempT,kwargT}
+    if mfptMXtype isa StepMatrixRepresentation
+        _mfptMXtype = mfptMXtype
+    else
+        _mfptMXtype = get_stepMXtype(sdestep.sde, get_val_itp_type(axes); sparse_tol = sparse_tol, kwargs...)
+    end
+
+    T = InterpolatedFunction(axes...; kwargs...)
+
+    itpVs = Tuple(zero(axis.temp) for axis in axes);
+    ikt = IK_temp(BI_product(_eachindex.(itpVs)...), # = idx_it
+                        BI_product(_val.(itpVs)...), # = val_it
+                        itpVs, # = itpVs
+                        zero(T.p)) # = itpM
+    di = DiscreteIntegrator(discreteintegrator, sdestep, T.p, axes[k:end]...; kwargs...)
+    IK = MFPTIntegrationKernel(sdestep, condition, di, T, ikt, kwargs)
+    return compute_MFPT(IK; mfptMXtype = _mfptMXtype)
+end
+
+function compute_MFPT(mfptIK; mfptMXtype = DenseMX(), kwargs...)
+    _mfptMX = initialize_stepMX(eltype(mfptIK.T.p), length(mfptIK.T),mfptMXtype)
+
+    inv_idxs, mfptMX = fill_MFPTMX!(_mfptMX, mfptIK; kwargs...)
+    _Tmx = (I - mfptMX') \ fill(_Δt(mfptIK.sdestep), size(mfptMX,1))
+    # return inv_idxs, mfptMX
+    mfptIK.T.p[inv_idxs] .= vec(_Tmx)
+    mfptIK
+    # stepMX
+end
+
+abstract type AbstractIntegrationKernel end
+struct MFPTIntegrationKernel{kd,dynT,cT,diT,x0T,x1T,TT,tempT,kwargT} <: AbstractIntegrationKernel
     sdestep::dynT
     condition::cT
     discreteintegrator::diT
@@ -21,25 +54,41 @@ dense_idx_it(IK::MFPTIntegrationKernel) = BI_product(eachindex.(IK.T.axes)...)
 _idx_it(IK::MFPTIntegrationKernel) = _idx_it(IK.temp)
 _val_it(IK::MFPTIntegrationKernel) = _val_it(IK.temp)
 
+function MFPTIntegrationKernel(sdestep, condition, discreteintegrator, Tfunc, ik_temp, kwargs = nothing)
+    x0 = similar_to_x1(sdestep)
+    x1 = similar_to_x1(sdestep)
+    kd = getintegration_dimensions(discreteintegrator)
+    
+    MFPTIntegrationKernel{kd, typeof(sdestep), typeof(condition), typeof(discreteintegrator), typeof(x0), typeof(x1), typeof(Tfunc), typeof(ik_temp), typeof(kwargs)}(sdestep, condition, discreteintegrator, x0, x1, Tfunc, ik_temp, kwargs)
+end
+
+function get_sdestep_x0(IK::AbstractIntegrationKernel)
+    IK.sdestep.x0
+end
+function get_sdestep_x1(IK::AbstractIntegrationKernel)
+    IK.sdestep.x1
+end
+
 # Fix x0
 
-fill_MFPTMX(MX::Transpose, IK::MFPTIntegrationKernel; kwargs...) = fill_MFPTMX(MX.parent, IK; kwargs...)
+fill_MFPTMX!(MX::Transpose, IK::MFPTIntegrationKernel; kwargs...) = fill_MFPTMX!(MX.parent, IK; kwargs...)
 
-function fill_MFPTMX(MX, IK::MFPTIntegrationKernel; smart_integration = true, kwargs...)
+function fill_MFPTMX!(MX, IK::MFPTIntegrationKernel; smart_integration = true, kwargs...)
     inv_idxs = InvertedIndex(Vector{Int}(undef,0))
     for (i,idx) in enumerate(dense_idx_it(IK))
         update_IK_state_x0_by_idx!(IK, idx)
         
         if IK.condition(IK.x0)
             push!(inv_idxs.skip,i)
+            # println("Skipped: $(i)")
             continue  # continue if in region we want to reach
         end
-
+        # println("Not skipped: $(i)")
         update_dyn_state_x0!(IK)
         eval_driftstep!(IK)
-        update_IK_state_x1_from_sdestep(IK)
+        update_IK_state_x1_from_sdestep!(IK)
         if smart_integration
-            rescale_discreteintegrator!(IK; IK.kwargs...)
+            rescale_discreteintegrator!(IK; restrict_limit_to_interpolationgrid = false, IK.kwargs...)
         end
 
         get_IK_weights!(IK; IK.kwargs...)
@@ -53,19 +102,23 @@ function update_IK_state_x0_by_idx!(IK::MFPTIntegrationKernel{kd, dyn}, idx) whe
         IK.x0[i] = getindex(IK.T.axes[i],idx[i])
     end
 end
-function update_IK_state_x1_from_sdestep!(IK::MFPTIntegrationKernel{kd, dyn})
+function update_IK_state_x1_from_sdestep!(IK::MFPTIntegrationKernel{kd, dyn}) where {kd,dyn}
     IK.x1 .= IK.sdestep.x1
 end
 function update_dyn_state_x0!(IK::MFPTIntegrationKernel)
     update_dyn_state_x0!(IK.sdestep,IK.x0)
 end
 
-eval_driftstep!(IK::MFPTIntegrationKernel) = eval_driftstep!(IK::sdestep)
+eval_driftstep!(IK::MFPTIntegrationKernel) = eval_driftstep!(IK.sdestep)
 
-function rescale_discreteintegrator!(IK::MFPTIntegrationKernel{1,dyn}; int_limit_thickness_multiplier = 6, kwargs...) where dyn <:SDEStep{d,d,m} where {d,m}
+function rescale_discreteintegrator!(IK::MFPTIntegrationKernel{1,dyn}; int_limit_thickness_multiplier = 6, restrict_limit_to_interpolationgrid = true, kwargs...) where dyn <:SDEStep{d,d,m} where {d,m}
     σ = sqrt(_Δt(IK.sdestep)*get_g(IK.sdestep.sde)(d, IK.sdestep.x0,_par(IK.sdestep),_t0(IK.sdestep))^2)
-    mn = min(IK.T.axes[d][end], max(IK.T.axes[d][1],IK.sdestep.x1[d] - int_limit_thickness_multiplier*σ))
-    mx = max(IK.T.axes[d][1],min(IK.T.axes[d][end],IK.sdestep.x1[d] + int_limit_thickness_multiplier*σ))
+    mn = IK.sdestep.x1[d] - int_limit_thickness_multiplier*σ
+    mx = IK.sdestep.x1[d] + int_limit_thickness_multiplier*σ
+    if restrict_limit_to_interpolationgrid
+        mn = min(IK.T.axes[d][end], max(IK.T.axes[d][1],mn))
+        mx = max(IK.T.axes[d][1],min(IK.T.axes[d][end],mx))
+    end
     rescale_to_limits!(IK.discreteintegrator, mn, mx)
 end
 
@@ -75,18 +128,25 @@ function get_IK_weights!(IK::MFPTIntegrationKernel; kwargs...)
 end
 
 function (IK::MFPTIntegrationKernel{dk})(vals,x) where dk
-    fx = transitionprobability(sdestep,x)
+    fx = transitionprobability(IK.sdestep,x)
     # * if m ≠ 1 and d ≠ k: figure out a rework
     set_oldvals_tozero!(vals, IK)
     update_relevant_states!(IK,x)
 
-    if isapprox(_fx,zero(_fx), atol=1e-8) || IK.condition(x)
+    if isapprox(fx,zero(fx), atol=1e-8) || IK.condition(x)
         all_zero!(vals, IK)
     else
-        basefun_vals_safe!(IK)
+        basefun_vals_safe!(IK, allow_extrapolation = true)
         fill_vals!(vals,IK,fx,_idx_it(IK), _val_it(IK))
     end
 end
+
+# function basefun_vals_safe!(IK::MFPTIntegrationKernel{dk,sdeT}; kwargs...) where sdeT<:AbstractSDEStep{d} where {dk,d}
+#     for (it,ax,x1) in zip(IK.temp.itpVs,IK.T.axes,IK.x1)
+#         basefun_vals_safe!(it,ax,x1; allow_extrapolation = true, kwargs..., IK.kwargs...)
+#     end
+#     nothing
+# end
 
 # function update_relevant_states!(IK::MFPTIntegrationKernel{dk,sdeT},x) where sdeT<:SDEStep{d,d,m} where {dk,d,m}
 #     @inbounds IK.x1[d] = x
@@ -97,12 +157,18 @@ function update_relevant_states!(IK::MFPTIntegrationKernel{dk,sdeT},x) where sde
     end
 end
 
-function basefun_vals_safe!(IK::MFPTIntegrationKernel{dk,sdeT}) where sdeT<:AbstractSDEStep{d} where {dk,d}
+function basefun_vals_safe!(IK::MFPTIntegrationKernel{dk,sdeT}; kwargs...) where sdeT<:AbstractSDEStep{d} where {dk,d}
     for (it,ax,x1) in zip(IK.temp.itpVs,IK.T.axes,IK.x1)
-        basefun_vals_safe!(it,ax,x1; IK.kwargs...)
+        basefun_vals_safe!(it,ax,x1; kwargs..., IK.kwargs...)
     end
     nothing
 end
 
+function set_oldvals_tozero!(vals, IK::MFPTIntegrationKernel{kd,dynT,cT,diT,x0T,x1T,TT}) where {kd,dynT,cT,diT,x0T,x1T,TT<:InterpolatedFunction{T,N, itp_type}} where {T,N,itp_type <: SparseInterpolationType}
+    @inbounds for idx in _idx_it(IK)
+        vals[idx...] = zero(eltype(vals))
+    end
+end
 
-
+function all_zero!(vals::AbstractArray{<:T}, IK::MFPTIntegrationKernel{kd,dynT,cT,diT,x0T,x1T,TT}) where {kd,dynT,cT,diT,x0T,x1T,TT<:InterpolatedFunction{T,N, itp_type}} where {T,N,itp_type <: SparseInterpolationType}
+end
