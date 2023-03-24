@@ -31,13 +31,50 @@ end
 function compute_MFPT(mfptIK; mfptMXtype = DenseMX(), kwargs...)
     _mfptMX = initialize_stepMX(eltype(mfptIK.T.p), length(mfptIK.T),mfptMXtype)
 
-    inv_idxs, mfptMX = fill_MFPTMX!(_mfptMX, mfptIK; kwargs...)
-    _Tmx = (I - mfptMX') \ fill(_Δt(mfptIK.sdestep), size(mfptMX,1))
+    inv_idxs, mfptMX, mfptV = fill_MFPTMX!(_mfptMX, mfptIK; kwargs...)
+    _Tmx = (I - mfptMX') \ mfptV
+    # _Tmx = (I - mfptMX') \ fill(_Δt(mfptIK.sdestep), size(mfptMX,1))
     # return inv_idxs, mfptMX
     mfptIK.T.p[inv_idxs] .= vec(_Tmx)
     mfptIK
     # stepMX
 end
+
+abstract type AbstractBarrierCondition <: Function end
+struct SingleBarrierCondition{i,cT,xT} <: AbstractBarrierCondition
+    condition::cT
+    x0::xT
+end
+
+function SingleBarrierCondition(i::Int, x0; condition = >)
+    _cond = condition(x0)
+    SingleBarrierCondition{i,typeof(_cond), typeof(x0)}(_cond, x0)
+end
+
+function (sc::SingleBarrierCondition{i})(x) where i
+    sc.condition(x[i])
+end
+
+struct DoubleBarrierCondition{i,c1T,c2T,xT} <: AbstractBarrierCondition
+    condition1::c1T
+    condition2::c2T
+    xs::xT
+end
+
+function DoubleBarrierCondition(i::Int, x0, x1)
+    _cond1 = <(x0)
+    _cond2 = >(x1)
+    xs = (x0,x1)
+    DoubleBarrierCondition{i,typeof(_cond1),typeof(_cond2), typeof(xs)}(_cond1, _cond2, xs)
+end
+function DoubleBarrierCondition(i::Int, x0)
+    DoubleBarrierCondition(i, -x0, x0)
+end
+
+function (dc::DoubleBarrierCondition{i})(x) where i
+    dc.condition1(x[i]) || dc.condition2(x[i])
+end
+
 
 abstract type AbstractIntegrationKernel end
 struct MFPTIntegrationKernel{kd,dynT,cT,diT,x0T,x1T,TT,tempT,kwargT} <: AbstractIntegrationKernel
@@ -69,15 +106,14 @@ function get_sdestep_x1(IK::AbstractIntegrationKernel)
     IK.sdestep.x1
 end
 
-# Fix x0
 
 fill_MFPTMX!(MX::Transpose, IK::MFPTIntegrationKernel; kwargs...) = fill_MFPTMX!(MX.parent, IK; kwargs...)
 
 function fill_MFPTMX!(MX, IK::MFPTIntegrationKernel; smart_integration = true, kwargs...)
     inv_idxs = InvertedIndex(Vector{Int}(undef,0))
+    mfptV = Vector{typeof(_Δt(IK.sdestep))}(undef, 0); sizehint!(mfptV, size(MX,1))
     for (i,idx) in enumerate(dense_idx_it(IK))
         update_IK_state_x0_by_idx!(IK, idx)
-        
         if IK.condition(IK.x0)
             push!(inv_idxs.skip,i)
             # println("Skipped: $(i)")
@@ -87,6 +123,7 @@ function fill_MFPTMX!(MX, IK::MFPTIntegrationKernel; smart_integration = true, k
         update_dyn_state_x0!(IK)
         eval_driftstep!(IK)
         update_IK_state_x1_from_sdestep!(IK)
+        push_Δt!(mfptV, IK)
         if smart_integration
             rescale_discreteintegrator!(IK; restrict_limit_to_interpolationgrid = false, IK.kwargs...)
         end
@@ -94,7 +131,7 @@ function fill_MFPTMX!(MX, IK::MFPTIntegrationKernel; smart_integration = true, k
         get_IK_weights!(IK; IK.kwargs...)
         fill_to_stepMX!(MX,IK,i; IK.kwargs...)
     end
-    return inv_idxs, MX[inv_idxs,inv_idxs]
+    return inv_idxs, MX[inv_idxs,inv_idxs], mfptV
 end
 
 function update_IK_state_x0_by_idx!(IK::MFPTIntegrationKernel{kd, dyn}, idx) where {dyn<:AbstractSDEStep{d}} where {kd, d}
@@ -110,6 +147,22 @@ function update_dyn_state_x0!(IK::MFPTIntegrationKernel)
 end
 
 eval_driftstep!(IK::MFPTIntegrationKernel) = eval_driftstep!(IK.sdestep)
+
+function push_Δt!(mfptV, IK::MFPTIntegrationKernel)
+    if IK.condition(IK.sdestep.x1)
+        push!(mfptV,get_Δt_to_condition(IK))
+    else
+        push!(mfptV, _Δt(IK.sdestep))
+    end
+end
+
+function get_Δt_to_condition(IK::MFPTIntegrationKernel{kd,dynT,cT}) where {kd,dynT,cT<:SingleBarrierCondition{i}} where i
+    _Δt(IK.sdestep)*(IK.sdestep.condition.x0 - IK.sdestep.x0[i])/(IK.sdestep.x1[i] - IK.sdestep.x0[i])
+end
+function get_Δt_to_condition(IK::MFPTIntegrationKernel{kd,dynT,cT}) where {kd,dynT,cT<:DoubleBarrierCondition{i}} where i
+    k = IK.condition.condition1(IK.sdestep.x1[i]) ? 1 : 2
+    _Δt(IK.sdestep)*(IK.condition.xs[k] - IK.sdestep.x0[i])/(IK.sdestep.x1[i] - IK.sdestep.x0[i])
+end
 
 function rescale_discreteintegrator!(IK::MFPTIntegrationKernel{1,dyn}; int_limit_thickness_multiplier = 6, restrict_limit_to_interpolationgrid = true, kwargs...) where dyn <:SDEStep{d,d,m} where {d,m}
     σ = sqrt(_Δt(IK.sdestep)*get_g(IK.sdestep.sde)(d, IK.sdestep.x0,_par(IK.sdestep),_t0(IK.sdestep))^2)
@@ -133,7 +186,7 @@ function (IK::MFPTIntegrationKernel{dk})(vals,x) where dk
     update_relevant_states!(IK,x)
     fx = transitionprobability(IK.sdestep,IK.x1)
 
-    if isapprox(fx,zero(fx), atol=1e-8) || IK.condition(x)
+    if isapprox(fx,zero(fx), atol=1e-8) || IK.condition(IK.x1)
         all_zero!(vals, IK)
     else
         basefun_vals_safe!(IK, allow_extrapolation = true)

@@ -21,7 +21,7 @@ export SDE, DriftTerm, DiffusionTerm,
     DiscreteIntegrator, QuadGKIntegrator, ClenshawCurtisIntegrator, GaussLegendreIntegrator, GaussRadauIntegrator, GaussLobattoIntegrator, TrapezoidalIntegrator, NewtonCotesIntegrator,
     DenseMX, SparseMX,
     SDE_VIO, Wall,
-    MeanFirstPassageTime
+    MeanFirstPassageTime, SingleBarrierCondition, DoubleBarrierCondition
 
 include("types.jl")
 include("pathintegration.jl")

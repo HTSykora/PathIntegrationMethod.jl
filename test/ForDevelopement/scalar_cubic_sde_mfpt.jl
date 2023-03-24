@@ -14,9 +14,9 @@ sde = SDE(f,g)
 method = RK2()
 Δt = 0.001;
 sdestep = SDEStep(sde, method, Δt) 
-axis = QuinticAxis(-3.0,3.0,201)
-condition(x) = abs(x[1]) < 2.1
-
+axis = QuinticAxis(-3.5,2.2,101)
+# condition = DoubleBarrierCondition(1,2.)
+condition = SingleBarrierCondition(1,1.0)
 T_mx = MeanFirstPassageTime(sdestep, condition, axis, di_N = 31)
 
 # begin
@@ -28,6 +28,7 @@ begin
     xs = LinRange_fromaxis(axis,201)
     # figure(1); clf()
     plot(xs, T_mx.T.(xs))
+    ylim(bottom=0)#,top=4.05)
 end
 
 
