@@ -157,7 +157,7 @@ function push_Δt!(mfptV, IK::MFPTIntegrationKernel)
 end
 
 function get_Δt_to_condition(IK::MFPTIntegrationKernel{kd,dynT,cT}) where {kd,dynT,cT<:SingleBarrierCondition{i}} where i
-    _Δt(IK.sdestep)*(IK.sdestep.condition.x0 - IK.sdestep.x0[i])/(IK.sdestep.x1[i] - IK.sdestep.x0[i])
+    _Δt(IK.sdestep)*(IK.condition.x0 - IK.sdestep.x0[i])/(IK.sdestep.x1[i] - IK.sdestep.x0[i])
 end
 function get_Δt_to_condition(IK::MFPTIntegrationKernel{kd,dynT,cT}) where {kd,dynT,cT<:DoubleBarrierCondition{i}} where i
     k = IK.condition.condition1(IK.sdestep.x1[i]) ? 1 : 2
