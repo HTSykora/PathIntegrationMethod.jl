@@ -4,19 +4,22 @@ using PyPlot; pygui(true)
 # using QuadGK, Arpack
 ##
 # 1D problem:
-f(x,p,t) = x[1]-x[1]^3
-g(x,p,t) = 1. #sqrt(2)
+upperbound(p) = 2.3exp(0.5*(p[1]/p[2])^2) # upper bound for the expected time of reacing 0 starting from sqrt(p[1])
+f(x,p,t) = x[1]-p[1]*x[1]^3
+g(x,p,t) = p[2] #sqrt(2)
 # f(x,p,t) = 0. #x[1]-x[1]^3
 # g(x,p,t) = 1.
-sde = SDE(f,g)
+par = [1.,0.5]
+sde = SDE(f,g, par)
 
 
 method = RK2()
-Δt = 0.001;
+Δt = 0.0001;
 sdestep = SDEStep(sde, method, Δt) 
 axis = QuinticAxis(-3.5,2.2,101)
 # condition = DoubleBarrierCondition(1,2.)
 condition = SingleBarrierCondition(1,1.0)
+condition = SingleBarrierCondition(1,0.0)
 T_mx = MeanFirstPassageTime(sdestep, condition, axis, di_N = 31)
 
 # begin
@@ -26,8 +29,9 @@ T_mx = MeanFirstPassageTime(sdestep, condition, axis, di_N = 31)
 
 begin
     xs = LinRange_fromaxis(axis,201)
-    # figure(1); clf()
+    figure(1); clf()
     plot(xs, T_mx.T.(xs))
+    plot(xs, fill(upperbound(par),length(xs)))
     ylim(bottom=0)#,top=4.05)
 end
 
