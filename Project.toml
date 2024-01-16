@@ -19,11 +19,11 @@ ThreadedSparseArrays = "59d54670-b8ac-4d81-ab7a-bb56233e17ab"
 [compat]
 Distributions = "0.25"
 FFTW = "1"
-FastGaussQuadrature = "0.4"
+FastGaussQuadrature = "0.4,1"
 QuadGK = "2"
 Reexport = "1"
 StaticArrays = "1"
-Symbolics = "4"
+Symbolics = "4,5"
 ThreadedSparseArrays = "0.2"
 julia = "1"
 
