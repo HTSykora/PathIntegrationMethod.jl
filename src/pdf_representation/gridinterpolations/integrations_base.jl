@@ -122,7 +122,7 @@ function Base.getindex(ncw::NewtonCotesWeights{3,wT,2},idx) where wT<:Number
             return ncw.Δ * wT(1.125)
         end
     elseif idx == ncw.l - 5
-        return ncw.Δ * wT(103)/wT(144)
+        return ncw.Δ * wT(203)/wT(288) # 3/8 + 95/288
     elseif idx == ncw.l - 4 || idx == ncw.l - 1
         return ncw.Δ * wT(125)/wT(96)
     elseif idx == ncw.l

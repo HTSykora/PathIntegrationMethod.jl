@@ -12,12 +12,7 @@ exact(k) = (b^(k+1) - a^(k+1)) / (k+1) # ∫ₐᵇ xᵏ dx
         w = collect(PIM.NewtonCotesWeights(order, l, (b - a)/(l - 1)))
         x = LinRange(a, b, l)
         err = maximum(abs(sum(w .* x.^k) - exact(k)) for k in 0:(order == 1 ? 1 : 3))
-        if order == 3 && mod(l - 1, 3) == 2
-            # weight at the junction of the 3/8 rule and the 6-point end rule is 103/144 instead of 203/288
-            @test_broken err < 1e-12
-        else
-            @test err < 1e-12
-        end
+        @test err < 1e-12
     end
 end
 

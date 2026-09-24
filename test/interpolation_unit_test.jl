@@ -53,19 +53,19 @@ itp_value(vals, p) = sum(p[i] * v for (i, v) in zip(vals.idxs, vals.val) if !isz
     # allow_extrapolation = true: the boundary interpolation is continued (exact for a linear function)
     axis === TrigonometricAxis && continue # periodic interpolation
     @test itp_value(basis(a, below; allow_extrapolation = true), p) ≈ lin(below)
-    if axis === ChebyshevAxis
-        @test itp_value(basis(a, above; allow_extrapolation = true), p) ≈ lin(above)
-    else
-        # sparse interpolations: the stencil indices point beyond the last node
-        @test_broken itp_value(basis(a, above; allow_extrapolation = true), p) ≈ lin(above)
+    @test itp_value(basis(a, above; allow_extrapolation = true), p) ≈ lin(above)
+    if !(a.temp isa AbstractVector) # sparse interpolations: the stencil stays on the grid
+        @test all(1 ≤ i ≤ length(a) for i in basis(a, above; allow_extrapolation = true).idxs)
     end
 end
 
-@testset "Extrapolation flags in InterpolatedFunction evaluation" begin
-    F = InterpolatedFunction(CubicAxis(-1., 2., 12); f = x -> 2x + 1)
+@testset "Extrapolation flags in InterpolatedFunction evaluation: $axis" for axis in (CubicAxis, ChebyshevAxis)
+    F = InterpolatedFunction(axis(-1., 2., 12); f = x -> 2x + 1)
     @test F(2.1) == 0
-    # the keywords are not forwarded by `interpolate`: always zero extrapolation
-    @test_broken F(2.1; zero_extrapolation = false) ≈ F.p[end]
+    @test F(2.1; zero_extrapolation = false) ≈ F.p[end]
+    @test F(2.1; allow_extrapolation = true) ≈ 2*2.1 + 1
+    G = InterpolatedFunction(axis(-1., 2., 12), axis(0., 1., 9); f = (x, y) -> 2x + y)
+    @test G(-1.1, 0.5; allow_extrapolation = true) ≈ 2*(-1.1) + 0.5
 end
 
 end

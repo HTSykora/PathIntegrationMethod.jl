@@ -114,8 +114,8 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMe
     PathIntegration(sdestep,ts,axes...; kwargs...)
 end
 # PathIntegration{dynT, pdT, tsT, tpdMX_type, Tstp_idx, IKT, kwargT}
-function advance_till_converged!(PI::PathIntegration; rtol = 1e-6, Tmax = nothing, check_dt = PI.ts[end], maxiter = 100_000, atol = rtol*check_dt, check_iter = nothing)
-    _dt = PI.ts isa Number ? PI.ts : PI.ts[2]
+function advance_till_converged!(PI::PathIntegration; rtol = 1e-6, Tmax = nothing, check_dt = PI.ts[end] - PI.ts[1], maxiter = 100_000, atol = rtol*check_dt, check_iter = nothing)
+    _dt = PI.ts isa Number ? PI.ts : PI.ts[2] - PI.ts[1]
     if check_iter isa Nothing
         chk_itr = Int((check_dt + sqrt(eps(check_dt))) ÷_dt) - 1;
         # Assuming constant time step
@@ -133,14 +133,14 @@ function advance_till_converged!(PI::PathIntegration; rtol = 1e-6, Tmax = nothin
     
     ϵ = [100*atol];
 
+    # Compare the PDFs `check_dt` apart (a full period for time-periodic systems)
+    p_prev = similar(PI.pdf.p)
     while ϵ[end] > atol && iter < _maxiter
-        for _ in 1:chk_itr
+        p_prev .= PI.pdf.p
+        for _ in 1:chk_itr+1
             advance!(PI)
         end
-        _advance_to_temp!(PI.p_temp,PI)
-        _corr_to_temp!(PI.p_temp,PI.p_temp,PI)
-        push!(ϵ,integrate_diff(PI.pdf,PI.p_temp))
-        @. PI.pdf.p = PI.p_temp
+        push!(ϵ,integrate_diff(PI.pdf,p_prev))
         iter = iter + chk_itr + 1
     end
     PI, ϵ

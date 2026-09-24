@@ -48,7 +48,7 @@ get_tempval(axis::AxisGrid,i) = axis.temp[i]
 function interpolate(p::MX,axes, x::Vararg{Any,N}; idx_it = BI_product(_eachindex.(axes)...), val_it = BI_product(_gettempvals.(axes)...), kwargs...) where MX<:AbstractArray{T,N} where {T,N} #xs <: NTuple{<:gridAxis}
     # map(basefun_vals_safe!,axes,x)
     map(axes,x) do ax,_x
-        basefun_vals_safe!(ax,_x)
+        basefun_vals_safe!(ax,_x; kwargs...)
     end
     # for (axis, _x) in zip(axes,x)
     #     basefun_vals_safe!(axis,_x; kwargs...)

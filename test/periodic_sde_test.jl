@@ -47,10 +47,9 @@ end
 
 @testset "Periodic steady state" begin
     PI_ss = new_PI(ts)
-    _, ϵ = advance_till_converged!(PI_ss; Tmax = 20.0) # ends at the end of a period
-    # the convergence check compares two consecutive time steps instead of states one period apart,
-    # so it never converges for time-periodic systems and stops at Tmax
-    @test_broken length(ϵ) - 1 < 20.0 / T
+    _, ϵ = advance_till_converged!(PI_ss; Tmax = 50.0) # compares the PDFs one period apart
+    @test length(ϵ) - 1 < 50.0 / T # converged before Tmax
+    @test PI_ss.t ≈ (length(ϵ) - 1) * T # ends at the end of a period
     p_start = copy(PI_ss.pdf.p)
     for _ in 1:2
         advance!(PI_ss)
