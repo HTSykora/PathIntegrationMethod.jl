@@ -99,7 +99,7 @@ function (q::QuadGKIntegrator)(f!,res; Q_reinit_res = true, kwargs...)
     end
     res .= zero(eltype(res))
     if q.Q_integrate[]
-        quadgk!(f!, res, q.int_limits...; q.kwargs...)
+        quadgk!((v, x) -> (fill!(v, zero(eltype(v))); f!(v, x)), res, q.int_limits...; q.kwargs...)
     end
     if !Q_reinit_res
         res .+= q.res0
