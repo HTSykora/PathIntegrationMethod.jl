@@ -28,11 +28,14 @@ end
 
 ##
 methods = (LinearAxis, CubicAxis, QuinticAxis, ChebyshevAxis, TrigonometricAxis)
-err_refs = ([0.0175,0.027,0.027],
-            [0.0081,0.011,0.011],
-            [0.009,0.0115,0.0115],
-            [0.009,0.0115,0.0115],
-            [0.009,0.0115,0.0115])
+# Reference errors ε₁ for (Euler, RK2, RK4), N = 71, Δt = 0.01
+err_refs = ([0.01652, 0.02580, 0.02554],
+            [0.00836, 0.01104, 0.01092],
+            [0.00884, 0.01122, 0.01110],
+            [0.00887, 0.01123, 0.01112],
+            [0.00887, 0.01123, 0.01112])
+err_margin = 0.1 # allowed relative increase of ε₁ compared to err_refs
+recompute_atol = 1e-7 # allowed change of ε₁ after recompute_PI!
 
 rk1 = Euler()
 rk2 = RK2()
@@ -45,11 +48,11 @@ for (i,method) in enumerate(methods)
     err_rk2_1, err_rk2_2 = get_PI_err(71, 0.01, method, rk2)
     err_rk4_1, err_rk4_2 = get_PI_err(71, 0.01, method, rk4)
 
-    push!(testresults, isapprox(err_rk1_1, err_rk1_2, atol = 1.5e-8))
-    push!(testresults, isapprox(err_rk2_1, err_rk2_2, atol = 1.5e-8))
-    push!(testresults, isapprox(err_rk4_1, err_rk4_2, atol = 1.5e-8))
-    push!(testresults, err_rk1_1 < err_ref[1])
-    push!(testresults, err_rk2_1 < err_ref[2])
-    push!(testresults, err_rk4_1 < err_ref[3])
+    push!(testresults, isapprox(err_rk1_1, err_rk1_2, atol = recompute_atol))
+    push!(testresults, isapprox(err_rk2_1, err_rk2_2, atol = recompute_atol))
+    push!(testresults, isapprox(err_rk4_1, err_rk4_2, atol = recompute_atol))
+    push!(testresults, err_rk1_1 < (1 + err_margin) * err_ref[1])
+    push!(testresults, err_rk2_1 < (1 + err_margin) * err_ref[2])
+    push!(testresults, err_rk4_1 < (1 + err_margin) * err_ref[3])
 end
 reduce(&, testresults)

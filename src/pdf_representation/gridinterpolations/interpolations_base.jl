@@ -36,6 +36,9 @@ function find_idx(xs::Vx,x::xT; allow_extrapolation::Bool = false, zero_extrapol
         do_interpolation = allow_extrapolation
         _ze = zero_extrapolation && !(allow_extrapolation)
         i = x<xs[1] ? 1 : length(xs);
+        if allow_extrapolation && i == length(xs)
+            i = i - one(i) # extrapolate with the last interval
+        end
     end
     return do_interpolation, _ze, i
 end
