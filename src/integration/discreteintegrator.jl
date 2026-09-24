@@ -19,20 +19,15 @@ function DiscreteIntegrator(discreteintegrator::AbstractDiscreteIntegratorMethod
     DiscreteIntegrator{1, typeof(x), typeof(w), typeof(res_prototype), typeof(res_prototype),typeof(Q_integrate)}(x,w,zero(res_prototype),zero(res_prototype),Q_integrate)
 end
 
-# QuadGKIntegrator() = QuadGKIntegrator(nothing,nothing,nothing)
-QuadGKIntegrator(;kwargs...) = QuadGKIntegrator(nothing,nothing,cleanup_quadgk_keywords(kwargs...))
+# QuadGKIntegrator(; rtol, atol, maxevals, order...):
+QuadGKIntegrator(;kwargs...) = QuadGKIntegrator(nothing,nothing,cleanup_quadgk_keywords(;kwargs...),nothing,nothing)
 @inline function cleanup_quadgk_keywords(;σ_init = nothing, μ_init = nothing, allow_extrapolation=false,  zero_extrapolation=true, kwargs...)
     kwargs
 end
-function DiscreteIntegrator(discreteintegrator::QuadGKIntegrator{T1,T2,Tkwarg},res_prototype, N::Union{NTuple{1,<:Integer},<:Integer}, axes::GA; xT = Float64, wT = Float64, kwargs...) where {GA<:AxisGrid, T1, T2, Tkwarg}
+function DiscreteIntegrator(discreteintegrator::QuadGKIntegrator, res_prototype, axes::GA; kwargs...) where {GA<:AxisGrid}
     start = axes[1]
     stop = axes[end]
-    # if Tkwargs <: Nothing
-    #     qgkkwargs = cleanup_quadgk_keywords(;kwargs...)
-    # else
-    qgkkwargs = (discreteintegrator.kwargs..., cleanup_quadgk_keywords(;kwargs...)...)
-    # end
-    QuadGKIntegrator([start, stop], zero(res_prototype), qgkkwargs, Ref(true), zero(res_prototype))
+    QuadGKIntegrator([start, stop], zero(res_prototype), discreteintegrator.kwargs, Ref(true), zero(res_prototype))
 end
 
 function (di::ClenshawCurtisIntegrator{1})(xT, wT, start, stop) 
@@ -102,13 +97,12 @@ function (q::QuadGKIntegrator)(f!,res; Q_reinit_res = true, kwargs...)
     if !Q_reinit_res
         q.res0 .= res
     end
-    if q.Q_integrate
+    res .= zero(eltype(res))
+    if q.Q_integrate[]
         quadgk!(f!, res, q.int_limits...; q.kwargs...)
-    else
-        res .= zero(eltype(res))
     end
     if !Q_reinit_res
-        res .+= res0
+        res .+= q.res0
     end
     nothing
 end
@@ -171,7 +165,7 @@ function rescale_xw!(x,w,start,stop)
     w .= w .* scale
 end
 
-function rescale_discreteintegrator!(discreteintegrator::DiscreteIntegrator{1}, sdestep::SDEStep{d,d,m}, pdf; kwargs...) where {d,m}
+function rescale_discreteintegrator!(discreteintegrator::Union{DiscreteIntegrator{1},QuadGKIntegrator}, sdestep::SDEStep{d,d,m}, pdf; kwargs...) where {d,m}
     # discreteintegrator.Q_integrate[] = true
     mn, mx = get_rescale_limits(sdestep, pdf; kwargs...)
     rescale_to_limits!(discreteintegrator, mn, mx)

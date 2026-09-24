@@ -104,7 +104,7 @@ function PathIntegration(sdestep::AbstractSDEStep{d,k,m}, _ts, axes::Vararg{Any,
     PathIntegration(sdestep, pdf, p_temp,ts, stepMX, step_idx, IK, mpdf, kwargs,t)
 end
 _val(vals) = vals
-get_ts(_ts::AbstractVector{tsT}) where tsT<:Number = _ts
+get_ts(_ts::AbstractVector{tsT}) where tsT<:Number = collect(_ts)
 get_ts(_ts::tsT) where tsT<:Number = [zero(_ts), _ts]
 stepMX(PI::PathIntegration) = PI.stepMX[1]
 stepMX(PI::PathIntegration, i) = PI.stepMX[i]
@@ -159,7 +159,7 @@ function _advance_to_temp!(p_temp::tT,PI::PathIntegration{dynT}) where {tT<:Abst
 end
 function _corr_to_temp!(res::tT,p_temp::tT,PI::PathIntegration{dynT}) where {tT<:AbstractArray{T,d},dynT<:AbstractSDEStep{d}} where {T,d}
     _I = 1/_integrate(p_temp, PI.pdf.axes...);
-    @. res = PI.p_temp * _I
+    @. res = p_temp * _I
     nothing
 end
 
@@ -236,16 +236,16 @@ function recompute_stepMX!(PI::PathIntegration; par = nothing, t = nothing, rese
     end
 
     if t isa AbstractVector
-        if length(PI.IK.ts) != length(ts)
-            resize!(PI.IK.ts,length(ts))
+        if length(PI.IK.t) != length(t)
+            resize!(PI.IK.t,length(t))
         end
-        PI.IK.t .= ts
+        PI.IK.t .= t
     elseif t isa Number
         resize!(PI.IK.t,2);
         PI.IK.t[1] = zero(eltype(PI.IK.t))
         PI.IK.t[2] = t
     end
-
+    resize_stepMX!(PI.stepMX, length(PI.IK.t) - 1)
 
     reinit_stepMX!(PI.stepMX)
     fill_stepMX_ts!(PI.stepMX, PI.IK; PI.IK.kwargs...)
@@ -257,6 +257,16 @@ function recompute_stepMX!(PI::PathIntegration; par = nothing, t = nothing, rese
         PI.step_idx = zero(PI.step_idx)
     end
     nothing
+end
+
+function resize_stepMX!(stepMX::AbstractVector, n)
+    l = length(stepMX)
+    if n < l
+        resize!(stepMX, n)
+    elseif n > l
+        append!(stepMX, [deepcopy(stepMX[1]) for _ in l+1:n])
+    end
+    stepMX
 end
 
 function reinit_stepMX!(stepMX::SparseArrays.AbstractSparseMatrixCSC) where T

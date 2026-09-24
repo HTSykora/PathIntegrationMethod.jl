@@ -27,21 +27,21 @@ integratormethod = GaussLobattoIntegrator()
 temp = zeros(100);
 i_N = 2001;
 # @time 
-di_qgk = DiscreteIntegrator(QuadGKIntegrator(), temp, i_N, gridaxis)
+di_qgk = DiscreteIntegrator(QuadGKIntegrator(), temp, gridaxis)
 # @time 
-di_tri = DiscreteIntegrator(TrapezoidalIntegrator(), temp, i_N, gridaxis)
+di_tri = DiscreteIntegrator(TrapezoidalIntegrator(i_N), temp, gridaxis)
 # @time 
-di_nc2 = DiscreteIntegrator(NewtonCotesIntegrator(2), temp, i_N, gridaxis)
+di_nc2 = DiscreteIntegrator(NewtonCotesIntegrator(i_N, 2), temp, gridaxis)
 # @time 
-di_nc3 = DiscreteIntegrator(NewtonCotesIntegrator(3), temp, i_N, gridaxis)
+di_nc3 = DiscreteIntegrator(NewtonCotesIntegrator(i_N, 3), temp, gridaxis)
 # @time 
-di_cci = DiscreteIntegrator(ClenshawCurtisIntegrator(), temp, i_N, gridaxis)
+di_cci = DiscreteIntegrator(ClenshawCurtisIntegrator(i_N), temp, gridaxis)
 # @time 
-di_glei = DiscreteIntegrator(GaussLegendreIntegrator(), temp, i_N, gridaxis)
+di_glei = DiscreteIntegrator(GaussLegendreIntegrator(i_N), temp, gridaxis)
 # @time 
-di_gri = DiscreteIntegrator(GaussRadauIntegrator(), temp, i_N, gridaxis)
+di_gri = DiscreteIntegrator(GaussRadauIntegrator(i_N), temp, gridaxis)
 # @time 
-di_gloi = DiscreteIntegrator(GaussLobattoIntegrator(), temp, i_N, gridaxis)
+di_gloi = DiscreteIntegrator(GaussLobattoIntegrator(i_N), temp, gridaxis)
  
 # @time 
 di_qgk(foo!)
