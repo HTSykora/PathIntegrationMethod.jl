@@ -4,7 +4,7 @@
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/HTSykora/PathIntegrationMethod.jl?svg=true)](https://ci.appveyor.com/project/HTSykora/PathIntegrationMethod-jl)
 [![Coverage](https://codecov.io/gh/HTSykora/PathIntegrationMethod.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/HTSykora/PathIntegrationMethod.jl)
 
-This package implements the step matrix multiplication path integration (SMM-PI) method to compute of the response probability function of a system described by a $d$-dimensional stochastic differential equation of the form
+This package implements the step matrix multiplication path integration (SMM-PI) method to compute the response probability density function (PDF) of a system described by a $d$-dimensional stochastic differential equation of the form
 
 $$ \mathrm{d} x  = f(x,t) \mathrm{d} t + g(x,t) \mathrm{d} W (t).$$
 
@@ -36,10 +36,10 @@ First we need to define the component functions:
 using PathIntegrationMethod
 
 f1(x,p,t) = x[2]
-    function f2(x,p,t)
-        ζ, λ, σ = p
-        -2ζ*x[2] - x[1] + λ*x[1]^3
-    end
+function f2(x,p,t)
+    ζ, λ, σ = p
+    -2ζ*x[2] + x[1] - λ*x[1]^3
+end
 g2(x,p,t) = p[3]
 
 p = [0.15, 0.25,sqrt(0.075)]; # ζ, λ, σ = p
@@ -85,18 +85,19 @@ We can use:
 - The classic fourth order Runge-Kutta step: `RK4()`
 
 In the current implementation we can only use the Maruyama approximation ($g(x,t_n) \Delta W(t_n)$) for the diffusion term.
-Due to this the computed PDF approximation can only achieve a mean square error convergence $\varepsilon_{MS} = O(\Delta t^{-1})$.
+Due to this the error of the computed PDF converges only with first order, $O(\Delta t)$ (the weak order of the Maruyama approximation), regardless of the drift approximation.
 However, in the case of higher $d$ dimensions using a higher order method can reduce the error significantly (by a constant multiplier), as it can capture better the interactions between the state variables.
 A general recommendation is to use a time stepping method with the same order as the dimension $d$ of the system (`Euler()` for $d = 1$, `RK2()` for $d = 2$ and `RK4()` for $d\geq 3$).
 
 Finally, we can define the `PathIntegration` object that we will use to compute the time evolution of the response PDF of our problem:
 
 ```julia
-    Δt = 0.1;
-    PI = PathIntegration(sde, method, Δt, gridaxis);
+Δt = 0.1;
+PI = PathIntegration(sde, method, Δt, region...);
 ```
 
 The `PI` contains a precomputed step matrix (`PI.stepMX`) used to advance the response pdf (`PI.pdf`).
+If Julia is started with several threads (e.g. `julia -t auto`), the rows of the step matrix are computed in parallel.
 For optional and keyword arguments for the `PathIntegration` and to initialise the response PDF please refer to the help of the `PathIntegration` function:
 ```julia
 ?PathIntegration
@@ -108,22 +109,28 @@ advance!(PI)
 ```
 or to compute the steady-state PDF we can advance `PI` until `PI.pdf` converges to the steady-state PDF checking it after every `check_dt` long interval.
 ```julia
-advance_till_conv(PI,  Tmax = 50., rtol = 1e-6, check_dt = 1.)
+advance_till_converged!(PI; rtol = 1e-6, check_dt = 1., Tmax = 50.)
 ```
-We can also include a condition that the computation stops in case we reach `PI.t == Tmax`.
+The computation also stops when it reaches `PI.t == Tmax`.
+The steady-state PDF can also be computed directly as the eigenvector of the step matrix that corresponds to the eigenvalue closest to 1, which is usually faster:
+```julia
+PI, info = steady_state!(PI)
+```
+In this example `steady_state!` warns that several eigenvalues are near 1: the noise is weak, so the transitions between the two potential wells are rare, and a PDF that is not symmetric converges to the steady state very slowly (the steady state is also sensitive to small errors of the step matrix).
 
 We can now access the (interpolated) values of the PDF $p(x,v,$`PI.t`$)$ by using `PI(x,v)`.
 Note that if `x` or `v` lies outside of the region of interest then `PI(x,v) == 0`.
 
 We can reinitialise the response PDF with
 ```julia
-f_init = ...
-reinit_PI_pdf!(PI, f = f_init)
+f_init(x, v) = exp(-(x^2 + v^2) / 2)
+reinit_PI_pdf!(PI, f_init)
 ```
-or if we want to obtain the response PDF evolution of the same system with different we can recompute step matrix in `PI`:
+(`f_init` does not need to be normalised), or if we want to obtain the response PDF evolution of the same system with different parameters we can recompute the step matrix in `PI`:
 ```julia
-new_par = ...
-recompute_PI!(PI::PathIntegration; par = new_par, f = nothing, Q_reinit_pdf = false, reset_t= true)
+new_par = [0.2, 0.25, sqrt(0.075)]
+recompute_PI!(PI; par = new_par, Q_reinit_pdf = true)
 ```
+With `Q_reinit_pdf = true` the response PDF is also reinitialised (with the function given by the keyword argument `f`, or with the default initial PDF if `f = nothing`).
 
 ![](./assets/CubicOsc.gif)

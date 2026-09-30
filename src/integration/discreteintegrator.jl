@@ -99,6 +99,9 @@ function (q::DiscreteIntegrator{nT, xT,wT})(f!, res, temp; Q_reinit_res = true, 
         res .= zero(eltype(res))
     end
     if q.Q_integrate[]
+        # f! may only write the elements that change (e.g. the interpolation stencil of the previous node), which is only
+        # valid if the last f! call on `temp` was from this loop (e.g. not with several integrators sharing the stencil)
+        temp .= zero(eltype(temp))
         for (w,x) in zip(q.w,q.x)
             f!(temp, x)
             temp .*= w

@@ -54,7 +54,7 @@ end
     QuinticAxis(start, stop, num; newton_cotes_order = 2, xT = Float64, wT = Float64)
 
 [`AxisGrid`](@ref) of `num` equidistant nodes on `[start, stop]` with piecewise quintic interpolation: 6 nodes per evaluation
-(with modified stencils in the first and last two intervals). For the quadrature weights see [`LinearAxis`](@ref) (default: Simpson's rule).
+(and quartic interpolation through the 5 nodes nearest to the end in the first and last two intervals). For the quadrature weights see [`LinearAxis`](@ref) (default: Simpson's rule).
 Recommended for systems with `d > 1`.
 """
 function QuinticAxis(start,stop,num::Int; xT = Float64, wT = Float64, newton_cotes_order = 2, kwargs...)

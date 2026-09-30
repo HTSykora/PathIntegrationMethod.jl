@@ -44,6 +44,13 @@ end
     @test PI.stepMX_wts[1] ≈ transpose(S) * w
 end
 
+# The systems are invariant under x ↦ -x and the grids are symmetric: reversing the order of the nodes does not change S
+@testset "The step matrix is symmetric like the system: $lbl" for (lbl, sde, par, axes, method, mass_tol) in systems
+    S = Matrix(PathIntegration(sde(copy(par)), method(), Δt, axes()...; stepMXtype = DenseMX()).stepMX[1])
+    R = size(S, 1):-1:1
+    @test maximum(abs, S - S[R, R]) ≤ 1e-12 * maximum(abs, S)
+end
+
 @testset "A step approximately conserves probability: $lbl" for (lbl, sde, par, axes, method, mass_tol) in systems
     PI = PathIntegration(sde(copy(par)), method(), Δt, axes()...)
     advance_till_converged!(PI; Tmax = 20.0)

@@ -26,7 +26,7 @@ function _eval_driftstep!(step::SDEStep{d,k,m, sdeT, methodT}, x0, Δt) where {d
         for a in step.method.drift.BT.a[j]
             step.method.drift.temp .= step.method.drift.temp .+ a.weight .* a.val
         end
-        tj = _t0(step)+Δt*(1+step.method.drift.BT.c[j])
+        tj = _t0(step) + Δt*step.method.drift.BT.c[j]
         for i in 1:d
             step.method.drift.ks[j+1][i] = get_f(step.sde)(i,step.method.drift.temp,_par(step),tj)*Δt
         end
@@ -71,7 +71,7 @@ function eval_driftstep_xI_sym(sde::AbstractSDE{d,k,m}, method::DiscreteTimeStep
         for a in method.drift.BT.a[j]
             temp .= temp .+ a._weight .* ks[a.idx]
         end
-        tj = t0 + Δt*(1 + method.drift.BT._c[j])
+        tj = t0 + Δt*method.drift.BT._c[j]
         push!(ks, [sde.f(i,temp,par,tj)*Δt for i in 1:d])
     end
     

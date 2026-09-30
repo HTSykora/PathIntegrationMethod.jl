@@ -58,8 +58,11 @@ function preset_xi_vals!(step2::SDEStep{2,2,1,sdeT}) where sdeT<:SDE_VIO{1}
     step2
 end
 
+# Replace the symbolic restitution function r(v) with the restitution coefficient W(v) of the wall, also in the derivatives of r
+# (`substitute` does not substitute inside `Differential`s since Symbolics 7)
+substitute_w_to_r(expr, W, r, v) = expand_derivatives(Symbolics.substitute_in_deriv(expr, Dict(r(v)=>W(v))))
 function substitute_w_to_rdiff(exprs, W, r, v)
-    [expand_derivatives(substitute(expr,Dict(r(v)=>W(v)))) for expr in exprs] |> collect
+    [substitute_w_to_r(expr, W, r, v) for expr in exprs] |> collect
 end
 function build_inplace_diffsubstituted_function(expr, W, r, v, args...; kwargs...)
     new_expr = substitute_w_to_rdiff(expr, W, r, v)
@@ -72,7 +75,7 @@ function build_inplace_function(expr, args...; kwargs...)
 end
 
 function build_diffsubstituted_function(expr, W, r, v, args...; kwargs...)
-    new_expr = expand_derivatives(substitute(expr,Dict(r(v)=>W(v))))
+    new_expr = substitute_w_to_r(expr, W, r, v)
     build_function(new_expr, args...; expression = Val{false})
 end
 function (pcl::PreComputeNewtonStep)(vi_sde::SDE_VIO, method::DiscreteTimeStepping{<:ExplicitDriftMethod}, _x0, _x1, _t0, _t1) 
@@ -124,7 +127,7 @@ function (pcl::PreComputeNewtonStep)(vi_sde::SDE_VIO, method::DiscreteTimeSteppi
     x_new_i = [_xi[i] - _corr_i[i] for i in 1:3]
     x_i! = Tuple(build_inplace_diffsubstituted_function(x_new_i, W, r, v0, [v0, vi, v1], x1, xi, par, t0, t1) for W in vi_sde.wall)
     # _, xII_1! = build_function(step_sym[k:d], x, par, dt, expression = Val{false})
-    tracer2 = VIO_SymbolicNewtonImpactStepTracer(xI_0i!, x_0i!, detJI⁻¹, similar(_x0,3), similar(_x0,4), x_i!, similar(_x0,3), similar(_x0,3))
+    tracer2 = VIO_SymbolicNewtonImpactStepTracer(xI_0i!, x_0i!, detJI⁻¹, zero(similar(_x0,3)), zero(similar(_x0,4)), x_i!, zero(similar(_x0,3)), zero(similar(_x0,3)))
     return (tracer1, tracer2)
 end
 

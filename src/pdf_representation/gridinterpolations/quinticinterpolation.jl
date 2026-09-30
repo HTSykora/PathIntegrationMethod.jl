@@ -37,28 +37,21 @@ function quinticinterpolation_weights!(vals, dx, Δ)
 
     nothing
 end
-function quinticinterpolation_weights_1!(vals, dx, Δ) 
+# The boundary intervals (x₁ < x < x₂, x₂ < x < x₃ and their mirror images) use the quartic Lagrange polynomials
+# of the 5 nodes nearest to the boundary: Eqs. (B.22)-(B.25) of Sykora et al. (2022)
+function quinticinterpolation_weights_1!(vals, dx, Δ)
     δ = dx / Δ;
     δ² = δ*δ
     δ³ = δ²*δ
     δ⁴ = δ²*δ²
-    
-    δ⁵ = δ²*δ³
-    _6= one(δ)/typeof(δ)(6);
-    vals[1] = (7δ⁴ - 4δ³)*_6 - 0.5δ⁵ + 0.5δ² - 1.5δ + one(δ)
-    vals[2] = 1.5δ⁵ - 3.5δ⁴ + 2δ³ - δ² + 2δ
-    vals[3] = 3.5δ⁴ - 1.5δ⁵ - 2δ³ + 0.5δ² - 0.5δ
-    vals[4] = 0.5δ⁵ - (7δ⁴ - 4δ³)*_6
-    vals[5] = zero(δ)
+    _3= one(δ)/typeof(δ)(3);
+
+    vals[1] = (δ⁴ + 35δ²)*0.125*_3 - (5δ³ + 25δ)*0.25*_3 + one(δ)
+    vals[2] = 1.5δ³ + 4δ - (26δ² + δ⁴)*0.5*_3
+    vals[3] = 0.25*(δ⁴+19δ²) - 2δ³ - 3δ
+    vals[4] = (7δ³ - δ⁴ - 14δ² + 8δ)*0.5*_3
+    vals[5] = (δ⁴ + 11δ²)*0.125*_3 - 0.25*(δ³ + δ)
     vals[6] = zero(δ)
-    
-    # _3= one(δ)/typeof(δ)(3);
-    # vals[1] = (δ⁴ + 35δ²)*0.125*_3 - (5δ³ + 25δ)*0.25*_3 + one(δ)
-    # vals[2] = 1.5δ³ + 4δ - (26δ² + δ⁴)*0.5*_3
-    # vals[3] = 0.25*(δ⁴+19δ²) - 2δ³ - 3δ
-    # vals[4] = (7δ³ - δ⁴ - 14δ² + 8δ)*0.5*_3 
-    # vals[5] = (δ⁴ + 11δ²)*0.125*_3 - 0.25*(δ³ + δ)
-    # vals[6] = zero(δ)
     nothing
 end
 function quinticinterpolation_weights_2!(vals, dx, Δ) 

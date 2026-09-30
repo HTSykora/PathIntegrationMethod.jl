@@ -66,6 +66,21 @@ end
     @test itp_value(basis(a, prevfloat(a[1], 2)), p) ≈ p[1]
 end
 
+# The interpolation of f(-x) at -x equals the interpolation of f(x) at x on a symmetric grid (also near the ends of the grid)
+@testset "Mirror symmetry: $axis" for axis in axistypes
+    a = axis(-3., 3., 31)
+    F = InterpolatedFunction(a; f = x -> exp(-(x - 0.7)^2) + x^3)
+    Fm = InterpolatedFunction(a; f = x -> exp(-(x + 0.7)^2) - x^3)
+    @test maximum(abs(F(x) - Fm(-x)) for x in LinRange(-2.99, 2.99, 1001)) < 1e-12
+end
+
+@testset "Polynomials are reproduced: $axis" for (axis, deg) in ((LinearAxis, 1), (CubicAxis, 2), (QuinticAxis, 4))
+    a = axis(-1., 2., 12)
+    q(x) = sum((-x/2)^k for k in 0:deg)
+    F = InterpolatedFunction(a; f = q)
+    @test maximum(abs(F(x) - q(x)) for x in LinRange(-1., 2., 1001)) < 1e-12
+end
+
 @testset "Extrapolation flags in InterpolatedFunction evaluation: $axis" for axis in (CubicAxis, ChebyshevAxis)
     F = InterpolatedFunction(axis(-1., 2., 12); f = x -> 2x + 1)
     @test F(2.1) == 0

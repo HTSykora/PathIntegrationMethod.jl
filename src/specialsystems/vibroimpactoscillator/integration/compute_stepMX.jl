@@ -78,7 +78,8 @@ function update_dyn_state_x1!(sdestep::SDEStep{d,k,m,sdeT}, x1) where {d,k,m,sde
     sdestep.x0[2] = sdestep.xi[2]
 
     sdestep.ti[] = _t1(sdestep)
-
+    # the same initial guess of the velocities to impact for every row (the rows do not depend on each other)
+    sdestep.steptracer.v_i .= zero(eltype(sdestep.steptracer.v_i))
 end
 
 function Q_check_impact(step, walls, ID)
