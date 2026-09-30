@@ -1,0 +1,5 @@
+Julia threads: 16, BLAS threads: 8
+quintic × quintic      1681 rows | S serial 0.0341 s (3.75 MiB), S 16 threads 0.0052 s | advance! 25.2 μs (7760 B) | integrate 1.01 μs (0 B) | integrate_diff 1.05 μs (0 B) | PI(x,v) 114 ns (0.1 B) | update_mPDFs! 1.38 μs (832 B)
+Chebyshev × Chebyshev   625 rows | S serial 0.0121 s (0.01 MiB), S 16 threads 0.0017 s | advance! 28.6 μs (64 B) | integrate 0.37 μs (0 B) | integrate_diff 0.38 μs (0 B) | PI(x,v) 482 ns (0.1 B) | update_mPDFs! 0.47 μs (544 B)
+quintic × Chebyshev    1025 rows | S serial 0.0280 s (6.23 MiB), S 16 threads 0.0048 s | advance! 22.3 μs (7760 B) | integrate 0.65 μs (0 B) | integrate_diff 0.61 μs (0 B) | PI(x,v) 182 ns (0.1 B) | update_mPDFs! 0.78 μs (688 B)
+Chebyshev × quintic    1025 rows | S serial 0.0276 s (10.54 MiB), S 16 threads 0.0052 s | advance! 30.3 μs (7760 B) | integrate 0.60 μs (0 B) | integrate_diff 0.61 μs (0 B) | PI(x,v) 184 ns (0.1 B) | update_mPDFs! 0.73 μs (688 B)

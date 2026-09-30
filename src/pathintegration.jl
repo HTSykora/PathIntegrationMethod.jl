@@ -222,7 +222,7 @@ function _corr_to_temp!(res::tT,p_temp::tT,mass::Number) where {tT<:AbstractArra
 end
 
 # Quadrature weights w of the grid: ∫p = dot(w, vec(p))
-quadrature_weights(pdf::InterpolatedFunction) = [prod(w) for w in Iterators.product((ax.wts for ax in pdf.axes)...)]
+quadrature_weights(pdf::InterpolatedFunction) = [prod(w) for w in Iterators.product(map(ax -> ax.wts, pdf.axes)...)]
 # Sᵀw for each step matrix S
 stepMX_weights(::Nothing, pdf) = nothing
 stepMX_weights(stepMX::AbstractVector{<:AbstractMatrix}, pdf) = [stepMX_weights(S, pdf) for S in stepMX]
@@ -270,7 +270,8 @@ end
 
 (f::DiagonalNormalPDF)(x...) = prod(normal1D_σ2(μ, σ², _x) for (μ, σ², _x) in zip(f.μ, f.σ², x))
 
-(PI::PathIntegration)(x...) = PI.pdf(x...)
+# (`Vararg{Any,N} where N`: arguments that are only passed on are otherwise not specialised on)
+(PI::PathIntegration)(x::Vararg{Any,N}) where N = PI.pdf(x...)
 
 ## Recompute functions
 """

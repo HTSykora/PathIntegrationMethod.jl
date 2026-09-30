@@ -17,6 +17,7 @@ using Test
     @time @testset "Steady state" begin include("steady_state_test.jl") end
     @time @testset "Parallel row computation" begin include("row_computation_test.jl") end
     @time @testset "Vibro-impact oscillator" begin include("vio_test.jl") end
+    @time @testset "Type stability" begin include("type_stability_test.jl") end
 
 
     # Write your tests here.

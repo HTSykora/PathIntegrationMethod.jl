@@ -1,4 +1,4 @@
-(mpdf::MarginalPDF)(x...) = mpdf.pdf(x...)
+(mpdf::MarginalPDF)(x::Vararg{Any,N}) where N = mpdf.pdf(x...) # (specialised on the arguments, see `PathIntegration`)
 
 function initialise_mPDF(pdf,IDs)
     Tuple(initialise_mPDF(pdf,_IDs) for _IDs in IDs)

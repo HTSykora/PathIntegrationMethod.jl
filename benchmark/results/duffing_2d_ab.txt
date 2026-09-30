@@ -1,0 +1,32 @@
+=== old (run 1)
+Julia threads: 16
+quintic×quintic  S serial   35.02 ms   3.75 MiB | S 16 threads   5.47 ms | integrate 1.025 μs | PI.(xs, vs') 201² points   4.19 ms     0.31 MiB
+cheb×cheb        S serial   12.15 ms   0.01 MiB | S 16 threads   1.94 ms | integrate 0.383 μs | PI.(xs, vs') 201² points  19.65 ms     0.31 MiB
+quintic×cheb     S serial   29.93 ms  16.79 MiB | S 16 threads   5.99 ms | integrate 0.623 μs | PI.(xs, vs') 201² points   7.94 ms     0.31 MiB
+cheb×quintic     S serial   29.52 ms  21.10 MiB | S 16 threads   5.21 ms | integrate 0.659 μs | PI.(xs, vs') 201² points   7.34 ms     0.31 MiB
+cubic×quintic    S serial   36.28 ms  26.71 MiB | S 16 threads   6.86 ms | integrate 1.016 μs | PI.(xs, vs') 201² points   3.42 ms     0.31 MiB
+cheb×trig        S serial   20.42 ms   4.66 MiB | S 16 threads   2.90 ms | integrate 0.390 μs | PI.(xs, vs') 201² points  32.02 ms     0.31 MiB
+=== new (run 1)
+Julia threads: 16
+quintic×quintic  S serial   34.23 ms   3.75 MiB | S 16 threads   6.05 ms | integrate 1.001 μs | PI.(xs, vs') 201² points   4.39 ms     0.31 MiB
+cheb×cheb        S serial   12.12 ms   0.01 MiB | S 16 threads   1.87 ms | integrate 0.364 μs | PI.(xs, vs') 201² points  20.13 ms     0.31 MiB
+quintic×cheb     S serial   28.54 ms   6.23 MiB | S 16 threads   4.87 ms | integrate 0.601 μs | PI.(xs, vs') 201² points   7.93 ms     0.31 MiB
+cheb×quintic     S serial   27.40 ms  10.54 MiB | S 16 threads   4.13 ms | integrate 0.602 μs | PI.(xs, vs') 201² points   7.38 ms     0.31 MiB
+cubic×quintic    S serial   32.18 ms   3.68 MiB | S 16 threads   5.07 ms | integrate 0.995 μs | PI.(xs, vs') 201² points   3.42 ms     0.31 MiB
+cheb×trig        S serial   19.62 ms   0.01 MiB | S 16 threads   2.81 ms | integrate 0.368 μs | PI.(xs, vs') 201² points  31.47 ms     0.31 MiB
+=== old (run 2)
+Julia threads: 16
+quintic×quintic  S serial   36.07 ms   3.75 MiB | S 16 threads   5.42 ms | integrate 1.026 μs | PI.(xs, vs') 201² points   4.23 ms     0.31 MiB
+cheb×cheb        S serial   12.33 ms   0.01 MiB | S 16 threads   2.00 ms | integrate 0.384 μs | PI.(xs, vs') 201² points  19.98 ms     0.31 MiB
+quintic×cheb     S serial   30.69 ms  16.79 MiB | S 16 threads   5.08 ms | integrate 0.622 μs | PI.(xs, vs') 201² points   7.56 ms     0.31 MiB
+cheb×quintic     S serial   30.49 ms  21.10 MiB | S 16 threads   5.22 ms | integrate 0.622 μs | PI.(xs, vs') 201² points   7.32 ms     0.31 MiB
+cubic×quintic    S serial   38.84 ms  26.71 MiB | S 16 threads   6.41 ms | integrate 1.020 μs | PI.(xs, vs') 201² points   3.44 ms     0.31 MiB
+cheb×trig        S serial   20.57 ms   4.66 MiB | S 16 threads   2.90 ms | integrate 0.381 μs | PI.(xs, vs') 201² points  32.15 ms     0.31 MiB
+=== new (run 2)
+Julia threads: 16
+quintic×quintic  S serial   34.28 ms   3.75 MiB | S 16 threads   5.48 ms | integrate 1.017 μs | PI.(xs, vs') 201² points   4.44 ms     0.31 MiB
+cheb×cheb        S serial   12.08 ms   0.01 MiB | S 16 threads   1.97 ms | integrate 0.365 μs | PI.(xs, vs') 201² points  20.86 ms     0.31 MiB
+quintic×cheb     S serial   27.89 ms   6.23 MiB | S 16 threads   4.30 ms | integrate 0.652 μs | PI.(xs, vs') 201² points   7.64 ms     0.31 MiB
+cheb×quintic     S serial   29.79 ms  10.54 MiB | S 16 threads   4.84 ms | integrate 0.684 μs | PI.(xs, vs') 201² points   8.03 ms     0.31 MiB
+cubic×quintic    S serial   34.71 ms   3.68 MiB | S 16 threads   5.69 ms | integrate 1.091 μs | PI.(xs, vs') 201² points   3.75 ms     0.31 MiB
+cheb×trig        S serial   21.47 ms   0.01 MiB | S 16 threads   2.84 ms | integrate 0.395 μs | PI.(xs, vs') 201² points  32.34 ms     0.31 MiB

@@ -56,8 +56,9 @@ end
 function update_IK_state_x1!(IK::IntegrationKernel{1,dyn}, idx) where dyn <:NonSmoothSDEStep{2,2,1, sdeT} where {sdeT<:SDE_VIO}
     d=2
 
+    x1 = map(getindex, IK.pdf.axes, Tuple(idx)) # (the axes can have different types)
     for i in 1:d
-        IK.x1[i] = getindex(IK.pdf.axes[i],idx[i])
+        IK.x1[i] = x1[i]
     end
 
     get_and_set_potential_wallID!(IK)

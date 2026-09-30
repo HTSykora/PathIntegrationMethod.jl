@@ -83,9 +83,8 @@ function get_IK_weights!(dk::DenseTensorKernel, IK::IntegrationKernel{1}; kwargs
             end
         else
             dk.c[q] = w * fx
-            for (B, ax, x0) in zip(dk.Bs, IK.pdf.axes, get_sdestep_x0(IK))
-                basefun_vals_safe!(view(B, :, q), ax, x0; IK.kwargs...)
-            end
+            x0 = get_sdestep_x0(IK)
+            map_axes((B, ax, i) -> basefun_vals_safe!(view(B, :, q), ax, x0[i]; IK.kwargs...), dk.Bs, IK.pdf.axes)
         end
     end
     contract_row!(itpM, dk)
@@ -178,11 +177,13 @@ function all_zero!(vals::AbstractArray{<:T}, IK::IntegrationKernel{kd,sdeT,x1T,x
 end
 
 function basefun_vals_safe!(IK::IntegrationKernel{dk,sdeT}) where sdeT<:AbstractSDEStep{d} where {dk,d}
-    for (it,ax,x0) in zip(IK.temp.itpVs,IK.pdf.axes,get_sdestep_x0(IK))
-        basefun_vals_safe!(it,ax,x0; IK.kwargs...)
-    end
+    x0 = get_sdestep_x0(IK)
+    map_axes((it, ax, i) -> basefun_vals_safe!(it, ax, x0[i]; IK.kwargs...), IK.temp.itpVs, IK.pdf.axes)
     nothing
 end
+# f(a[i], axes[i], i) for each axis: the loop over the tuples is unrolled, as the axes (and their buffers) can have different
+# types (e.g. a QuinticAxis and a ChebyshevAxis); iterating over them would be type unstable
+map_axes(f, a::NTuple{N,Any}, axes::NTuple{N,Any}) where N = (map(f, a, axes, ntuple(identity, Val(N))); nothing)
 
 function get_sdestep_x0(IK::IntegrationKernel)
     IK.sdestep.x0

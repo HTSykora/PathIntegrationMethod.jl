@@ -14,6 +14,10 @@ Scripts for measuring the performance of the step matrix computation. Run them f
   Run with `julia --project -t auto benchmark/blas_threads_benchmark.jl`.
 - `regression_snapshot.jl`: stores the step matrices of a set of test systems (`save`) or compares the current ones with the stored ones (`compare`), to check that a performance change does not change the results.
   Run with `julia --project benchmark/regression_snapshot.jl save|compare`.
+- `duffing_2d_profile.jl`: Duffing oscillator (d = 2) with uniform (quintic, Chebyshev) and mixed dense-sparse axes: timings and allocations of the step matrix computation, `advance!`, `integrate`, `integrate_diff`, the evaluation `PI(x, v)` and `update_mPDFs!` (`bench`), and a snapshot of the results (step matrices, PDFs after 20 steps, integrals, values, marginal PDFs) to check that a change does not change them (`save`, `compare`).
+  Run with `julia --project -t auto benchmark/duffing_2d_profile.jl bench|save|compare`.
+- `duffing_2d_ab.jl`: the same Duffing oscillator, also with mixed sparse-sparse and dense-dense axes, to compare two versions of the package (run alternately with each version, see the script).
+  Run with `julia --project -t auto benchmark/duffing_2d_ab.jl`.
 
 `results/` holds the outputs (AMD Ryzen 7 PRO 7840U, 8 cores / 16 threads):
 
@@ -24,5 +28,7 @@ Scripts for measuring the performance of the step matrix computation. Run them f
 - `dense_layout_benchmark.txt`: after storing the dense step matrices as `transpose(Sᵀ)`; `dense_layout_before.txt`: the same end-to-end timings with `S` stored directly
 - `dense_kernel_benchmark.txt`, `blas_threads_benchmark.txt`
 - `regression_after_partA.txt`: comparison with the step matrices of d5c342b
+- `duffing_2d_profile_before.txt`, `duffing_2d_profile_after.txt`: `duffing_2d_profile.jl bench` before (commit 381602e) and after the type stability fixes (loops over axes of different types, `integrate`, the evaluation `PI(x, v)`)
+- `duffing_2d_ab.txt`: `duffing_2d_ab.jl` with commit 381602e (old) and after the type stability fixes (new), two alternating runs each
 
 The `.jls` snapshot files are not committed.

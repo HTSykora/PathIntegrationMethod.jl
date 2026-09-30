@@ -27,6 +27,10 @@ systems = [
     "d2 cheb RK4" => () -> PathIntegration(duff(), RK4(), 0.05, ChebyshevAxis(-4.,4.,11), ChebyshevAxis(-4.,4.,11)),
     "d2 mixed Euler" => () -> PathIntegration(duff(), Euler(), 0.05, CubicAxis(-4.,4.,15), ChebyshevAxis(-4.,4.,11)),
     "d2 linear RK2" => () -> PathIntegration(duff(), RK2(), 0.05, LinearAxis(-4.,4.,15), LinearAxis(-4.,4.,15)),
+    # mixed axes: sparse-sparse, dense-dense and dense-sparse
+    "d2 cubic×quintic RK4" => () -> PathIntegration(duff(), RK4(), 0.05, CubicAxis(-4.,4.,15), QuinticAxis(-4.,4.,17)),
+    "d2 cheb×trig RK4" => () -> PathIntegration(duff(), RK4(), 0.05, ChebyshevAxis(-4.,4.,11), TrigonometricAxis(-4.,4.,13)),
+    "d2 cheb×quintic RK4" => () -> PathIntegration(duff(), RK4(), 0.05, ChebyshevAxis(-4.,4.,11), QuinticAxis(-4.,4.,17)),
 ]
 
 Ss = Dict(lbl => [Matrix(S) for S in mk().stepMX] for (lbl, mk) in systems)

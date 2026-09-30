@@ -99,8 +99,9 @@ function compute_row!(out, IK, i, idx, smart_integration)
 end
 
 function update_IK_state_x1!(IK::IntegrationKernel{kd,dyn}, idx) where dyn <:SDEStep{d,k,m} where {kd,d,k,m}
+    x1 = map(getindex, IK.pdf.axes, Tuple(idx)) # (the axes can have different types)
     for i in 1:d
-        IK.x1[i] = getindex(IK.pdf.axes[i],idx[i])
+        IK.x1[i] = x1[i]
     end
 end
 

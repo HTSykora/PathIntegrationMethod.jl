@@ -11,6 +11,9 @@ integrate(PI.pdf)                  # ≈ 1
 integrate((x, v) -> x^2, PI.pdf)   # E[x²]
 ```
 """
+# Product of the quadrature weights of a grid node, w₁⋯w_d (`prod(w)` inside `sum` is not inferred: nested reductions)
+node_weight(w::Tuple) = *(w...)
+
 function integrate(f::InterpolatedFunction)
     _integrate(f.p, f.axes...)
 end
@@ -19,13 +22,13 @@ end
 # end
 function _integrate(p::AbstractArray{<:Number,N}, axes::Vararg{Any,N}) where {N}
     # xs = Iterators.product((ax.xs for ax in p.axes)...)
-    ws = Iterators.product((ax.wts for ax in axes)...)
-    sum(prod(_w for _w in w)*p[i] for (i,w) in enumerate(ws))
+    ws = Iterators.product(map(ax -> ax.wts, axes)...)
+    sum(node_weight(w)*p[i] for (i,w) in enumerate(ws))
 end
 function integrate(f::Function, p::InterpolatedFunction)
-    xs = Iterators.product((ax.xs for ax in p.axes)...)
-    ws = Iterators.product((ax.wts for ax in p.axes)...)
-    sum(f(x...)*prod(_w for _w in w)*p.p[i] for (i,(x,w)) in enumerate(zip(xs,ws)))
+    xs = Iterators.product(map(ax -> ax.xs, p.axes)...)
+    ws = Iterators.product(map(ax -> ax.wts, p.axes)...)
+    sum(f(x...)*node_weight(w)*p.p[i] for (i,(x,w)) in enumerate(zip(xs,ws)))
 end 
 
 """
@@ -42,8 +45,8 @@ function integrate_diff(f1::fT, p2::pT; kwargs...) where {fT<:InterpolatedFuncti
     _integrate_diff(f1.p, p2, f1.axes...; kwargs...)
 end
 function _integrate_diff(p1::AbstractArray{<:Number,N}, p2::AbstractArray{<:Number,N}, axes::Vararg{Any,N}; f = abs, kwargs...) where {N}
-    ws = Iterators.product((ax.wts for ax in axes)...)
-    sum(prod(_w for _w in w)*f(p1[i] - p2[i]) for (i,w) in enumerate(ws))
+    ws = Iterators.product(map(ax -> ax.wts, axes)...)
+    sum(node_weight(w)*f(p1[i] - p2[i]) for (i,w) in enumerate(ws))
 end
 
 
