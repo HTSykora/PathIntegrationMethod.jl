@@ -1,0 +1,12 @@
+d1 cubic RK2             max rel err = 1.6408991033084705e-14   Δnnz = 0   bitwise = false
+d1 cubic RK2 dense       max rel err = 1.6408991033084705e-14   Δnnz = 0   bitwise = false
+d1 linear Euler          max rel err = 4.75358649201723e-15   Δnnz = 0   bitwise = false
+d1 cheb RK2              max rel err = 7.170536105652282e-15   Δnnz = 0   bitwise = false
+d1 trig RK4              max rel err = 5.979388920935303e-15   Δnnz = 0   bitwise = false
+d1 quadgk cubic          max rel err = 0.0   Δnnz = 0   bitwise = true
+d1 periodic              max rel err = 0.07758459490623085   Δnnz = 0   bitwise = false
+d2 quintic Euler         max rel err = 1.3028915390571653e-14   Δnnz = 0   bitwise = false
+d2 quintic RK4 dense     max rel err = 1.1546495362336903e-14   Δnnz = 0   bitwise = false
+d2 cheb RK4              max rel err = 5.034718934301299e-15   Δnnz = 0   bitwise = false
+d2 mixed Euler           max rel err = 6.024654762618076e-15   Δnnz = 0   bitwise = false
+d2 linear RK2            max rel err = 1.0793590004656917e-14   Δnnz = 0   bitwise = false

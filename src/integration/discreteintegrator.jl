@@ -14,9 +14,10 @@ function DiscreteIntegrator(discreteintegrator::AbstractDiscreteIntegratorMethod
     start = axes[1]
     stop = axes[end]
 
-    x,w = discreteintegrator(xT, wT, start, stop)
+    _x,_w = discreteintegrator(xT, wT, start, stop)
+    x, w = collect(_x), collect(_w) # LinRange nodes cannot be rescaled in place
     Q_integrate = Ref(true)
-    DiscreteIntegrator{1, typeof(x), typeof(w), typeof(res_prototype), typeof(res_prototype),typeof(Q_integrate)}(x,w,zero(res_prototype),zero(res_prototype),Q_integrate)
+    DiscreteIntegrator{1, typeof(x), typeof(w), typeof(res_prototype), typeof(res_prototype),typeof(Q_integrate)}(x,w,zero(res_prototype),zero(res_prototype),Q_integrate,copy(x),copy(w))
 end
 
 # QuadGKIntegrator(; rtol, atol, maxevals, order...):
@@ -141,7 +142,7 @@ function rescale_to_limits!(di::DiscreteIntegrator{1},start,stop)
         return nothing
     end
     di.Q_integrate[] = true
-    rescale_xw!(di.x,di.w,start,stop)
+    rescale_xw!(di.x,di.w,di.x_ref,di.w_ref,start,stop)
     return nothing
 end
 
@@ -158,11 +159,13 @@ function rescale_w(w,T,start,stop)
     _x .= _x .* bma2
 end
 
-function rescale_xw!(x,w,start,stop)
-    scale = (stop- start)/(x[end] - x[1])
-    old_start = x[1];
-    x .= (x .- old_start) .* scale .+ start 
-    w .= w .* scale
+# Map the reference nodes spanning [x_ref[1], x_ref[end]] to [start, stop]
+# (always from the reference, so the nodes do not depend on the previous rescalings)
+function rescale_xw!(x,w,x_ref,w_ref,start,stop)
+    scale = (stop- start)/(x_ref[end] - x_ref[1])
+    ref_start = x_ref[1];
+    x .= (x_ref .- ref_start) .* scale .+ start 
+    w .= w_ref .* scale
 end
 
 function rescale_discreteintegrator!(discreteintegrator::Union{DiscreteIntegrator{1},QuadGKIntegrator}, sdestep::SDEStep{d,d,m}, pdf; kwargs...) where {d,m}

@@ -37,6 +37,9 @@ end
         @test integrate(PI.pdf) ≈ 1
         @test PI.t ≈ n * Δt
     end
+    # the normalisation uses ∫(S p) = dot(Sᵀw, p)
+    w = vec(PIM.quadrature_weights(PI.pdf))
+    @test PI.stepMX_wts[1] ≈ transpose(S) * w
 end
 
 @testset "A step approximately conserves probability: $lbl" for (lbl, sde, par, axes, method, mass_tol) in systems
@@ -54,12 +57,15 @@ end
     recompute_PI!(PI; par = par_new, Q_reinit_pdf = true, f = h)
     PI_new = PathIntegration(sde(copy(par_new)), method(), Δt, axes()...)
     @test Matrix(PI.stepMX[1]) ≈ Matrix(PI_new.stepMX[1]) rtol = 1e-10
+    @test PI.stepMX_wts[1] ≈ PI_new.stepMX_wts[1] rtol = 1e-10
     @test PI.pdf.p ≈ [h(x...) for x in each_latticecoordinate(PI.pdf)]
     @test PI.t == 0
     @test PI.step_idx == 0
 
     reinit_PI_pdf!(PI) # default initial PDF
     @test PI.pdf.p ≈ PI_new.pdf.p
+    advance!(PI); advance!(PI_new)
+    @test PI.pdf.p ≈ PI_new.pdf.p rtol = 1e-10
 end
 
 end

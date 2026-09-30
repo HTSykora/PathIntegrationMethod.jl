@@ -7,6 +7,7 @@ using Symbolics
 using FFTW
 using FastGaussQuadrature
 using SparseArrays, ThreadedSparseArrays, StaticArrays
+using ArnoldiMethod: partialschur, partialeigen
 
 export SDE, DriftTerm, DiffusionTerm,
     Euler, RungeKutta, RK2, RK4, Maruyama,
@@ -14,7 +15,7 @@ export SDE, DriftTerm, DiffusionTerm,
     AxisGrid, InterpolatedFunction, LinearAxis, CubicAxis, QuinticAxis, ChebyshevAxis, TrigonometricAxis,
     LinRange_fromaxis, recycle_interpolatedfunction!, each_latticecoordinate,
     PathIntegration, 
-    stepMX, advance!, advance_till_converged!, update_mPDFs!,
+    stepMX, advance!, advance_till_converged!, steady_state!, update_mPDFs!,
     recompute_stepMX!, reinit_PI_pdf!, recompute_PI!,
     integrate, integrate_diff,
     DiscreteIntegrator, QuadGKIntegrator, ClenshawCurtisIntegrator, GaussLegendreIntegrator, GaussRadauIntegrator, GaussLobattoIntegrator, TrapezoidalIntegrator, NewtonCotesIntegrator,
@@ -45,6 +46,7 @@ include("integration/integrationkernel.jl")
 include("integration/compute_stepMX.jl")
 include("integration/discreteintegrator.jl")
 include("utils.jl")
+include("steadystate.jl")
 
 # Includes for vibro impact systems
 include("specialsystems/vibroimpactoscillator/sde/sde.jl")

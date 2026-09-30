@@ -59,6 +59,13 @@ itp_value(vals, p) = sum(p[i] * v for (i, v) in zip(vals.idxs, vals.val) if !isz
     end
 end
 
+@testset "Points within rounding error of the end points are on the grid: $axis" for axis in axistypes
+    a = axis(-1., 2., 12)
+    p = collect(1.0:12.0)
+    @test itp_value(basis(a, nextfloat(a[end], 2)), p) ≈ p[end]
+    @test itp_value(basis(a, prevfloat(a[1], 2)), p) ≈ p[1]
+end
+
 @testset "Extrapolation flags in InterpolatedFunction evaluation: $axis" for axis in (CubicAxis, ChebyshevAxis)
     F = InterpolatedFunction(axis(-1., 2., 12); f = x -> 2x + 1)
     @test F(2.1) == 0

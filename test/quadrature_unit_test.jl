@@ -44,6 +44,30 @@ end
     @test all(iszero, di.res)
 end
 
+@testset "Rescaling of the quadrature nodes does not depend on the previous rescalings" begin
+    ax = CubicAxis(a, b, 11)
+    di = DiscreteIntegrator(GaussLegendreIntegrator(31), zeros(11), ax)
+    di_fresh = DiscreteIntegrator(GaussLegendreIntegrator(31), zeros(11), ax)
+    for (start, stop) in ((0.3, 0.30001), (-0.7, 1.9), (1.2, 1.7))
+        PIM.rescale_to_limits!(di, start, stop)
+    end
+    PIM.rescale_to_limits!(di_fresh, 1.2, 1.7)
+    @test di.x == di_fresh.x
+    @test di.w == di_fresh.w
+    @test di.x[1] == 1.2 && di.x[end] ≈ 1.7
+end
+
+@testset "Discrete integrators in PathIntegration" begin
+    # Newton–Cotes type integrators store equidistant nodes (they used to fail with smart integration)
+    f(x,p,t) = x[1] - x[1]^3
+    g(x,p,t) = sqrt(2)
+    S_GL = Matrix(PathIntegration(SDE(f, g), RK4(), 0.01, CubicAxis(-3., 3., 41)).stepMX[1])
+    for di in (NewtonCotesIntegrator(31, 2), TrapezoidalIntegrator(31), ClenshawCurtisIntegrator(31))
+        S = Matrix(PathIntegration(SDE(f, g), RK4(), 0.01, CubicAxis(-3., 3., 41); discreteintegrator = di).stepMX[1])
+        @test maximum(abs, S - S_GL) < 0.02 * maximum(abs, S_GL)
+    end
+end
+
 @testset "QuadGKIntegrator in PathIntegration" begin
     f(x,p,t) = x[1] - x[1]^3
     g(x,p,t) = sqrt(2)

@@ -14,7 +14,9 @@
 
 function find_idx(xs::Vx,x::xT; allow_extrapolation::Bool = false, zero_extrapolation::Bool = true, kwargs...) where {Vx<:AbstractVector{Tx},xT<:Number} where Tx<:Number
     # this function is also used in basefun_vals_safe! (Chebyshev)
-    if !(x<xs[1] || x>xs[end])
+    # points within rounding error of the end points are on the grid (e.g. quadrature nodes mapped to the end of the domain)
+    δ = x isa AbstractFloat ? 10eps(max(abs(x), abs(xs[1]), abs(xs[end]))) : zero(x)
+    if !(x<xs[1]-δ || x>xs[end]+δ)
         if x isa Union{Rational,Integer}
             @inbounds i = searchsortedlast(xs, x)  
         else

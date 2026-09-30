@@ -30,10 +30,12 @@ Compute a `PathIntegration` object for computing the response probability densit
 - `pre_compute = true`: Compute the `stepMX`. This should be left unchanged if the RPDF computation is the goal.
 - `stepMXtype = nothing`: Step matrix representation type. The default representation depends on `d` and the interpolation used (see Interpolation): `d ≤ 2` with sparse interpolation the `stepMX` is a multithreaded sparse matrix, for dense interpolations it is dense, and for `d>2` the default is a multithreaded sparse
     Possible options:
-    - `SparseMX(; threaded = true, sparse_tol = 1e-6)`
+    - `SparseMX(; threaded = true, sparse_tol = 1e-6, sparse_rtol = 0.0, index_type = Int)`
     - `DenseMX()`
 - `multithreaded_sparse = true`: is the sparse `stepMX` multithreaded if no `stepMXtype` is specified
 - `sparse_tol = 1e-6`: absolute tolerance for the elements considered as zero values in the sparse stepMX if no `stepMXtype` is specified
+- `sparse_rtol = 0.0`: tolerance relative to the largest element: elements with `|Sᵢⱼ| ≤ max(sparse_tol, sparse_rtol * max|Sᵢⱼ|)` are considered as zero values in the sparse stepMX if no `stepMXtype` is specified. Eq. (37) of Sykora et al. (2022) corresponds to `sparse_tol = 0, sparse_rtol = 1e-8`.
+- `index_type = Int`: index type of the sparse stepMX if no `stepMXtype` is specified. `Int32` needs less memory (and memory bandwidth in `advance!`), but it limits the number of nonzero elements to 2³¹-1.
 - `mPDF_IDs = nothing`: Marginal PDF (mPDF) for IDinates specified by `mPDF_IDs`
     - `Nothing`: No mPDF is initialised.
     - `Integer`: 1-dimensional mPDF is initalised for state-variable `mPDF_IDs`
@@ -46,12 +48,12 @@ For methods, discrete integrators, interpolators, and examples please refer to t
 """
 function PathIntegration(sdestep::AbstractSDEStep{d,k,m}, _ts, axes::Vararg{Any,d}; 
     di_N = 31, discreteintegrator = defaultdiscreteintegrator(sdestep.sde, di_N),
-    initialise_pdf = true, f_init = nothing, pre_compute = true, stepMXtype = nothing, sparse_tol = 1e-6,
-    mPDF_IDs = nothing, extract_IK = Val{false}(), kwargs...) where {d,k,m}
+    initialise_pdf = true, f_init = nothing, pre_compute = true, stepMXtype = nothing, sparse_tol = 1e-6, sparse_rtol = 0.0,
+    mPDF_IDs = nothing, extract_IK = Val{false}(), generic_row_kernel = false, kwargs...) where {d,k,m}
     if stepMXtype isa StepMatrixRepresentation
         _stepMXtype = stepMXtype
     else
-        _stepMXtype = get_stepMXtype(sdestep.sde, get_val_itp_type(axes); sparse_tol = sparse_tol, kwargs...)
+        _stepMXtype = get_stepMXtype(sdestep.sde, get_val_itp_type(axes); sparse_tol = sparse_tol, sparse_rtol = sparse_rtol, kwargs...)
     end
 
     if initialise_pdf
@@ -77,14 +79,14 @@ function PathIntegration(sdestep::AbstractSDEStep{d,k,m}, _ts, axes::Vararg{Any,
     if pre_compute
         # * for CPU parallelisation extend this
         itpVs = Tuple(zero(axis.temp) for axis in axes); # = itpVs;
-        
-        ikt = IK_temp(BI_product(_eachindex.(itpVs)...), # = idx_it
-                        BI_product(_val.(itpVs)...), # = val_it
-                        itpVs, # = itpVs
-                        zero(pdf.p)) # = itpM
+        Q_generic = generic_row_kernel || Q_generic_row_kernel(discreteintegrator)
+        # only the generic row kernel needs full-size buffers in the discrete integrator
+        res_prototype = Q_generic ? pdf.p : similar(pdf.p, ntuple(_ -> 0, d))
+        di = DiscreteIntegrator(discreteintegrator, sdestep, res_prototype, axes[k:end]...; kwargs...)
+        kernel = Q_generic ? GenericRowKernel() : row_kernel(pdf, length(di.x))
+        ikt = IK_temp(itpVs, zero(pdf.p), kernel)
 
-        di = DiscreteIntegrator(discreteintegrator, sdestep, pdf.p, axes[k:end]...; kwargs...)
-        IK = IntegrationKernel(sdestep, nothing, di, ts, pdf, ikt, (;sparse_tol = get_tol(_stepMXtype), kwargs...))
+        IK = IntegrationKernel(sdestep, nothing, di, ts, pdf, ikt, (;sparse_tol = get_tol(_stepMXtype), sparse_rtol = get_rtol(_stepMXtype), kwargs...))
         
         if extract_IK isa Val{true}
             return IK
@@ -101,7 +103,7 @@ function PathIntegration(sdestep::AbstractSDEStep{d,k,m}, _ts, axes::Vararg{Any,
     end
 
     p_temp = similar(pdf.p);
-    PathIntegration(sdestep, pdf, p_temp,ts, stepMX, step_idx, IK, mpdf, kwargs,t)
+    PathIntegration(sdestep, pdf, p_temp,ts, stepMX, step_idx, IK, mpdf, kwargs,t, stepMX_weights(stepMX, pdf))
 end
 _val(vals) = vals
 get_ts(_ts::AbstractVector{tsT}) where tsT<:Number = collect(_ts)
@@ -148,20 +150,33 @@ end
 
 
 function advance!(PI::PathIntegration)
-    _advance_to_temp!(PI.p_temp,PI)
-    _corr_to_temp!(PI.pdf.p,PI.p_temp,PI)
+    mass = _advance_to_temp!(PI.p_temp,PI)
+    _corr_to_temp!(PI.pdf.p,PI.p_temp,mass)
     nothing
 end
+# p_temp = S p, returns ∫(S p)
 function _advance_to_temp!(p_temp::tT,PI::PathIntegration{dynT}) where {tT<:AbstractArray{T,d},dynT<:AbstractSDEStep{d}} where {T,d}
-    mul!(vec(p_temp), next_stepMX(PI), vec(PI.pdf.p))
+    S = next_stepMX(PI)
+    mass = dot(current_stepMX_wts(PI), vec(PI.pdf.p)) # ∫(S p) = dot(Sᵀw, p)
+    mul!(vec(p_temp), S, vec(PI.pdf.p))
     PI.t = PI.t + get_PIdt(PI)
-    nothing
+    mass
 end
-function _corr_to_temp!(res::tT,p_temp::tT,PI::PathIntegration{dynT}) where {tT<:AbstractArray{T,d},dynT<:AbstractSDEStep{d}} where {T,d}
-    _I = 1/_integrate(p_temp, PI.pdf.axes...);
+function _corr_to_temp!(res::tT,p_temp::tT,mass::Number) where {tT<:AbstractArray{T,d}} where {T,d}
+    _I = 1/mass;
     @. res = p_temp * _I
     nothing
 end
+
+# Quadrature weights w of the grid: ∫p = dot(w, vec(p))
+quadrature_weights(pdf::InterpolatedFunction) = [prod(w) for w in Iterators.product((ax.wts for ax in pdf.axes)...)]
+# Sᵀw for each step matrix S
+stepMX_weights(::Nothing, pdf) = nothing
+stepMX_weights(stepMX::AbstractVector{<:AbstractMatrix}, pdf) = [stepMX_weights(S, pdf) for S in stepMX]
+stepMX_weights(S::AbstractMatrix{<:Number}, pdf) = transpose(S) * vec(quadrature_weights(pdf))
+
+@inline current_stepMX_wts(PI::PathIntegration{dynT, pdT,tsT}) where {dynT, pdT,tsT<:Number} = PI.stepMX_wts
+@inline current_stepMX_wts(PI::PathIntegration{dynT, pdT,tsT}) where {dynT, pdT,tsT<:AbstractArray} = PI.stepMX_wts[PI.step_idx]
 
 @inline function next_stepMX(PI::PathIntegration{dynT, pdT,tsT}) where {dynT, pdT,tsT<:Number}
     PI.stepMX
@@ -249,6 +264,7 @@ function recompute_stepMX!(PI::PathIntegration; par = nothing, t = nothing, rese
 
     reinit_stepMX!(PI.stepMX)
     fill_stepMX_ts!(PI.stepMX, PI.IK; PI.IK.kwargs...)
+    PI.stepMX_wts = stepMX_weights(PI.stepMX, PI.pdf)
 
     if reset_t
         PI.t = zero(PI.t)

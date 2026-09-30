@@ -174,7 +174,7 @@ struct InterpolatedFunction{T,N,itp_type,axesT,pT,idx_itT,val_itT} <: Function #
     idx_it::idx_itT
     val_it::val_itT
 end
-mutable struct PathIntegration{dynT,pdT,tsT,stepmxT,Tstp_idx,IKT,ptempT,mpdtT,kwargT,TT}
+mutable struct PathIntegration{dynT,pdT,tsT,stepmxT,Tstp_idx,IKT,ptempT,mpdtT,kwargT,TT,wST}
     step_dynamics::dynT # SDEStep
     pdf::pdT
     p_temp::ptempT
@@ -185,6 +185,7 @@ mutable struct PathIntegration{dynT,pdT,tsT,stepmxT,Tstp_idx,IKT,ptempT,mpdtT,kw
     marginal_pdfs::mpdtT
     kwargs::kwargT
     t::TT
+    stepMX_wts::wST # Sᵀw for each step matrix (w: quadrature weights): ∫(S p) = dot(Sᵀw, p)
 end
 
 struct MarginalPDF{pT,idT,wT,tT,p0T,dT}
@@ -206,11 +207,28 @@ struct IntegrationKernel{kd,sdeT,x1T,diT,fT,pdfT,tT,tempT,kwargT}
     temp::tempT
     kwargs::kwargT
 end
-struct IK_temp{VT,MT,idxT,valT}
+struct IK_temp{VT,MT,idxT,valT,kT}
     idx_it::idxT# = Base.Iterators.product(eachindex.(IK.temp.itpVs)...)
     val_it::valT# = Base.Iterators.product(eachindex.(IK.temp.itpVs)...)
     itpVs::VT
-    itpM::MT
+    itpM::MT # the row of the step matrix
+    kernel::kT # AbstractRowKernel: how the row is integrated
+end
+# Row kernels: how a row of the step matrix is integrated
+abstract type AbstractRowKernel end
+# Integrates the full row (length N^d) with the discrete integrator
+struct GenericRowKernel <: AbstractRowKernel end
+# Sparse interpolations: only the elements touched by the interpolation stencils are accumulated in IK_temp.itpM
+struct SparseAccumulator{mT,tT} <: AbstractRowKernel
+    mark::mT # mark[j]: element j is touched in the current row
+    touched::tT # linear indices of the touched elements
+end
+# Dense interpolations: the row is the tensor contraction of the basis function values at the quadrature nodes
+struct DenseTensorKernel{BT,cT,B1cT,KRT} <: AbstractRowKernel
+    Bs::BT # Bs[j][:,q]: basis function values along axis j at the q-th quadrature node
+    c::cT # c[q]: quadrature weight × transitional PDF at the q-th quadrature node
+    B1c::B1cT # Bs[1] .* transpose(c)
+    KR::KRT # Khatri–Rao product of Bs[2:d] (d ≥ 3), nothing otherwise
 end
 struct Slicer{n,N,idT,slT}
     slicer::slT
@@ -277,6 +295,9 @@ struct DiscreteIntegrator{dim,xT,wT,resT,tempT,qT} <: AbstractDiscreteIntegrator
     res::resT
     temp::tempT
     Q_integrate::qT
+    # nodes and weights on the initial interval: rescaling always starts from these
+    x_ref::xT
+    w_ref::wT
 end
 struct NonSmoothDiscreteIntegrator{dim,NoDyn,disT} <: AbstractDiscreteIntegratorType{dim}
     discreteintegrators::disT
@@ -292,7 +313,8 @@ abstract type StepMatrixRepresentation end
 struct DenseMX <: StepMatrixRepresentation
 end
 
-struct SparseMX{tf,tolT} <: StepMatrixRepresentation
+struct SparseMX{tf,tolT,Ti} <: StepMatrixRepresentation
     Q_threaded::Bool
-    tol::tolT
+    tol::tolT # absolute tolerance
+    rtol::tolT # tolerance relative to max|S|
 end

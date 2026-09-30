@@ -3,3 +3,4 @@
 *.jl.mem
 /Manifest.toml
 *.jld2
+/benchmark/results/*.jls

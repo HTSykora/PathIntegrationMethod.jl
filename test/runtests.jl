@@ -12,6 +12,8 @@ using Test
     @time @testset "Invariants" begin include("invariants_test.jl") end
     @time @testset "Time-periodic SDE" begin include("periodic_sde_test.jl") end
     @time @testset "Duffing oscillator (d=2)" begin include("duffing_2d_test.jl") end
+    @time @testset "Row kernels and sparse assembly" begin include("row_kernel_test.jl") end
+    @time @testset "Steady state" begin include("steady_state_test.jl") end
 
 
     # Write your tests here.
