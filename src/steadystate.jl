@@ -101,9 +101,9 @@ end
 # i.e. to the fixed point of `advance!` (S is not exactly probability conserving, so S - I is not singular)
 function steady_state_lu(Ss, p0, w; tol = 1e-10, maxiter = 100)
     length(Ss) == 1 || throw(ArgumentError("method = :lu is only available for systems with a single step matrix (use :arnoldi)"))
-    S = lu_matrix(first(Ss))
+    S = first(Ss)
     σ = 1 + sqrt(eps(real(eltype(S))))
-    F = lu(S - σ*I)
+    F = shifted_lu(S, σ)
     p = iszero(dot(w, p0)) ? ones(eltype(S), length(p0)) : copy(p0)
     p ./= dot(w, p)
     for _ in 1:maxiter
@@ -128,8 +128,13 @@ Base.size(A::ShiftInvert) = (A.n, A.n)
 Base.size(A::ShiftInvert, i) = A.n
 Base.eltype(A::ShiftInvert) = eltype(A.F)
 LinearAlgebra.mul!(y::AbstractVector, A::ShiftInvert, x::AbstractVector) = ldiv!(y, A.F, x)
-lu_matrix(S::Transpose{T,<:SparseArrays.AbstractSparseMatrixCSC}) where T = copy(transpose(storage_matrix(S)))
-lu_matrix(S::AbstractMatrix) = S
+# LU decomposition of S - σI
+shifted_lu(S::Transpose{T,<:SparseArrays.AbstractSparseMatrixCSC}, σ) where T = lu(copy(transpose(storage_matrix(S))) - σ*I)
+function shifted_lu(S::AbstractMatrix, σ)
+    M = Matrix(S) # a new (not transposed) matrix
+    M[diagind(M)] .-= σ
+    lu!(M)
+end
 
 function steady_state_arnoldi(Ss; tol = 1e-10, nev = 4)
     P = PeriodMap(Ss)

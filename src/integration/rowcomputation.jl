@@ -42,12 +42,14 @@ function fill_chunks!(::SerialRowComputation, outs, ws, smart_integration)
 end
 # `@threads :static` cannot be nested: inside a threaded region the chunks are computed one after the other
 in_threaded_region() = ccall(:jl_in_threaded_region, Cint, ()) != 0
-function fill_chunks!(::ThreadedRowComputation, outs, ws, smart_integration)
+function fill_chunks!(rc::ThreadedRowComputation, outs, ws, smart_integration)
     if Threads.nthreads() == 1 || in_threaded_region()
         return fill_chunks!(SerialRowComputation(), outs, ws, smart_integration)
     end
-    Threads.@threads :static for c in eachindex(ws.chunks)
-        fill_rows!(outs[c], ws.IKs[c], ws.chunks[c], smart_integration)
+    with_single_threaded_blas(rc.single_threaded_blas, ws) do
+        Threads.@threads :static for c in eachindex(ws.chunks)
+            fill_rows!(outs[c], ws.IKs[c], ws.chunks[c], smart_integration)
+        end
     end
 end
 # Polyester passes the arrays of Numbers used in the loop as pointer arrays: everything is passed in a single struct
@@ -57,10 +59,26 @@ struct ChunkJob{oT,wT}
     smart_integration::Bool
 end
 fill_chunk!(job::ChunkJob, c) = fill_rows!(job.outs[c], job.ws.IKs[c], job.ws.chunks[c], job.smart_integration)
-function fill_chunks!(::BatchRowComputation, outs, ws, smart_integration)
+function fill_chunks!(rc::BatchRowComputation, outs, ws, smart_integration)
     job = ChunkJob(outs, ws, smart_integration)
-    @batch per=thread for c in eachindex(ws.chunks)
-        fill_chunk!(job, c)
+    with_single_threaded_blas(rc.single_threaded_blas, ws) do
+        @batch per=thread for c in eachindex(ws.chunks)
+            fill_chunk!(job, c)
+        end
+    end
+end
+
+# Evaluate f() with a single BLAS thread (if Q and the rows use BLAS), then restore the number of BLAS threads
+function with_single_threaded_blas(f, Q::Bool, ws)
+    n_blas = BLAS.get_num_threads()
+    if !Q || n_blas == 1 || !(first(ws.IKs).temp.kernel isa DenseTensorKernel)
+        return f()
+    end
+    BLAS.set_num_threads(1)
+    try
+        f()
+    finally
+        BLAS.set_num_threads(n_blas)
     end
 end
 

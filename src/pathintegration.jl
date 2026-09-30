@@ -31,15 +31,16 @@ Compute a `PathIntegration` object for computing the response probability densit
 - `stepMXtype = nothing`: Step matrix representation type. The default representation depends on `d` and the interpolation used (see Interpolation): `d ≤ 2` with sparse interpolation the `stepMX` is a multithreaded sparse matrix, for dense interpolations it is dense, and for `d>2` the default is a multithreaded sparse
     Possible options:
     - `SparseMX(; threaded = true, sparse_tol = 1e-6, sparse_rtol = 0.0, index_type = Int)`
-    - `DenseMX()`
+    - `DenseMX()`: dense matrix, stored as `transpose(Sᵀ)`
 - `multithreaded_sparse = true`: is the sparse `stepMX` multithreaded if no `stepMXtype` is specified
 - `sparse_tol = 1e-6`: absolute tolerance for the elements considered as zero values in the sparse stepMX if no `stepMXtype` is specified
 - `sparse_rtol = 0.0`: tolerance relative to the largest element: elements with `|Sᵢⱼ| ≤ max(sparse_tol, sparse_rtol * max|Sᵢⱼ|)` are considered as zero values in the sparse stepMX if no `stepMXtype` is specified. Eq. (37) of Sykora et al. (2022) corresponds to `sparse_tol = 0, sparse_rtol = 1e-8`.
 - `index_type = Int`: index type of the sparse stepMX if no `stepMXtype` is specified. `Int32` needs less memory (and memory bandwidth in `advance!`), but it limits the number of nonzero elements to 2³¹-1.
 - `rowcomputation = Threads.nthreads() > 1 ? ThreadedRowComputation() : SerialRowComputation()`: how the rows of the stepMX are computed (also used by `recompute_stepMX!`)
     - `SerialRowComputation()`: one row after the other
-    - `ThreadedRowComputation(N_threads = Threads.nthreads())`: `N_threads` blocks of rows in parallel using `Threads.@threads`
-    - `BatchRowComputation(N_threads = Threads.nthreads())`: `N_threads` blocks of rows in parallel using `Polyester.@batch`
+    - `ThreadedRowComputation(N_threads = Threads.nthreads(); single_threaded_blas = false)`: `N_threads` blocks of rows in parallel using `Threads.@threads`
+    - `BatchRowComputation(N_threads = Threads.nthreads(); single_threaded_blas = false)`: `N_threads` blocks of rows in parallel using `Polyester.@batch`
+    - `single_threaded_blas = true`: use a single BLAS thread during the parallel computation (faster with dense interpolations, see `ThreadedRowComputation`)
     The result does not depend on the row computation or on the number of threads. (`multithreaded_sparse` controls the multithreading of `advance!`.)
 - `mPDF_IDs = nothing`: Marginal PDF (mPDF) for IDinates specified by `mPDF_IDs`
     - `Nothing`: No mPDF is initialised.

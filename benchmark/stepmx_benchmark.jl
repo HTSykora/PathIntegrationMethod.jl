@@ -39,7 +39,7 @@ for (lbl, PI_N, N, stepMXtype) in cases
     t_S = besttime(() -> PIM.compute_stepMX(PI.IK; stepMXtype, PI.IK.kwargs...)) # as in PathIntegration
     t_rS = besttime(() -> recompute_stepMX!(PI))
     S = PI.stepMX[1]
-    nz = S isa AbstractMatrix{<:Number} && !(S isa Matrix) ? length(PIM.SparseArrays.nonzeros(parent(S))) : length(S)
+    nz = PIM.SparseArrays.issparse(S) ? length(PIM.SparseArrays.nonzeros(parent(S))) : length(S)
     t_step = besttime(() -> advance!(PI), 100)
     t_conv = besttime(() -> (reinit_PI_pdf!(PI); advance_till_converged!(PI; Tmax = 20.0)))
     line = "$lbl N = $N: S build $(round(t_S, sigdigits = 3)) s, recompute_stepMX! $(round(t_rS, sigdigits = 3)) s, nnz(S) = $nz, one step $(round(1e6t_step, sigdigits = 3)) μs, advance_till_converged! $(round(t_conv, sigdigits = 3)) s"

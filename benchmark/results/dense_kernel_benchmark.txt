@@ -1,0 +1,10 @@
+Julia threads: 16, BLAS threads: 8
+d=2 Chebyshev N=41 (1681 rows)
+  tensor kernel (current)  serial 42.1   ms | 1: 42.8 ms, 2: 34.2 ms, 4: 20.0 ms, 8: 12.4 ms, 16: 11.9 ms   (relative difference 0.0)
+  old generic kernel       serial 147.0  ms | 1: 150.0 ms, 2: 104.0 ms, 4: 63.4 ms, 8: 36.6 ms, 16: 37.6 ms   (relative difference 3.9e-16)
+d=2 Chebyshev N=61 (3721 rows)
+  tensor kernel (current)  serial 129.0  ms | 1: 125.0 ms, 2: 73.5 ms, 4: 51.9 ms, 8: 32.9 ms, 16: 33.5 ms   (relative difference 0.0)
+  old generic kernel       serial 605.0  ms | 1: 606.0 ms, 2: 335.0 ms, 4: 211.0 ms, 8: 140.0 ms, 16: 138.0 ms   (relative difference 3.1e-16)
+d=1 Chebyshev N=101 (101 rows)
+  tensor kernel (current)  serial 0.761  ms | 1: 0.78 ms, 2: 0.43 ms, 4: 0.297 ms, 8: 0.307 ms, 16: 0.555 ms   (relative difference 0.0)
+  old generic kernel       serial 0.796  ms | 1: 0.798 ms, 2: 0.428 ms, 4: 0.259 ms, 8: 0.206 ms, 16: 0.377 ms   (relative difference 4.2e-16)

@@ -25,7 +25,9 @@ function compute_stepMX(IK; stepMXtype = DenseMX(), kwargs...)
     # stepMX
 end
 
-@inline get_final_stepMX_form(stepMX::Union{AbstractMatrix{T},AbstractVector{aT}}, ::DenseMX) where aT<:AbstractMatrix{T} where T<:Number = stepMX
+# The rows of S are stored as the columns of Sᵀ (contiguous writes), S = transpose(Sᵀ)
+@inline get_final_stepMX_form(stepMX::AbstractVector{aT}, ::DenseMX) where aT<:AbstractMatrix{T} where T<:Number = transpose.(stepMX)
+@inline get_final_stepMX_form(stepMX::AbstractMatrix{T}, ::DenseMX) where T<:Number = transpose(stepMX)
 @inline get_final_stepMX_form(stepMX::AbstractVector{aT}, mts::SparseMX) where aT<:AbstractSparseMatrix{T} where T<:Number = get_final_stepMX_form.(stepMX,Ref(mts))
 @inline function get_final_stepMX_form(stepMX::AbstractSparseMatrix{T},::SparseMX{true}) where T<:Number
     transpose(ThreadedSparseMatrixCSC(stepMX))
@@ -53,7 +55,7 @@ function fill_stepMX_ts!(stepMX, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT
     fill_stepMX!(stepMX, RowWorkspace(IK, rowcomputation, stepMX), rowcomputation, smart_integration)
 end
 
-# The matrix where the rows are stored: the rows of S are the columns of the stored (CSC) matrix Sᵀ of a sparse step matrix
+# The matrix where the rows are stored: the rows of S are the columns of the stored matrix Sᵀ
 storage_matrix(stepMX::Transpose) = storage_matrix(parent(stepMX))
 storage_matrix(stepMX::ThreadedSparseMatrixCSC) = stepMX.A
 storage_matrix(stepMX::AbstractMatrix) = stepMX
@@ -102,10 +104,10 @@ function update_dyn_state_x1!(sdestep::SDEStep{d,k,m}, x1) where {d,k,m}
     sdestep.x0 .= x1
 end
 
+# stepMX = Sᵀ: row i of S is column i of Sᵀ
 @inline function fill_to_stepMX!(stepMX::AbstractMatrix,IK,i; kwargs...)
     for j in eachindex(IK.temp.itpM)
-        stepMX[i,j] = IK.temp.itpM[j]
-        # ? fill by rows and multiply from the right when advancing time
+        stepMX[j,i] = IK.temp.itpM[j]
     end
     nothing
 end

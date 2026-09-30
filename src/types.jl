@@ -337,34 +337,41 @@ Compute the rows of the step matrix one after the other.
 """
 struct SerialRowComputation <: RowComputation end
 """
-    ThreadedRowComputation(N_threads = Threads.nthreads())
-    ThreadedRowComputation(; N_threads = Threads.nthreads())
+    ThreadedRowComputation(N_threads = Threads.nthreads(); single_threaded_blas = false)
+    ThreadedRowComputation(; N_threads = Threads.nthreads(), single_threaded_blas = false)
 
 Split the rows of the step matrix into `N_threads` blocks of consecutive rows, and compute the blocks in parallel with `Threads.@threads :static`.
 Every block has its own copy of the integration kernel (the buffers of the time stepping, the interpolation and the integration).
 If it is called inside another `Threads.@threads` loop, the blocks are computed one after the other (with the same result).
-With dense interpolations (Chebyshev, trigonometric) every row uses a small BLAS matrix product: `BLAS.set_num_threads(1)` avoids oversubscribing the CPU cores (about 2× faster with 16 threads).
+
+With dense interpolations (Chebyshev, trigonometric) every row uses a small BLAS matrix product, and the BLAS threads compete with the Julia threads.
+`single_threaded_blas = true` sets `BLAS.set_num_threads(1)` while the blocks are computed in parallel, and restores the number of BLAS threads afterwards
+(about 1.5–2× faster with 16 threads). The number of BLAS threads is a global setting: do not use it when BLAS is used concurrently
+(e.g. several `PathIntegration`s are computed in parallel with `Threads.@spawn`), as the setting could be restored incorrectly.
 """
 struct ThreadedRowComputation <: RowComputation
     N_threads::Int
-    function ThreadedRowComputation(N::Integer = Threads.nthreads(); N_threads::Integer = N)
+    single_threaded_blas::Bool
+    function ThreadedRowComputation(N::Integer = Threads.nthreads(); N_threads::Integer = N, single_threaded_blas::Bool = false)
         N_threads ≥ 1 || throw(ArgumentError("N_threads = $N_threads, it has to be at least 1"))
-        new(N_threads)
+        new(N_threads, single_threaded_blas)
     end
 end
 """
-    BatchRowComputation(N_threads = Threads.nthreads())
-    BatchRowComputation(; N_threads = Threads.nthreads())
+    BatchRowComputation(N_threads = Threads.nthreads(); single_threaded_blas = false)
+    BatchRowComputation(; N_threads = Threads.nthreads(), single_threaded_blas = false)
 
 Split the rows of the step matrix into `N_threads` blocks of consecutive rows, and compute the blocks in parallel with `Polyester.@batch`.
 Every block has its own copy of the integration kernel (the buffers of the time stepping, the interpolation and the integration).
 Polyester only uses the threads that are free, e.g. inside another threaded loop the blocks are computed one after the other (with the same result).
-With dense interpolations (Chebyshev, trigonometric) every row uses a small BLAS matrix product: `BLAS.set_num_threads(1)` avoids oversubscribing the CPU cores (about 2× faster with 16 threads).
+
+`single_threaded_blas`: see [`ThreadedRowComputation`](@ref).
 """
 struct BatchRowComputation <: RowComputation
     N_threads::Int
-    function BatchRowComputation(N::Integer = Threads.nthreads(); N_threads::Integer = N)
+    single_threaded_blas::Bool
+    function BatchRowComputation(N::Integer = Threads.nthreads(); N_threads::Integer = N, single_threaded_blas::Bool = false)
         N_threads ≥ 1 || throw(ArgumentError("N_threads = $N_threads, it has to be at least 1"))
-        new(N_threads)
+        new(N_threads, single_threaded_blas)
     end
 end

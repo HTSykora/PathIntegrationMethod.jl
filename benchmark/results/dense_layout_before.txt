@@ -1,0 +1,11 @@
+Julia threads: 16, BLAS threads: 8
+d=1 Chebyshev N=61: stepMX type Array
+   one step 0.35 μs, advance_till_converged! 0.182 ms, eigen 0.456 ms, lu 0.079 ms, arnoldi 0.146 ms
+d=2 Chebyshev N=31: stepMX type Array
+   one step 21.3 μs, advance_till_converged! 64.3 ms, eigen 309.0 ms, lu 13.3 ms, arnoldi 71.3 ms
+d=2 Chebyshev N=61: stepMX type Array
+   one step 2320.0 μs, advance_till_converged! 5010.0 ms, eigen 11400.0 ms, lu 396.0 ms, arnoldi 4400.0 ms
+d=2 quintic N=21 DenseMX: stepMX type Array
+   one step 15.6 μs, advance_till_converged! 33.5 ms, eigen 51.9 ms, lu 1.81 ms, arnoldi 46.3 ms
+periodic d=1 Chebyshev N=61: stepMX type Array
+   one step 0.371 μs, advance_till_converged! 0.138 ms, eigen 0.358 ms, arnoldi 0.11 ms

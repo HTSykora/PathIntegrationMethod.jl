@@ -17,7 +17,8 @@ fp(x,p,t) = x[1] - x[1]^3 + p[1]*sin(2π*t/p[2])
 systems = (("d=1 cubic", () -> PathIntegration(SDE(f, g), RK4(), 0.01, CubicAxis(-3., 3., 71)), (:auto, :eigen, :lu, :arnoldi)),
            ("d=1 Chebyshev", () -> PathIntegration(SDE(f, g), RK4(), 0.01, ChebyshevAxis(-3., 3., 71)), (:auto, :eigen, :lu, :arnoldi)),
            ("d=2 quintic", () -> PathIntegration(SDE((f1, f2), g2, copy(par)), RK4(), 0.02, QuinticAxis(-4., 4., 41), QuinticAxis(-4., 4., 41)), (:auto, :lu, :arnoldi)),
-           ("periodic", () -> PathIntegration(SDE(fp, g, [1.0, 0.5]), Euler(), collect(range(0, 0.5, length = 6)), CubicAxis(-3., 3., 41)), (:auto, :eigen, :arnoldi)))
+           ("periodic", () -> PathIntegration(SDE(fp, g, [1.0, 0.5]), Euler(), collect(range(0, 0.5, length = 6)), CubicAxis(-3., 3., 41)), (:auto, :eigen, :arnoldi)),
+           ("periodic Chebyshev", () -> PathIntegration(SDE(fp, g, [1.0, 0.5]), RK4(), collect(range(0, 0.5, length = 11)), ChebyshevAxis(-3., 3., 61)), (:auto, :eigen, :arnoldi)))
 
 @testset "Steady state: $lbl" for (lbl, new_PI, methods) in systems
     PI, info = @test_logs steady_state!(new_PI()) # no warnings

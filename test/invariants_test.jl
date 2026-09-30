@@ -19,7 +19,9 @@ systems = (("d=1 cubic", par -> SDE(f, g, par), [1.0], () -> (CubicAxis(-3., 3.,
 @testset "Step matrix representation: $lbl" for (lbl, sde, par, axes, method, mass_tol) in systems
     S_threaded = Matrix(PathIntegration(sde(copy(par)), method(), Δt, axes()...; stepMXtype = SparseMX(threaded = true)).stepMX[1])
     S_serial = Matrix(PathIntegration(sde(copy(par)), method(), Δt, axes()...; stepMXtype = SparseMX(threaded = false)).stepMX[1])
-    S_dense = Matrix(PathIntegration(sde(copy(par)), method(), Δt, axes()...; stepMXtype = DenseMX()).stepMX[1])
+    S_dense = PathIntegration(sde(copy(par)), method(), Δt, axes()...; stepMXtype = DenseMX()).stepMX[1]
+    @test S_dense isa Transpose{<:Any,<:Matrix} # the rows are stored as the columns of Sᵀ
+    S_dense = Matrix(S_dense)
     @test S_threaded == S_serial
     @test maximum(abs, S_dense - S_threaded) ≤ 1e-6 # default sparse_tol
     @test maximum(abs, S_dense) > 0.1

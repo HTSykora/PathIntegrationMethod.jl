@@ -40,7 +40,7 @@ same_stepMX(PI1, PI2) = all(same_storage(PIM.storage_matrix(S1), PIM.storage_mat
     end
 end
 
-@testset "recompute_PI! with parallel row computation: $lbl" for (lbl, new_PI, par) in systems[[1, 3, 6]]
+@testset "recompute_PI! with parallel row computation: $lbl" for (lbl, new_PI, par) in systems[[1, 2, 3, 6]]
     par_new = 0.8 .* par
     PI_new = new_PI(copy(par_new); rowcomputation = SerialRowComputation())
     for rowcomputation in (ThreadedRowComputation(3), BatchRowComputation(3))
@@ -71,6 +71,33 @@ end
     @test PI.IK.kwargs.rowcomputation == PIM.default_rowcomputation()
     @test PIM.chunk_ranges(10, 3) == [1:3, 4:6, 7:10]
     @test PIM.chunk_ranges(2, 3) == [1:0, 1:1, 2:2]
+end
+
+@testset "Single threaded BLAS during the parallel computation" begin
+    n_blas = BLAS.get_num_threads()
+    BLAS.set_num_threads(2) # (so that the change is visible)
+    lbl, new_PI, par = systems[2] # dense interpolation: the rows use BLAS
+    S_serial = stepmatrices(new_PI(copy(par); rowcomputation = SerialRowComputation()))
+    for RC in (ThreadedRowComputation, BatchRowComputation)
+        @test !RC(3).single_threaded_blas
+        @test RC(3; single_threaded_blas = true).single_threaded_blas
+        @test RC(N_threads = 3, single_threaded_blas = true).N_threads == 3
+        PI = new_PI(copy(par); rowcomputation = RC(3; single_threaded_blas = true))
+        @test stepmatrices(PI) == S_serial
+        @test BLAS.get_num_threads() == 2 # restored
+    end
+
+    blas_threads_in(Q, ws) = PIM.with_single_threaded_blas(() -> BLAS.get_num_threads(), Q, ws)
+    PI = new_PI(copy(par); rowcomputation = SerialRowComputation())
+    ws_dense = PIM.RowWorkspace(PI.IK, SerialRowComputation(), PI.stepMX[1])
+    @test blas_threads_in(true, ws_dense) == 1
+    @test blas_threads_in(false, ws_dense) == 2
+    @test_throws ErrorException PIM.with_single_threaded_blas(() -> error("failed build"), true, ws_dense)
+    @test BLAS.get_num_threads() == 2 # restored after an error
+    PI = systems[1][2](copy(systems[1][3]); rowcomputation = SerialRowComputation())
+    ws_sparse = PIM.RowWorkspace(PI.IK, SerialRowComputation(), PI.stepMX[1])
+    @test blas_threads_in(true, ws_sparse) == 2 # sparse interpolations do not use BLAS
+    BLAS.set_num_threads(n_blas)
 end
 
 @testset "Nested in a threaded loop" begin

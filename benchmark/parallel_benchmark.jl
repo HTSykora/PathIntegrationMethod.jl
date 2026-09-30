@@ -36,11 +36,13 @@ for (lbl, PI_N, N) in cases
     t_serial = besttime(() -> recompute_stepMX!(PI; rowcomputation = SerialRowComputation()))
     S_serial = S_matrices(PI)
     println("$lbl N = $N ($(length(PI.pdf)) rows): serial $(round(t_serial, sigdigits = 3)) s")
-    for (name, RC) in (("Threaded", ThreadedRowComputation), ("Batch", BatchRowComputation))
-        line = "    $(rpad(name, 8))"
+    # single_threaded_blas only matters for dense interpolations (the rows use BLAS)
+    Q_blas = PI.IK.temp.kernel isa PathIntegrationMethod.DenseTensorKernel ? (false, true) : (false,)
+    for (name, RC) in (("Threaded", ThreadedRowComputation), ("Batch", BatchRowComputation)), blas1 in Q_blas
+        line = "    $(rpad(name * (blas1 ? ", 1 BLAS thread" : ""), 24))"
         for n in ns
-            t = besttime(() -> recompute_stepMX!(PI; rowcomputation = RC(n)))
-            S_matrices(PI) == S_serial || error("$name($n) gives a different step matrix")
+            t = besttime(() -> recompute_stepMX!(PI; rowcomputation = RC(n; single_threaded_blas = blas1)))
+            S_matrices(PI) == S_serial || error("$name($n; single_threaded_blas = $blas1) gives a different step matrix")
             line *= "  n = $n: $(round(t, sigdigits = 3)) s ($(round(t_serial / t, digits = 1))×)"
         end
         println(line)

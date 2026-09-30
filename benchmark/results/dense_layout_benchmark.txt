@@ -1,0 +1,25 @@
+Matrix-vector products of dense matrices (Julia threads: 16)
+BLAS threads 8
+  n = 61    S*x (gemv N): 0.31    μs   transpose(Sᵀ)*x (gemv T): 0.28    μs   ratio T/N = 0.9   max diff 7.105427357601002e-15
+  n = 961   S*x (gemv N): 25.3    μs   transpose(Sᵀ)*x (gemv T): 22.0    μs   ratio T/N = 0.87   max diff 3.979039320256561e-13
+  n = 1681  S*x (gemv N): 200.0   μs   transpose(Sᵀ)*x (gemv T): 80.0    μs   ratio T/N = 0.4   max diff 1.5347723092418164e-12
+  n = 3721  S*x (gemv N): 2320.0  μs   transpose(Sᵀ)*x (gemv T): 2540.0  μs   ratio T/N = 1.09   max diff 2.9558577807620168e-12
+  n = 6561  S*x (gemv N): 7190.0  μs   transpose(Sᵀ)*x (gemv T): 7810.0  μs   ratio T/N = 1.09   max diff 6.821210263296962e-12
+BLAS threads 1
+  n = 61    S*x (gemv N): 0.32    μs   transpose(Sᵀ)*x (gemv T): 0.361   μs   ratio T/N = 1.13   max diff 7.105427357601002e-15
+  n = 961   S*x (gemv N): 74.6    μs   transpose(Sᵀ)*x (gemv T): 73.9    μs   ratio T/N = 0.99   max diff 3.694822225952521e-13
+  n = 1681  S*x (gemv N): 728.0   μs   transpose(Sᵀ)*x (gemv T): 656.0   μs   ratio T/N = 0.9   max diff 1.1368683772161603e-12
+  n = 3721  S*x (gemv N): 4850.0  μs   transpose(Sᵀ)*x (gemv T): 4360.0  μs   ratio T/N = 0.9   max diff 2.8421709430404007e-12
+  n = 6561  S*x (gemv N): 15600.0 μs   transpose(Sᵀ)*x (gemv T): 14300.0 μs   ratio T/N = 0.92   max diff 7.503331289626658e-12
+
+Dense step matrices: one advance!, advance_till_converged! and steady_state! (Julia threads: 16, BLAS threads: 8)
+d=1 Chebyshev N=61: stepMX type Transpose
+   one step 0.31 μs, advance_till_converged! 0.166 ms, eigen 0.469 ms, lu 0.0937 ms, arnoldi 0.159 ms
+d=2 Chebyshev N=31: stepMX type Transpose
+   one step 10.0 μs, advance_till_converged! 32.1 ms, eigen 301.0 ms, lu 9.61 ms, arnoldi 45.6 ms
+d=2 Chebyshev N=61: stepMX type Transpose
+   one step 2490.0 μs, advance_till_converged! 5150.0 ms, eigen 11400.0 ms, lu 336.0 ms, arnoldi 4600.0 ms
+d=2 quintic N=21 DenseMX: stepMX type Transpose
+   one step 15.0 μs, advance_till_converged! 31.0 ms, eigen 52.0 ms, lu 2.23 ms, arnoldi 39.1 ms
+periodic d=1 Chebyshev N=61: stepMX type Transpose
+   one step 0.35 μs, advance_till_converged! 0.136 ms, eigen 0.419 ms, arnoldi 0.0997 ms
