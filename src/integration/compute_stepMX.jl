@@ -42,27 +42,29 @@ end
 end
 @inline initialize_stepMX(T::DataType, l::Integer, ::DenseMX) = zeros(T, l, l)
 
-function fill_stepMX_ts!(stepMX::AbstractVector{aT}, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, aT<:AbstractMatrix{T},tT<:AbstractArray} where T<:Number
+function fill_stepMX_ts!(stepMX::AbstractVector{aT}, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}; rowcomputation = SerialRowComputation(), smart_integration = true, kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, aT<:AbstractMatrix{T},tT<:AbstractArray} where T<:Number
+    ws = RowWorkspace(IK, rowcomputation, first(stepMX))
     for jₜ in 1:length(IK.t)-1
-        set_t0t1!(IK.sdestep, IK.t[jₜ], IK.t[jₜ+1])
-        fill_stepMX!(stepMX[jₜ], IK; kwargs...)
+        set_t0t1!(ws, IK.t[jₜ], IK.t[jₜ+1])
+        fill_stepMX!(stepMX[jₜ], ws, rowcomputation, smart_integration)
     end
 end
-function fill_stepMX_ts!(stepMX, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}; kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, tT<:Number}
-    fill_stepMX!(stepMX, IK; kwargs...)
+function fill_stepMX_ts!(stepMX, IK::IntegrationKernel{kd, sdeT,x1T, diT,fT,pdfT, tT}; rowcomputation = SerialRowComputation(), smart_integration = true, kwargs...) where {kd, sdeT,x1T, diT,fT,pdfT, tT<:Number}
+    fill_stepMX!(stepMX, RowWorkspace(IK, rowcomputation, stepMX), rowcomputation, smart_integration)
 end
 
-fill_stepMX!(stepMX::Transpose, IK; kwargs...) = fill_stepMX!(parent(stepMX), IK; kwargs...)
-fill_stepMX!(stepMX::ThreadedSparseMatrixCSC, IK; kwargs...) = fill_stepMX!(stepMX.A, IK; kwargs...)
-function fill_stepMX!(stepMX::AbstractMatrix, IK; smart_integration = true, kwargs...)
-    fill_rows!(stepMX, IK, 1:length(IK.pdf.p), smart_integration)
+# The matrix where the rows are stored: the rows of S are the columns of the stored (CSC) matrix Sᵀ of a sparse step matrix
+storage_matrix(stepMX::Transpose) = storage_matrix(parent(stepMX))
+storage_matrix(stepMX::ThreadedSparseMatrixCSC) = stepMX.A
+storage_matrix(stepMX::AbstractMatrix) = stepMX
+
+function fill_stepMX!(stepMX, ws::RowWorkspace, rc::RowComputation, smart_integration)
+    A = storage_matrix(stepMX)
+    fill_chunks!(rc, row_outputs(A, ws), ws, smart_integration)
+    finalise_stepMX!(A, ws)
 end
-# The rows of S are the columns of the stored (CSC) matrix Sᵀ
-function fill_stepMX!(stepMX::SparseMatrixCSC, IK; smart_integration = true, kwargs...)
-    buf = SparseRowBuffer(stepMX)
-    fill_rows!(buf, IK, 1:length(IK.pdf.p), smart_integration)
-    assemble_stepMX!(stepMX, (buf,); IK.kwargs...)
-end
+finalise_stepMX!(A::AbstractMatrix, ws) = A
+finalise_stepMX!(A::SparseMatrixCSC, ws) = assemble_stepMX!(A, ws.buffers; first(ws.IKs).kwargs...)
 
 function fill_rows!(out, IK, rows, smart_integration)
     CI = CartesianIndices(IK.pdf.p)

@@ -168,13 +168,14 @@ function rescale_xw!(x,w,x_ref,w_ref,start,stop)
     w .= w_ref .* scale
 end
 
-function rescale_discreteintegrator!(discreteintegrator::Union{DiscreteIntegrator{1},QuadGKIntegrator}, sdestep::SDEStep{d,d,m}, pdf; kwargs...) where {d,m}
+# (pdf::pdfT forces specialisation: InterpolatedFunction <: Function)
+function rescale_discreteintegrator!(discreteintegrator::Union{DiscreteIntegrator{1},QuadGKIntegrator}, sdestep::SDEStep{d,d,m}, pdf::pdfT; kwargs...) where {d,m,pdfT}
     # discreteintegrator.Q_integrate[] = true
     mn, mx = get_rescale_limits(sdestep, pdf; kwargs...)
     rescale_to_limits!(discreteintegrator, mn, mx)
 end
 
-function get_rescale_limits(sdestep::SDEStep{d,d,m}, pdf; int_limit_thickness_multiplier = 6, kwargs...) where {d,m}
+function get_rescale_limits(sdestep::SDEStep{d,d,m}, pdf::pdfT; int_limit_thickness_multiplier = 6, kwargs...) where {d,m,pdfT}
     σ = sqrt(_Δt(sdestep)*get_g(sdestep.sde)(d, sdestep.x0,_par(sdestep),_t0(sdestep))^2)
     mn = min(pdf.axes[d][end], max(pdf.axes[d][1],sdestep.x0[d] - int_limit_thickness_multiplier*σ))
     mx = max(pdf.axes[d][1],min(pdf.axes[d][end],sdestep.x0[d] + int_limit_thickness_multiplier*σ))

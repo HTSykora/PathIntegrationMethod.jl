@@ -318,3 +318,53 @@ struct SparseMX{tf,tolT,Ti} <: StepMatrixRepresentation
     tol::tolT # absolute tolerance
     rtol::tolT # tolerance relative to max|S|
 end
+
+# Workspaces for computing the rows of the step matrix in blocks of consecutive rows (chunks):
+# the rows chunks[c] are computed with IKs[c] (IKs[1] is the original integration kernel), and for a sparse
+# step matrix they are stored in buffers[c]
+struct RowWorkspace{IKT,bT}
+    IKs::Vector{IKT}
+    chunks::Vector{UnitRange{Int}}
+    buffers::bT
+end
+
+# How the rows of the step matrix are computed
+abstract type RowComputation end
+"""
+    SerialRowComputation()
+
+Compute the rows of the step matrix one after the other.
+"""
+struct SerialRowComputation <: RowComputation end
+"""
+    ThreadedRowComputation(N_threads = Threads.nthreads())
+    ThreadedRowComputation(; N_threads = Threads.nthreads())
+
+Split the rows of the step matrix into `N_threads` blocks of consecutive rows, and compute the blocks in parallel with `Threads.@threads :static`.
+Every block has its own copy of the integration kernel (the buffers of the time stepping, the interpolation and the integration).
+If it is called inside another `Threads.@threads` loop, the blocks are computed one after the other (with the same result).
+With dense interpolations (Chebyshev, trigonometric) every row uses a small BLAS matrix product: `BLAS.set_num_threads(1)` avoids oversubscribing the CPU cores (about 2× faster with 16 threads).
+"""
+struct ThreadedRowComputation <: RowComputation
+    N_threads::Int
+    function ThreadedRowComputation(N::Integer = Threads.nthreads(); N_threads::Integer = N)
+        N_threads ≥ 1 || throw(ArgumentError("N_threads = $N_threads, it has to be at least 1"))
+        new(N_threads)
+    end
+end
+"""
+    BatchRowComputation(N_threads = Threads.nthreads())
+    BatchRowComputation(; N_threads = Threads.nthreads())
+
+Split the rows of the step matrix into `N_threads` blocks of consecutive rows, and compute the blocks in parallel with `Polyester.@batch`.
+Every block has its own copy of the integration kernel (the buffers of the time stepping, the interpolation and the integration).
+Polyester only uses the threads that are free, e.g. inside another threaded loop the blocks are computed one after the other (with the same result).
+With dense interpolations (Chebyshev, trigonometric) every row uses a small BLAS matrix product: `BLAS.set_num_threads(1)` avoids oversubscribing the CPU cores (about 2× faster with 16 threads).
+"""
+struct BatchRowComputation <: RowComputation
+    N_threads::Int
+    function BatchRowComputation(N::Integer = Threads.nthreads(); N_threads::Integer = N)
+        N_threads ≥ 1 || throw(ArgumentError("N_threads = $N_threads, it has to be at least 1"))
+        new(N_threads)
+    end
+end

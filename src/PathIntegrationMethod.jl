@@ -8,6 +8,7 @@ using FFTW
 using FastGaussQuadrature
 using SparseArrays, ThreadedSparseArrays, StaticArrays
 using ArnoldiMethod: partialschur, partialeigen
+using Polyester: @batch
 
 export SDE, DriftTerm, DiffusionTerm,
     Euler, RungeKutta, RK2, RK4, Maruyama,
@@ -20,6 +21,7 @@ export SDE, DriftTerm, DiffusionTerm,
     integrate, integrate_diff,
     DiscreteIntegrator, QuadGKIntegrator, ClenshawCurtisIntegrator, GaussLegendreIntegrator, GaussRadauIntegrator, GaussLobattoIntegrator, TrapezoidalIntegrator, NewtonCotesIntegrator,
     DenseMX, SparseMX,
+    SerialRowComputation, ThreadedRowComputation, BatchRowComputation,
     SDE_VIO, Wall
 
 include("types.jl")
@@ -44,6 +46,7 @@ include("sde/timeevolution/discretetimestepping/driftstep.jl")
 include("sde/timeevolution/discretetimestepping/diffusionstep.jl")
 include("integration/integrationkernel.jl")
 include("integration/compute_stepMX.jl")
+include("integration/rowcomputation.jl")
 include("integration/discreteintegrator.jl")
 include("utils.jl")
 include("steadystate.jl")

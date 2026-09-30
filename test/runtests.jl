@@ -14,6 +14,7 @@ using Test
     @time @testset "Duffing oscillator (d=2)" begin include("duffing_2d_test.jl") end
     @time @testset "Row kernels and sparse assembly" begin include("row_kernel_test.jl") end
     @time @testset "Steady state" begin include("steady_state_test.jl") end
+    @time @testset "Parallel row computation" begin include("row_computation_test.jl") end
 
 
     # Write your tests here.

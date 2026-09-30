@@ -128,10 +128,8 @@ Base.size(A::ShiftInvert) = (A.n, A.n)
 Base.size(A::ShiftInvert, i) = A.n
 Base.eltype(A::ShiftInvert) = eltype(A.F)
 LinearAlgebra.mul!(y::AbstractVector, A::ShiftInvert, x::AbstractVector) = ldiv!(y, A.F, x)
-lu_matrix(S::Transpose{T,<:SparseArrays.AbstractSparseMatrixCSC}) where T = copy(transpose(csc_matrix(parent(S))))
+lu_matrix(S::Transpose{T,<:SparseArrays.AbstractSparseMatrixCSC}) where T = copy(transpose(storage_matrix(S)))
 lu_matrix(S::AbstractMatrix) = S
-csc_matrix(A::ThreadedSparseMatrixCSC) = A.A
-csc_matrix(A::SparseMatrixCSC) = A
 
 function steady_state_arnoldi(Ss; tol = 1e-10, nev = 4)
     P = PeriodMap(Ss)

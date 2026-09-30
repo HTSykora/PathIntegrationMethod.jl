@@ -1,0 +1,6 @@
+Julia threads: 1
+d=1 cubic N = 101: S build 0.000399 s, recompute_stepMX! 0.000402 s, nnz(S) = 2245, one step 1.75 μs, advance_till_converged! 0.000831 s, steady_state! 0.000284 s
+d=1 Chebyshev N = 61: S build 0.000352 s, recompute_stepMX! 0.000343 s, nnz(S) = 3721, one step 0.34 μs, advance_till_converged! 0.000176 s, steady_state! 0.000457 s
+d=2 quintic N = 41: S build 0.0345 s, recompute_stepMX! 0.0371 s, nnz(S) = 70060, one step 27.5 μs, advance_till_converged! 0.0591 s, steady_state! 0.0147 s
+d=2 quintic N = 81: S build 0.14 s, recompute_stepMX! 0.137 s, nnz(S) = 379460, one step 158.0 μs, advance_till_converged! 0.338 s, steady_state! 0.15 s
+d=2 Chebyshev N = 31: S build 0.0218 s, recompute_stepMX! 0.0233 s, nnz(S) = 923521, one step 16.9 μs, advance_till_converged! 0.0619 s, steady_state! 0.00867 s

@@ -36,6 +36,11 @@ Compute a `PathIntegration` object for computing the response probability densit
 - `sparse_tol = 1e-6`: absolute tolerance for the elements considered as zero values in the sparse stepMX if no `stepMXtype` is specified
 - `sparse_rtol = 0.0`: tolerance relative to the largest element: elements with `|Sᵢⱼ| ≤ max(sparse_tol, sparse_rtol * max|Sᵢⱼ|)` are considered as zero values in the sparse stepMX if no `stepMXtype` is specified. Eq. (37) of Sykora et al. (2022) corresponds to `sparse_tol = 0, sparse_rtol = 1e-8`.
 - `index_type = Int`: index type of the sparse stepMX if no `stepMXtype` is specified. `Int32` needs less memory (and memory bandwidth in `advance!`), but it limits the number of nonzero elements to 2³¹-1.
+- `rowcomputation = Threads.nthreads() > 1 ? ThreadedRowComputation() : SerialRowComputation()`: how the rows of the stepMX are computed (also used by `recompute_stepMX!`)
+    - `SerialRowComputation()`: one row after the other
+    - `ThreadedRowComputation(N_threads = Threads.nthreads())`: `N_threads` blocks of rows in parallel using `Threads.@threads`
+    - `BatchRowComputation(N_threads = Threads.nthreads())`: `N_threads` blocks of rows in parallel using `Polyester.@batch`
+    The result does not depend on the row computation or on the number of threads. (`multithreaded_sparse` controls the multithreading of `advance!`.)
 - `mPDF_IDs = nothing`: Marginal PDF (mPDF) for IDinates specified by `mPDF_IDs`
     - `Nothing`: No mPDF is initialised.
     - `Integer`: 1-dimensional mPDF is initalised for state-variable `mPDF_IDs`
@@ -49,7 +54,7 @@ For methods, discrete integrators, interpolators, and examples please refer to t
 function PathIntegration(sdestep::AbstractSDEStep{d,k,m}, _ts, axes::Vararg{Any,d}; 
     di_N = 31, discreteintegrator = defaultdiscreteintegrator(sdestep.sde, di_N),
     initialise_pdf = true, f_init = nothing, pre_compute = true, stepMXtype = nothing, sparse_tol = 1e-6, sparse_rtol = 0.0,
-    mPDF_IDs = nothing, extract_IK = Val{false}(), generic_row_kernel = false, kwargs...) where {d,k,m}
+    mPDF_IDs = nothing, extract_IK = Val{false}(), rowcomputation = default_rowcomputation(), generic_row_kernel = false, kwargs...) where {d,k,m}
     if stepMXtype isa StepMatrixRepresentation
         _stepMXtype = stepMXtype
     else
@@ -86,7 +91,7 @@ function PathIntegration(sdestep::AbstractSDEStep{d,k,m}, _ts, axes::Vararg{Any,
         kernel = Q_generic ? GenericRowKernel() : row_kernel(pdf, length(di.x))
         ikt = IK_temp(itpVs, zero(pdf.p), kernel)
 
-        IK = IntegrationKernel(sdestep, nothing, di, ts, pdf, ikt, (;sparse_tol = get_tol(_stepMXtype), sparse_rtol = get_rtol(_stepMXtype), kwargs...))
+        IK = IntegrationKernel(sdestep, nothing, di, ts, pdf, ikt, (;sparse_tol = get_tol(_stepMXtype), sparse_rtol = get_rtol(_stepMXtype), rowcomputation = rowcomputation, kwargs...))
         
         if extract_IK isa Val{true}
             return IK
@@ -237,15 +242,16 @@ function reinit_PI_pdf!(PI::PathIntegration,f = nothing; reset_t= true, reset_st
     PI
 end
 
-function recompute_PI!(PI::PathIntegration; par = nothing, t = nothing, f = nothing, Q_reinit_pdf = false, reset_t= true, reset_step_index = true, Q_recompute_stepMX = true)
+function recompute_PI!(PI::PathIntegration; par = nothing, t = nothing, f = nothing, Q_reinit_pdf = false, reset_t= true, reset_step_index = true, Q_recompute_stepMX = true, rowcomputation = nothing)
     if Q_reinit_pdf
         reinit_PI_pdf!(PI, f)
     end
     if Q_recompute_stepMX
-        recompute_stepMX!(PI, par = par, t = t, reset_t = reset_t, reset_step_index = reset_step_index)
+        recompute_stepMX!(PI, par = par, t = t, reset_t = reset_t, reset_step_index = reset_step_index, rowcomputation = rowcomputation)
     end
 end
-function recompute_stepMX!(PI::PathIntegration; par = nothing, t = nothing, reset_t= true, reset_step_index = true)
+# rowcomputation: overrides the row computation given to PathIntegration
+function recompute_stepMX!(PI::PathIntegration; par = nothing, t = nothing, reset_t= true, reset_step_index = true, rowcomputation = nothing)
     if !(par isa Nothing)
         PI.IK.sdestep.sde.par .= par;
     end
@@ -263,7 +269,8 @@ function recompute_stepMX!(PI::PathIntegration; par = nothing, t = nothing, rese
     resize_stepMX!(PI.stepMX, length(PI.IK.t) - 1)
 
     reinit_stepMX!(PI.stepMX)
-    fill_stepMX_ts!(PI.stepMX, PI.IK; PI.IK.kwargs...)
+    kwargs = rowcomputation isa Nothing ? PI.IK.kwargs : merge(PI.IK.kwargs, (; rowcomputation = rowcomputation))
+    fill_stepMX_ts!(PI.stepMX, PI.IK; kwargs...)
     PI.stepMX_wts = stepMX_weights(PI.stepMX, PI.pdf)
 
     if reset_t
@@ -300,7 +307,7 @@ function reinit_stepMX!(stepMX::AbstractMatrix{T}) where T
     fill!(stepMX,zero(T))
 end
 function reinit_stepMX!(stepMX::AbstractVector{amT}) where amT<:AbstractMatrix{T} where T
-    fill!.(stepMX,zero(T))
+    foreach(reinit_stepMX!, stepMX) # (fill! on a wrapped sparse matrix sets every element)
 end
 
 

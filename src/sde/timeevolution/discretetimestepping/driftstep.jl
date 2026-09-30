@@ -131,6 +131,8 @@ end
 
 # Butcher Tableus for Runge Kutta method
 BTElement(T::DataType,idx,_weight,val) = BTElement(idx,_weight,T(_weight),val)
+# Integer weights are stored as Rationals, so the elements of a tableau have the same type (type stable stage loops)
+BTElement(T::DataType,idx,_weight::Integer,val) = BTElement(T,idx,_weight//1,val)
 function RungeKutta(order::Integer, BT::btT,ks::ksT, temp::tT) where{btT,ksT,tT}
     RungeKutta{order,btT,ksT,tT}(BT,ks,temp)
 end
