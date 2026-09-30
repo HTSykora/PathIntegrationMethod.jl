@@ -1,13 +1,19 @@
 """
     PathIntegration(sde, method, ts, axes...; kwargs...)
-    
-Compute a `PathIntegration` object for computing the response probability density function evolution of the stochastic dynamical system defined by `sde`.
+    PathIntegration(sdestep, ts, axes...; kwargs...)
+
+Set up the computation of the response probability density function (PDF) of the stochastic dynamical system `sde`:
+initialise the PDF on the grid spanned by `axes`, and compute the step matrices that advance it in time (see [`advance!`](@ref)).
+Returns the [`PathIntegration`](@ref) object `PI`: `PI.pdf` is the response PDF at time `PI.t` (initially 0), and `PI(x...)` evaluates it.
 
 # Arguments
-- `sde::AbstractSDE{d,k,m}`: ``d``-dimensional dynamic system which is subjected to an ``m``-dimensional Wiener process acting on the ``k...d`` coordinates.
-- `method::DiscreteTimeSteppingMethod`: method used for the time-discretisation of the dynamical system described by `sde`. 
-- `ts::Union{Number,AbstractArray{<:Number}}`: If `AbstractArray{<:Number}` is provided then the `stepMX`-s between the times in `ts` are computed. If `Number` is provided, then it computes a single `stepMX` is computed between 0 and `ts`.
-- `axes::Vararg{aT,d} where aT<:GridAxis`: The axes spanning the space where the transitional PDF is computed for the dynamical system `sde`.
+- `sde`: `d`-dimensional stochastic dynamical system, see [`SDE`](@ref) and [`SDE_VIO`](@ref).
+- `method`: time stepping used to approximate the transitional PDF: [`Euler`](@ref)`()`, [`RK2`](@ref)`()` or [`RK4`](@ref)`()` for the drift
+  (with the [`Maruyama`](@ref) approximation of the diffusion). A method whose order equals the dimension is recommended: `Euler()` for `d = 1`, `RK2()` for `d = 2`, `RK4()` for `d ≥ 3`.
+- `ts`: a time step `Δt` (a single step matrix for the time interval `[0, Δt]`), or time points `[t₀, t₁, …, tₙ]` (a step matrix for each interval `[tⱼ₋₁, tⱼ]`,
+  which [`advance!`](@ref) uses cyclically, e.g. the time points of one period for time-periodic systems).
+- `axes`: `d` [`AxisGrid`](@ref)s (e.g. [`QuinticAxis`](@ref), [`ChebyshevAxis`](@ref)) spanning the region where the PDF is computed.
+- `sdestep`: an [`SDEStep`](@ref) (the time stepping of an SDE) instead of `sde` and `method`.
 
 # Keyword Arguments
 - `discreteintegrator = defaultdiscreteintegrator(sde, di_N = 31)`: Discrete integrator to evaluate the Chapman-Kolmogorov equation
@@ -17,7 +23,7 @@ Compute a `PathIntegration` object for computing the response probability densit
     - `di_N = 31`: Resolution of the discrete integrator. Can be a `Integer` or `NTuple{d-k+1,<:Integer}` that defines the discrete integration resolution in each `d-k+1` integration direction.
 - `smart_integration = true`: Only integrate where the transitional PDF has nonzero elements. It is approximated with the step function. Use `false` if (time step * diffusion) results in a wide TPDF. Usually `true` is the better choice.
 - `int_limit_thickness_multiplier = 6`: The "thickness" scaling of the TPDF during smart integration.
-- `initialise_pdf = true`: Initialize the response probability density function. If false, then the RPDF is initialzed as p(x) ≡ 0.
+- `initialise_pdf = true`: Initialise the response probability density function (RPDF). If false, then the RPDF is initialised as p(x) ≡ 0.
 - `f_init = nothing`: Initial RPDF as a function. If `f_init` is a `Nothing` and `initialise_pdf = true` then a diagonal Gaussian distribution is used as initial distribution
 - `μ_init = nothing`: Mean of the initial Gaussian distribution used in case `f_init = nothing`. 
     - `Nothing`: Uses the middle of the range defined by the axis
@@ -27,7 +33,7 @@ Compute a `PathIntegration` object for computing the response probability densit
     - `Nothing`: Uses the 1/12th of the range width in each direction defined by the `axes`.
     - `Number`: Uses the single value `σ_init` for each axis direction
     - `Union{NTuple{d,<:Number},AbstractVector{<:Number}}`: Individual standard deviations for each axis.
-- `pre_compute = true`: Compute the `stepMX`. This should be left unchanged if the RPDF computation is the goal.
+- `pre_compute = true`: Compute the `stepMX`. This should be left unchanged if the RPDF computation is the goal. (With `false`, only the PDF is initialised.)
 - `stepMXtype = nothing`: Step matrix representation type. The default representation depends on `d` and the interpolation used (see Interpolation): `d ≤ 2` with sparse interpolation the `stepMX` is a multithreaded sparse matrix, for dense interpolations it is dense, and for `d>2` the default is a multithreaded sparse
     Possible options:
     - `SparseMX(; threaded = true, sparse_tol = 1e-6, sparse_rtol = 0.0, index_type = Int)`
@@ -42,15 +48,25 @@ Compute a `PathIntegration` object for computing the response probability densit
     - `BatchRowComputation(N_threads = Threads.nthreads(); single_threaded_blas = false)`: `N_threads` blocks of rows in parallel using `Polyester.@batch`
     - `single_threaded_blas = true`: use a single BLAS thread during the parallel computation (faster with dense interpolations, see `ThreadedRowComputation`)
     The result does not depend on the row computation or on the number of threads. (`multithreaded_sparse` controls the multithreading of `advance!`.)
-- `mPDF_IDs = nothing`: Marginal PDF (mPDF) for IDinates specified by `mPDF_IDs`
-    - `Nothing`: No mPDF is initialised.
-    - `Integer`: 1-dimensional mPDF is initalised for state-variable `mPDF_IDs`
-    - `NTuple{n,<:Integer}`: `n`-dimensional mPDF is initalised for state-variables specified in `mPDF_IDs`
-    - `Union{Tuple{NTuple{n,<:Integer}},Vector{NTuple{d,<:Integer}}}`: Multiple mPDF initialised
-- `allow_extrapolation::Bool = false`: Allow nonzero extrapolation outside the region specified by `axes`
-- `zero_extrapolation::Bool = true`: Return 0 if extrapolated outside of the region specified by `axes`
-----
-For methods, discrete integrators, interpolators, and examples please refer to the documentation. 
+- `mPDF_IDs = nothing`: marginal PDFs (mPDFs) of the coordinates specified by `mPDF_IDs` (computed by [`update_mPDFs!`](@ref))
+    - `Nothing`: no mPDF is initialised
+    - `Integer`, e.g. `2`: 1-dimensional mPDF of the coordinate `mPDF_IDs`
+    - `NTuple{n,<:Integer}`, e.g. `(1, 2)`: `n`-dimensional mPDF of the coordinates in `mPDF_IDs`
+    - a `Vector` (or `Tuple`) of these, e.g. `[1, 2]`: several mPDFs
+- `allow_extrapolation::Bool = false`, `zero_extrapolation::Bool = true`: extrapolation of the PDF outside of the region spanned by `axes`
+  in the step matrix computation (see [`InterpolatedFunction`](@ref)); by default the PDF is zero outside of the region.
+
+# Example
+```julia
+f1(x, p, t) = x[2]
+f2(x, p, t) = -2p[1]*x[2] + x[1] - p[2]*x[1]^3
+g2(x, p, t) = p[3]
+sde = SDE((f1, f2), g2, [0.5, 0.25, 1.0])
+PI = PathIntegration(sde, RK4(), 0.02, QuinticAxis(-4., 4., 41), QuinticAxis(-4., 4., 41))
+advance!(PI)        # one time step
+steady_state!(PI)   # the stationary PDF
+PI(0.5, 0.0)        # the PDF at x = 0.5, v = 0
+```
 """
 function PathIntegration(sdestep::AbstractSDEStep{d,k,m}, _ts, axes::Vararg{Any,d}; 
     di_N = 31, discreteintegrator = defaultdiscreteintegrator(sdestep.sde, di_N),
@@ -114,6 +130,13 @@ end
 _val(vals) = vals
 get_ts(_ts::AbstractVector{tsT}) where tsT<:Number = collect(_ts)
 get_ts(_ts::tsT) where tsT<:Number = [zero(_ts), _ts]
+"""
+    stepMX(PI, i = 1)
+
+The step matrix ``S`` of the `i`-th time interval of `PI.ts`. It maps the PDF values at the grid nodes from the start to the end of the interval:
+`vec(p₁) ∝ S * vec(p₀)` (see [`advance!`](@ref)). ``S`` is stored as `transpose(Sᵀ)`, with a sparse or a dense `Sᵀ`
+(see [`SparseMX`](@ref), [`DenseMX`](@ref)); `Matrix(S)` gives a dense copy.
+"""
 stepMX(PI::PathIntegration) = PI.stepMX[1]
 stepMX(PI::PathIntegration, i) = PI.stepMX[i]
 
@@ -122,6 +145,23 @@ function PathIntegration(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMe
     PathIntegration(sdestep,ts,axes...; kwargs...)
 end
 # PathIntegration{dynT, pdT, tsT, tpdMX_type, Tstp_idx, IKT, kwargT}
+"""
+    advance_till_converged!(PI; rtol = 1e-6, Tmax = nothing, check_dt = PI.ts[end] - PI.ts[1], atol = rtol*check_dt, check_iter = nothing, maxiter = 100_000)
+
+Advance `PI` with [`advance!`](@ref) until the response PDF converges to the stationary PDF (or, for time-periodic systems, to the periodic PDF).
+After every `check_dt` long interval the change ``ε = ∫|p(t) - p(t - check_dt)| dx`` is computed, and the iteration stops when ``ε ≤`` `atol`,
+or after `Tmax` time (after `maxiter` steps if `Tmax = nothing`).
+
+# Keyword Arguments
+- `rtol = 1e-6`: tolerance of the change per unit time (`atol = rtol*check_dt`)
+- `check_dt`: the time between the checks. The default is the time span of `PI.ts`: one time step for a time-invariant system,
+  one period for a time-periodic system (so the PDFs are compared at the same phase).
+- `check_iter = nothing`: the number of time steps between the checks (instead of `check_dt`)
+- `Tmax = nothing`, `maxiter = 100_000`: the maximum time and the maximum number of steps
+
+A constant time step is assumed. Returns `(PI, ε)`, where `ε` is the vector of the computed changes (its first element is a placeholder).
+[`steady_state!`](@ref) computes the stationary PDF directly: it is usually faster, especially if the PDF converges slowly (a second eigenvalue of the step matrix near 1).
+"""
 function advance_till_converged!(PI::PathIntegration; rtol = 1e-6, Tmax = nothing, check_dt = PI.ts[end] - PI.ts[1], maxiter = 100_000, atol = rtol*check_dt, check_iter = nothing)
     _dt = PI.ts isa Number ? PI.ts : PI.ts[2] - PI.ts[1]
     if check_iter isa Nothing
@@ -155,6 +195,13 @@ function advance_till_converged!(PI::PathIntegration; rtol = 1e-6, Tmax = nothin
 end
 
 
+"""
+    advance!(PI)
+
+Advance the response PDF `PI.pdf` by one time step: ``p ← S p / ∫(S p)`` with the step matrix ``S`` of the next time interval of `PI.ts`
+(the intervals are used cyclically), and increase `PI.t` by the length of the interval.
+The marginal PDFs are not updated (see [`update_mPDFs!`](@ref)).
+"""
 function advance!(PI::PathIntegration)
     mass = _advance_to_temp!(PI.p_temp,PI)
     _corr_to_temp!(PI.pdf.p,PI.p_temp,mass)
@@ -226,6 +273,15 @@ end
 (PI::PathIntegration)(x...) = PI.pdf(x...)
 
 ## Recompute functions
+"""
+    reinit_PI_pdf!(PI, f = nothing; reset_t = true, reset_step_index = true)
+
+Reinitialise the response PDF of `PI` with the values of the function `f(x_1, …, x_d)` at the grid nodes, or with the initial diagonal Gaussian
+of [`PathIntegration`](@ref) (`μ_init`, `σ_init`) if `f = nothing`. `f` does not need to be normalised ([`advance!`](@ref) normalises the PDF).
+
+- `reset_t = true`: set `PI.t = 0`
+- `reset_step_index = true`: the next [`advance!`](@ref) uses the first step matrix
+"""
 function reinit_PI_pdf!(PI::PathIntegration,f = nothing; reset_t= true, reset_step_index = true)
     if f isa Nothing
         _f = init_DiagonalNormalPDF(PI.pdf.axes...; PI.IK.kwargs...)
@@ -243,6 +299,23 @@ function reinit_PI_pdf!(PI::PathIntegration,f = nothing; reset_t= true, reset_st
     PI
 end
 
+"""
+    recompute_PI!(PI; par = nothing, t = nothing, f = nothing, Q_reinit_pdf = false, Q_recompute_stepMX = true, reset_t = true, reset_step_index = true, rowcomputation = nothing)
+
+Reinitialise the response PDF (if `Q_reinit_pdf`, with [`reinit_PI_pdf!`](@ref)`(PI, f)`) and recompute the step matrices
+(if `Q_recompute_stepMX`, with [`recompute_stepMX!`](@ref) and the keyword arguments `par`, `t` and `rowcomputation`).
+
+# Example
+Stationary PDFs of the Duffing oscillator of [`SDE`](@ref) (`p = [ζ, λ, σ]`) for several damping ratios:
+```julia
+PI = PathIntegration(sde, RK4(), 0.02, QuinticAxis(-4., 4., 41), QuinticAxis(-4., 4., 41))
+pdfs = map(0.1:0.1:0.5) do ζ
+    recompute_PI!(PI; par = [ζ, 0.25, 1.0], Q_reinit_pdf = true)
+    steady_state!(PI)
+    copy(PI.pdf.p)
+end
+```
+"""
 function recompute_PI!(PI::PathIntegration; par = nothing, t = nothing, f = nothing, Q_reinit_pdf = false, reset_t= true, reset_step_index = true, Q_recompute_stepMX = true, rowcomputation = nothing)
     if Q_reinit_pdf
         reinit_PI_pdf!(PI, f)
@@ -251,7 +324,19 @@ function recompute_PI!(PI::PathIntegration; par = nothing, t = nothing, f = noth
         recompute_stepMX!(PI, par = par, t = t, reset_t = reset_t, reset_step_index = reset_step_index, rowcomputation = rowcomputation)
     end
 end
-# rowcomputation: overrides the row computation given to PathIntegration
+"""
+    recompute_stepMX!(PI; par = nothing, t = nothing, reset_t = true, reset_step_index = true, rowcomputation = nothing)
+
+Recompute the step matrices of `PI` in place, e.g. for new parameters or time steps. The compiled time stepping and the buffers are reused,
+so this is much faster than a new [`PathIntegration`](@ref). The response PDF is not changed (see [`reinit_PI_pdf!`](@ref), [`recompute_PI!`](@ref)).
+
+# Keyword Arguments
+- `par = nothing`: new parameter values, copied into the parameters of the SDE (which have to be a mutable container of the same length)
+- `t = nothing`: new time points (a vector or a range: a step matrix for each interval) or a time step (a number: a step matrix for `[0, t]`)
+- `reset_t = true`: set `PI.t = 0`
+- `reset_step_index = true`: the next [`advance!`](@ref) uses the first step matrix
+- `rowcomputation = nothing`: the row computation (e.g. [`ThreadedRowComputation`](@ref)); `nothing` uses the one given to [`PathIntegration`](@ref)
+"""
 function recompute_stepMX!(PI::PathIntegration; par = nothing, t = nothing, reset_t= true, reset_step_index = true, rowcomputation = nothing)
     if !(par isa Nothing)
         PI.IK.sdestep.sde.par .= par;
@@ -312,6 +397,24 @@ function reinit_stepMX!(stepMX::AbstractVector{amT}) where amT<:AbstractMatrix{T
 end
 
 
+"""
+    update_mPDFs!(PI; detached = false)
+
+Compute the marginal PDFs `PI.marginal_pdfs` from the current response PDF `PI.pdf`, by integrating out the other coordinates with the quadrature weights of the axes.
+The marginal PDFs are requested with the `mPDF_IDs` keyword argument of [`PathIntegration`](@ref); [`advance!`](@ref) does not update them.
+
+`PI.marginal_pdfs` is a marginal PDF, or a `Tuple` of them for several `mPDF_IDs`. A marginal PDF `mpdf` is evaluated as `mpdf(x...)`,
+and its [`InterpolatedFunction`](@ref) is `mpdf.pdf`. Use `detached = true` if `PI` was loaded from a file (e.g. with JLD2.jl).
+
+# Example
+```julia
+PI = PathIntegration(sde, RK4(), 0.02, QuinticAxis(-4., 4., 41), QuinticAxis(-4., 4., 41); mPDF_IDs = [1, 2])
+steady_state!(PI)
+update_mPDFs!(PI)
+p_x, p_v = PI.marginal_pdfs
+p_x(0.5)
+```
+"""
 update_mPDFs!(PI::PathIntegration{dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,mpdtT,kwargT}; kwargs...) where {dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,mpdtT<:Nothing,kwargT} = nothing
 
 function update_mPDFs!(PI::PathIntegration{dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,mpdtT,kwargT}; kwargs...) where {dynT, pdT, tsT, stepmxT, Tstp_idx, IKT, ptempT,mpdtT<:MarginalPDF,kwargT}

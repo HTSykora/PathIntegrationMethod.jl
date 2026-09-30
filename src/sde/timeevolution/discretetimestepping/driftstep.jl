@@ -136,6 +136,22 @@ BTElement(T::DataType,idx,_weight::Integer,val) = BTElement(T,idx,_weight//1,val
 function RungeKutta(order::Integer, BT::btT,ks::ksT, temp::tT) where{btT,ksT,tT}
     RungeKutta{order,btT,ksT,tT}(BT,ks,temp)
 end
+"""
+    RK2(; α = 2//3, T = Float64)
+
+Explicit second order Runge–Kutta approximation of the drift in a time step:
+
+    k₁ = f(x₀, t₀) Δt
+    k₂ = f(x₀ + α k₁, t₀ + α Δt) Δt
+    x₁ = x₀ + (1 - 1/(2α)) k₁ + k₂/(2α)
+
+- `α = 1//2`: midpoint method
+- `α = 2//3`: Ralston's method
+- `α = 1`: Heun's method
+- `T`: the number type of the stages
+
+Pass it as the time stepping `method` of [`PathIntegration`](@ref). See also [`Euler`](@ref), [`RK4`](@ref), [`RungeKutta`](@ref).
+"""
 function RK2(;α = 2//3,T::DataType = Float64)
     temp = Vector{T}(undef,0)
     ks = Tuple(similar(temp) for _ in 1:2)
@@ -146,6 +162,20 @@ function RK2(;α = 2//3,T::DataType = Float64)
     
     RungeKutta(2, ButcherTableau(a,b,c,_c), ks, temp)
 end
+"""
+    RK4(; T = Float64)
+
+Classic fourth order Runge–Kutta approximation of the drift in a time step:
+
+    k₁ = f(x₀, t₀) Δt
+    k₂ = f(x₀ + k₁/2, t₀ + Δt/2) Δt
+    k₃ = f(x₀ + k₂/2, t₀ + Δt/2) Δt
+    k₄ = f(x₀ + k₃, t₀ + Δt) Δt
+    x₁ = x₀ + (k₁ + 2k₂ + 2k₃ + k₄)/6
+
+`T` is the number type of the stages. Pass it as the time stepping `method` of [`PathIntegration`](@ref).
+See also [`Euler`](@ref), [`RK2`](@ref), [`RungeKutta`](@ref).
+"""
 function RK4(;T::DataType = Float64)
     temp = Vector{T}(undef,0)
     ks = Tuple(similar(temp) for _ in 1:4)

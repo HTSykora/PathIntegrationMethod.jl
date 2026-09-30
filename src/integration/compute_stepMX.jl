@@ -1,3 +1,16 @@
+"""
+    SparseMX(; threaded = true, sparse_tol = 1e-6, sparse_rtol = 0.0, index_type = Int)
+
+Sparse step matrix representation, the default for sparse interpolations and for `d > 2`.
+The step matrix ``S`` is stored as `transpose(Sᵀ)` with `Sᵀ` in compressed sparse column format (the columns of `Sᵀ` are the rows of ``S``).
+Pass it as the `stepMXtype` of [`PathIntegration`](@ref).
+
+# Keyword Arguments
+- `threaded = true`: multithreaded matrix–vector products in [`advance!`](@ref) (ThreadedSparseArrays.jl)
+- `sparse_tol = 1e-6`, `sparse_rtol = 0.0`: the elements with `|Sᵢⱼ| ≤ max(sparse_tol, sparse_rtol * max|S|)` are dropped.
+  Eq. (37) of Sykora, Kuske & Yurchenko (2022) corresponds to `sparse_tol = 0, sparse_rtol = 1e-8`.
+- `index_type = Int`: the index type. `Int32` needs less memory (and memory bandwidth in [`advance!`](@ref)), but it limits the number of stored elements to 2³¹ - 1.
+"""
 function SparseMX(;threaded = true, sparse_tol = 1e-6, sparse_rtol = 0.0, index_type::Type{Ti} = Int, kwargs...) where Ti<:Integer
     tol, rtol = promote(float(sparse_tol), float(sparse_rtol))
     SparseMX{threaded,typeof(tol),Ti}(threaded,tol,rtol)

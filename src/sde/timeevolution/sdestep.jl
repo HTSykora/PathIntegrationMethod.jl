@@ -6,6 +6,16 @@ number_of_sdesteps(sdestep::NonSmoothSDEStep{d,k,m,sdeT, n}) where {d,k,m,sdeT, 
 
 similar_to_x1(sdestep::SDEStep, args...) = similar(sdestep.x1, args...)
 
+"""
+    SDEStep(sde, method, ts)
+
+Discrete time step of `sde` with the time stepping `method` ([`Euler`](@ref), [`RK2`](@ref) or [`RK4`](@ref) for the drift, [`Maruyama`](@ref) for the diffusion).
+It holds the states at the start (`x0`) and at the end (`x1`) of the step, the time interval, and the compiled (Symbolics.jl) Newton iteration that
+computes the start of a step from its end (the backward step) together with the Jacobian determinant of the step.
+`ts` is a time step or a vector of time points; the time interval is set by [`PathIntegration`](@ref).
+
+`PathIntegration(sde, method, ts, axes...)` constructs the `SDEStep`; `PathIntegration(sdestep, ts, axes...)` uses an existing one (and its compiled functions).
+"""
 function SDEStep(sde::AbstractSDE{d,k,m}, method::DiscreteTimeSteppingMethod, ts; kwargs...) where {d,k,m}
     x0 = zeros(d) # * not type safe for autodiff
     x1 = similar(x0)

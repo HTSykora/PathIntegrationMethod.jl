@@ -10,6 +10,19 @@ function DiscreteIntegrator(discreteintegrator, sdestep::AbstractSDEStep, res_pr
     DiscreteIntegrator(discreteintegrator, res_prototype, axes; kwargs...)
 end
 
+"""
+    DiscreteIntegrator(method, res_prototype, axis; xT = Float64, wT = Float64)
+
+The quadrature rule `method` (e.g. [`GaussLegendreIntegrator`](@ref)`(31)`) on the interval `[axis[1], axis[end]]`, for array-valued integrands
+(for a [`QuadGKIntegrator`](@ref) an adaptive integrator). For a discrete integrator `q`,
+
+    q(f!, res; Q_reinit_res = true)
+
+computes ``res = Σₖ wₖ f(xₖ)``, where `f!(v, x)` writes every element of ``f(x)`` into `v` (an array like `res_prototype`); `Q_reinit_res = false` adds the integral to `res`.
+
+[`PathIntegration`](@ref) builds the discrete integrator from its `discreteintegrator` keyword argument, and (with `smart_integration = true`) rescales the nodes
+for every row of the step matrix to the region where the transitional PDF is not negligible.
+"""
 function DiscreteIntegrator(discreteintegrator::AbstractDiscreteIntegratorMethod{1},res_prototype, axes::GA; xT = Float64, wT = Float64, kwargs...) where GA<:AxisGrid
     start = axes[1]
     stop = axes[end]
@@ -21,6 +34,12 @@ function DiscreteIntegrator(discreteintegrator::AbstractDiscreteIntegratorMethod
 end
 
 # QuadGKIntegrator(; rtol, atol, maxevals, order...):
+"""
+    QuadGKIntegrator(; kwargs...)
+
+Adaptive Gauss–Kronrod quadrature with `QuadGK.quadgk!`; the keyword arguments (e.g. `rtol`, `atol`, `maxevals`, `order`) are passed to `quadgk!`.
+It is much slower than the fixed quadrature rules, but useful as a reference to check their accuracy. Use it as the `discreteintegrator` of [`PathIntegration`](@ref).
+"""
 QuadGKIntegrator(;kwargs...) = QuadGKIntegrator(nothing,nothing,cleanup_quadgk_keywords(;kwargs...),nothing,nothing)
 @inline function cleanup_quadgk_keywords(;σ_init = nothing, μ_init = nothing, allow_extrapolation=false,  zero_extrapolation=true, kwargs...)
     kwargs

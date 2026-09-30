@@ -42,7 +42,22 @@ end
 abstract type DiscreteTimeSteppingMethod end
 abstract type ExplicitDriftMethod <: DiscreteTimeSteppingMethod end
 abstract type ExplicitDiffusionMethod <: DiscreteTimeSteppingMethod end
+"""
+    Euler()
+
+Explicit Euler approximation of the drift in a time step: ``x₁ = x₀ + f(x₀, t₀) Δt``.
+
+Pass it as the time stepping `method` of [`PathIntegration`](@ref). See also [`RK2`](@ref), [`RK4`](@ref).
+"""
 struct Euler <: ExplicitDriftMethod end
+"""
+    RungeKutta{order}
+
+Explicit Runge–Kutta approximation of the drift in a time step, defined by a Butcher tableau. Construct it with [`RK2`](@ref) or [`RK4`](@ref).
+
+The object also holds the buffers of the stages (resized to the dimension of the SDE): do not share one object between
+[`PathIntegration`](@ref)s of different dimensions, or between `PathIntegration`s that are computed at the same time (e.g. in different threads).
+"""
 struct RungeKutta{order,btT,ksT,tT} <: ExplicitDriftMethod
     BT::btT
     ks::ksT
@@ -61,6 +76,13 @@ struct BTElement{iT,_wT,wT,vT}
     val::vT
 end
 
+"""
+    Maruyama()
+
+Euler–Maruyama approximation of the diffusion in a time step: the noise increment of the last coordinate is ``g(x₀, t₀) ΔW`` with ``ΔW ∼ N(0, Δt)``,
+so the transitional PDF is a Gaussian with variance ``g(x₀, t₀)² Δt`` around the result of the drift step ([`Euler`](@ref), [`RK2`](@ref), [`RK4`](@ref)).
+It is the (currently only) diffusion approximation, and it is used by default.
+"""
 struct Maruyama <: ExplicitDiffusionMethod end
 struct Milstein <: ExplicitDiffusionMethod end
 struct DiscreteTimeStepping{TDrift,TDiff} <: DiscreteTimeSteppingMethod
@@ -174,6 +196,26 @@ struct InterpolatedFunction{T,N,itp_type,axesT,pT,idx_itT,val_itT} <: Function #
     idx_it::idx_itT
     val_it::val_itT
 end
+"""
+    PathIntegration
+
+The response PDF of a stochastic dynamical system together with the step matrices that advance it in time
+(step matrix multiplication path integration, see Sykora, Kuske & Yurchenko, Computers and Structures 273 (2022) 106896).
+Construct it with `PathIntegration(sde, method, ts, axes...)`.
+
+# Fields
+- `pdf`: the response PDF ``p(x, t)`` at `t = PI.t`, an [`InterpolatedFunction`](@ref); `PI(x...)` evaluates it
+- `t`: the time
+- `ts`: the time points of the step matrices
+- `stepMX`: the step matrices, one for each time interval of `ts` (see [`stepMX`](@ref))
+- `step_idx`: the index of the step matrix used in the last step
+- `marginal_pdfs`: the marginal PDFs (see [`update_mPDFs!`](@ref)), `nothing` if none are requested
+- `stepMX_wts`: ``Sᵀw`` for each step matrix ``S`` (``w``: the quadrature weights of the grid), used to normalise the PDF in [`advance!`](@ref)
+- `step_dynamics`, `IK`: the time step of the SDE ([`SDEStep`](@ref)) and the integration kernel used to compute the step matrices
+- `p_temp`, `kwargs`: a buffer and the keyword arguments of the construction
+
+See also [`advance!`](@ref), [`advance_till_converged!`](@ref), [`steady_state!`](@ref), [`recompute_PI!`](@ref).
+"""
 mutable struct PathIntegration{dynT,pdT,tsT,stepmxT,Tstp_idx,IKT,ptempT,mpdtT,kwargT,TT,wST}
     step_dynamics::dynT # SDEStep
     pdf::pdT
@@ -240,6 +282,12 @@ end
 # end
 abstract type AbstractDiscreteIntegratorMethod{dim} end
 abstract type AbstractDiscreteIntegratorType{dim} end
+"""
+    ClenshawCurtisIntegrator(N = 31)
+
+Clenshaw–Curtis quadrature with `N` Chebyshev nodes (the extrema of the Chebyshev polynomial of degree `N - 1`, including both ends of the interval).
+Use it as the `discreteintegrator` of [`PathIntegration`](@ref).
+"""
 struct ClenshawCurtisIntegrator{dim,NT} <: AbstractDiscreteIntegratorMethod{dim}
     N::NT
     function ClenshawCurtisIntegrator(N=31; dim = length(N))
@@ -247,6 +295,12 @@ struct ClenshawCurtisIntegrator{dim,NT} <: AbstractDiscreteIntegratorMethod{dim}
         new{dim,typeof(_N)}(_N)
     end
 end
+"""
+    GaussLegendreIntegrator(N = 31)
+
+Gauss–Legendre quadrature with `N` nodes (the ends of the interval are not nodes).
+It is the default `discreteintegrator` of [`PathIntegration`](@ref) (with `N = di_N`).
+"""
 struct GaussLegendreIntegrator{dim,NT} <: AbstractDiscreteIntegratorMethod{dim}
     N::NT
     function GaussLegendreIntegrator(N=31; dim = length(N))
@@ -254,6 +308,12 @@ struct GaussLegendreIntegrator{dim,NT} <: AbstractDiscreteIntegratorMethod{dim}
         new{dim,typeof(_N)}(_N)
     end
 end
+"""
+    GaussRadauIntegrator(N = 31)
+
+Gauss–Radau quadrature with `N` nodes, including the start of the interval.
+Use it as the `discreteintegrator` of [`PathIntegration`](@ref).
+"""
 struct GaussRadauIntegrator{dim,NT} <: AbstractDiscreteIntegratorMethod{dim}
     N::NT
     function GaussRadauIntegrator(N=31; dim = length(N))
@@ -261,6 +321,12 @@ struct GaussRadauIntegrator{dim,NT} <: AbstractDiscreteIntegratorMethod{dim}
         new{dim,typeof(_N)}(_N)
     end
 end
+"""
+    GaussLobattoIntegrator(N = 31)
+
+Gauss–Lobatto quadrature with `N` nodes, including both ends of the interval.
+Use it as the `discreteintegrator` of [`PathIntegration`](@ref).
+"""
 struct GaussLobattoIntegrator{dim,NT} <: AbstractDiscreteIntegratorMethod{dim}
     N::NT
     function GaussLobattoIntegrator(N=31; dim = length(N))
@@ -268,6 +334,12 @@ struct GaussLobattoIntegrator{dim,NT} <: AbstractDiscreteIntegratorMethod{dim}
         new{dim,typeof(_N)}(_N)
     end
 end
+"""
+    TrapezoidalIntegrator(N = 31)
+
+Composite trapezoidal rule with `N` equidistant nodes.
+Use it as the `discreteintegrator` of [`PathIntegration`](@ref).
+"""
 struct TrapezoidalIntegrator{dim,NT} <: AbstractDiscreteIntegratorMethod{dim}
     N::NT
     function TrapezoidalIntegrator(N=31; dim = length(N))
@@ -275,6 +347,12 @@ struct TrapezoidalIntegrator{dim,NT} <: AbstractDiscreteIntegratorMethod{dim}
         new{dim,typeof(_N)}(_N)
     end
 end
+"""
+    NewtonCotesIntegrator(N = 31, order = 2)
+
+Composite Newton–Cotes rule with `N` equidistant nodes: `order = 1` is the trapezoidal rule, `2` Simpson's rule, `3` Simpson's 3/8 rule
+(with end corrections if `N - 1` is not divisible by `order`). Use it as the `discreteintegrator` of [`PathIntegration`](@ref).
+"""
 struct NewtonCotesIntegrator{dim,ord,NT} <: AbstractDiscreteIntegratorMethod{dim}
     N::NT
     function NewtonCotesIntegrator(N=31, ord=2; dim = length(N))
@@ -310,6 +388,13 @@ end
 
 # Step matrix representation types
 abstract type StepMatrixRepresentation end
+"""
+    DenseMX()
+
+Dense step matrix representation, the default for dense interpolations ([`ChebyshevAxis`](@ref), [`TrigonometricAxis`](@ref)) if `d ≤ 2`.
+The step matrix ``S`` is stored as `transpose(Sᵀ)` with a dense `Sᵀ` (the columns of `Sᵀ` are the rows of ``S``).
+It needs ``8N²`` bytes for ``N`` grid points. Pass it as the `stepMXtype` of [`PathIntegration`](@ref).
+"""
 struct DenseMX <: StepMatrixRepresentation
 end
 

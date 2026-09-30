@@ -1,6 +1,15 @@
 # g: Rᵈ × [0,T] ↦ Rᵈˣᵐ, gᵢ,ⱼ = 0 for i = 1,...,d-k+1; j = 1 ... m
 # and 
 # gᵢ,ⱼ ≠ 0 for i = k,...,d; j = 1 ... m
+"""
+    DiffusionTerm(g)
+    DiffusionTerm(d, k, m, g_k, …, g_d)
+
+Diffusion (noise intensity) ``g(x, p, t)`` of an [`SDE`](@ref), constructed by `SDE`: the coordinates `k, …, d` of the `d`-dimensional state
+are driven by an `m`-dimensional Wiener process, and `g_i(x, p, t)` is the noise intensity of coordinate `i`. `DiffusionTerm(g)` is the scalar case `d = k = m = 1`.
+
+For a diffusion `D`, `D(i, x, p, t)` returns the noise intensity of coordinate `i` (zeros for `i < k`).
+"""
 function DiffusionTerm(g::Function)
     DiffusionTerm{1,1,1,1,typeof(g)}(g)
 end

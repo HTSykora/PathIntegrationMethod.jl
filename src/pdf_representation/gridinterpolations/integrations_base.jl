@@ -1,3 +1,16 @@
+"""
+    integrate(F)
+    integrate(f, F)
+
+``∫F(x) dx`` over the grid of the [`InterpolatedFunction`](@ref) `F`, computed with the quadrature weights of its axes.
+With a function `f(x_1, …, x_d)`: ``∫f(x) F(x) dx``, e.g. an expected value if `F` is a PDF.
+
+# Example
+```julia
+integrate(PI.pdf)                  # ≈ 1
+integrate((x, v) -> x^2, PI.pdf)   # E[x²]
+```
+"""
 function integrate(f::InterpolatedFunction)
     _integrate(f.p, f.axes...)
 end
@@ -15,6 +28,13 @@ function integrate(f::Function, p::InterpolatedFunction)
     sum(f(x...)*prod(_w for _w in w)*p.p[i] for (i,(x,w)) in enumerate(zip(xs,ws)))
 end 
 
+"""
+    integrate_diff(F1, F2; f = abs)
+    integrate_diff(F1, p2; f = abs)
+
+``∫f(F₁(x) - F₂(x)) dx`` over the grid of the [`InterpolatedFunction`](@ref) `F1`, computed with the quadrature weights of its axes.
+`F2` has to be defined on the same grid; alternatively the array `p2` of its node values can be given. The default `f = abs` gives the ``L¹`` distance.
+"""
 function integrate_diff(f1::fT, f2::fT; kwargs...) where fT<:InterpolatedFunction
     _integrate_diff(f1.p, f2.p, f1.axes...; kwargs...)
 end

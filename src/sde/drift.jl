@@ -1,4 +1,14 @@
 
+"""
+    DriftTerm(f)
+    DriftTerm(f_1, …, f_d)
+
+Drift ``f(x, p, t)`` of an [`SDE`](@ref), constructed by `SDE` from a function (`d = 1`) or from the functions of the components
+(given as a `Tuple`, a `Vector` or as separate arguments). For a drift `F`:
+- `F(i, x, p, t)`: the `i`-th component
+- `F(dx, x, p, t)`: all components, written into `dx`
+- `F(x, p, t)`: all components (for `d = 1`: the scalar drift)
+"""
 function DriftTerm(f::Function)
     DriftTerm{1,typeof(f)}(f)
 end

@@ -14,6 +14,36 @@ Q_compatible(::AbstractSDE{d,k,m}, ::AbstractSDE{d,k,m}) where {d,k,m}= true
 SDE() = SDE{0,0,Nothing,Nothing,Nothing}(nothing,nothing,nothing)
 SDE(d::Integer,k::Integer) = SDE{d,k,Nothing,Nothing,Nothing}(nothing,nothing,nothing)
 SDE(d::Integer) = SDE(d,d)
+"""
+    SDE(f, g, par = nothing)
+
+Stochastic differential equation of a `d`-dimensional system driven by a scalar Wiener process ``W(t)`` that acts on the last coordinate:
+
+    dxᵢ = fᵢ(x, p, t) dt,                    i = 1, …, d-1
+    dx_d = f_d(x, p, t) dt + g(x, p, t) dW(t)
+
+# Arguments
+- `f`: the drift. A function `f(x, p, t)` for a scalar SDE (`d = 1`), or a `Tuple` (or `Vector`) of functions `(f_1, …, f_d)` for `d > 1`,
+  where `f_i(x, p, t)` returns the `i`-th component of the drift.
+- `g`: the noise intensity of the last coordinate, a function `g(x, p, t)`.
+- `par = nothing`: parameters, passed as `p` to `f` and `g`. Use a mutable container (e.g. a `Vector`) to be able to change them later
+  with [`recompute_PI!`](@ref) or [`recompute_stepMX!`](@ref). If `par = nothing`, `f` and `g` must not use `p`.
+
+In `f` and `g`, `x` is the state vector (`x[1]`, …, `x[d]`) and `t` is the time.
+The drift is traced with Symbolics.jl to compile the backward time step used in the step matrix computation, so `f` has to consist of operations
+that accept symbolic arguments (e.g. no branching on the values of `x`, `p` or `t`). Noise acting on several coordinates is not supported yet.
+
+# Example
+Duffing oscillator ``dx = v dt``, ``dv = (-2ζv + x - λx³) dt + σ dW(t)`` with `p = [ζ, λ, σ]`:
+```julia
+f1(x, p, t) = x[2]
+f2(x, p, t) = -2p[1]*x[2] + x[1] - p[2]*x[1]^3
+g2(x, p, t) = p[3]
+sde = SDE((f1, f2), g2, [0.5, 0.25, 1.0])
+```
+
+See also [`SDE_VIO`](@ref), [`PathIntegration`](@ref).
+"""
 function SDE(f::fT,g::gT, par=nothing) where {fT<:Function,gT<:Function}
     _f = DriftTerm(f);
     _g = DiffusionTerm(g);
