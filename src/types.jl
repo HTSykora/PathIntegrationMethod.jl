@@ -460,3 +460,78 @@ struct BatchRowComputation <: RowComputation
         new(N_threads, single_threaded_blas)
     end
 end
+
+# How the start points of the time steps are traced back from the grid points
+abstract type BacktracingMethod end
+"""
+    NewtonBacktracing()
+
+The start points of the time steps are found with a Newton iteration, compiled from the symbolic (Symbolics.jl) derivatives of the drift step. This is the default.
+
+The Chapman–Kolmogorov integral is taken over the initial value ``v₀`` of the noisy (last) coordinate. For each quadrature node the other initial
+coordinates ``x₀`` solve ``Φ(x₀, v₀)_{1:d-1} = x_{1:d-1}``, where ``Φ`` is the drift step ([`Euler`](@ref), [`RK2`](@ref), [`RK4`](@ref)) and ``x`` is the grid point.
+The drift has to be traceable by Symbolics.jl (e.g. no branching on the state).
+
+Pass it as the `backtracing` of [`PathIntegration`](@ref). See also [`ExplicitBacktracing`](@ref), [`StrangSplitting`](@ref).
+"""
+struct NewtonBacktracing <: BacktracingMethod end
+"""
+    ExplicitBacktracing()
+
+The start points of the time steps are computed explicitly, with one drift step backward in time: no iteration and no symbolic computation.
+
+The Chapman–Kolmogorov integral is taken over the value ``z`` of the noisy (last) coordinate after the drift step, before the noise is added:
+
+    p(x, v) = ∫ N(v; z, g(x₀)²Δt) p₀(x₀) |det ∂x₀/∂(x, z)| dz,    x₀ = Φ⁻¹(x, z)
+
+where ``Φ`` is the drift step of the time stepping method and ``N`` is the Gaussian PDF. ``Φ⁻¹`` is approximated by the same method with the time step
+``-Δt``, which differs from the exact inverse of the forward step by ``O(Δt^{p+1})`` for a method of order ``p``. So it is the transitional PDF of
+[`NewtonBacktracing`](@ref) with a different integration variable. With [`RK2`](@ref) and [`RK4`](@ref) the results agree up to this small difference
+(and the quadrature error), and the step matrix is computed 2–3.5× faster (RK4, d = 2). With [`Euler`](@ref) the difference is of the order of the error of the
+method (another first order approximation of the time step), so use it with `RK2()` or `RK4()`.
+The Jacobian determinant is computed with dual numbers (ForwardDiff.jl), so the drift has to be generic Julia code (e.g. without `Float64` type annotations
+of the state), but unlike with `NewtonBacktracing` it may branch on the state.
+
+Only for an [`SDE`](@ref) with noise on the last coordinate. Pass it as the `backtracing` of [`PathIntegration`](@ref). See also [`StrangSplitting`](@ref).
+"""
+struct ExplicitBacktracing <: BacktracingMethod end
+"""
+    StrangSplitting()
+
+Second order (in the time step) step matrices from the Strang splitting of the time step into the transport by the drift and the diffusion of the noisy
+(last) coordinate:
+
+    S = D(Δt/2) T(Δt) D(Δt/2)
+
+- ``T`` moves the PDF along the drift: ``(T p)(y) = p(Φ⁻¹(y)) |det ∂Φ⁻¹/∂y|``, where ``Φ⁻¹`` is the drift step backward in time from the grid point ``y``,
+  computed explicitly as in [`ExplicitBacktracing`](@ref).
+- ``D`` is the Maruyama step of the diffusion alone over half a time step, a Gaussian convolution along the last coordinate:
+  ``(D p)(x, v) = ∫ N(v; z, g(x, z)² Δt/2) p(x, z) dz``, where ``x`` denotes the other coordinates.
+
+With additive noise and [`RK2`](@ref) or [`RK4`](@ref) the error of the PDF is ``O(Δt²)``, instead of the ``O(Δt)`` of the Maruyama approximation of the
+whole time step ([`NewtonBacktracing`](@ref), [`ExplicitBacktracing`](@ref)), so much larger time steps give the same accuracy.
+With [`Euler`](@ref) (a first order transport step) or with multiplicative noise (the diffusion steps are Maruyama steps) the error is ``O(Δt)``.
+The drift steps are only traced back from the grid points (not from every quadrature node), and ``S`` is the product of the three matrices,
+which has somewhat more nonzero elements than the step matrices of the other methods. The product is computed serially, so with many threads
+the computation of ``S`` is slower than with `ExplicitBacktracing` (and with `NewtonBacktracing` for large grids).
+The requirements on the drift are the same as with `ExplicitBacktracing`.
+
+Only for an [`SDE`](@ref) with noise on the last coordinate. Pass it as the `backtracing` of [`PathIntegration`](@ref).
+"""
+struct StrangSplitting <: BacktracingMethod end
+
+# Step tracers of the explicit back-tracing: ExplicitBacktracing, and the transport and the diffusion steps of StrangSplitting
+struct ExplicitStepTracer end
+struct TransportStepTracer end
+struct DiffusionStepTracer end
+
+# StrangSplitting: the integration kernels of the transport (T) and of the diffusion (D) steps, S = D T D.
+# The transport kernel, the diffusion kernel and the fields sdestep (the SDE step of the transport), t and pdf share their objects.
+struct StrangKernel{tIKT,dIKT,sT,tT,pdfT,kwargT}
+    transport::tIKT
+    diffusion::dIKT
+    sdestep::sT
+    t::tT
+    pdf::pdfT
+    kwargs::kwargT
+end

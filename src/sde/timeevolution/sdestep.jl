@@ -7,11 +7,11 @@ number_of_sdesteps(sdestep::NonSmoothSDEStep{d,k,m,sdeT, n}) where {d,k,m,sdeT, 
 similar_to_x1(sdestep::SDEStep, args...) = similar(sdestep.x1, args...)
 
 """
-    SDEStep(sde, method, ts)
+    SDEStep(sde, method, ts; backtracing = NewtonBacktracing())
 
 Discrete time step of `sde` with the time stepping `method` ([`Euler`](@ref), [`RK2`](@ref) or [`RK4`](@ref) for the drift, [`Maruyama`](@ref) for the diffusion).
-It holds the states at the start (`x0`) and at the end (`x1`) of the step, the time interval, and the compiled (Symbolics.jl) Newton iteration that
-computes the start of a step from its end (the backward step) together with the Jacobian determinant of the step.
+It holds the states at the start (`x0`) and at the end (`x1`) of the step, the time interval, and what computes the start of a step from its end:
+the compiled (Symbolics.jl) Newton iteration of [`NewtonBacktracing`](@ref), or the explicit backward steps of [`ExplicitBacktracing`](@ref) and [`StrangSplitting`](@ref).
 `ts` is a time step or a vector of time points; the time interval is set by [`PathIntegration`](@ref).
 
 `PathIntegration(sde, method, ts, axes...)` constructs the `SDEStep`; `PathIntegration(sdestep, ts, axes...)` uses an existing one (and its compiled functions).
@@ -29,10 +29,10 @@ function SDEStep(sde, method, x0, x1, t::AbstractVector{tT}; kwargs...) where tT
     SDEStep(sde, method, x0, x1, Ref(zero(tT)), Ref(zero(tT)); kwargs...)
 end
 
-function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pclT = PreComputeNewtonStep(), kwargs...) where {sdeT<:AbstractSDE{d,k,m}, methodT <: DiscreteTimeSteppingMethod, pclT <: PreComputeLevel} where {d,k,m}
+function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; backtracing::BacktracingMethod = NewtonBacktracing(), kwargs...) where {sdeT<:AbstractSDE{d,k,m}, methodT <: DiscreteTimeSteppingMethod} where {d,k,m}
     
     _method = DiscreteTimeStepping(sde, method)
-    steptracer = precomputelevel(sde,_method,x0,x1, t0, t1)
+    steptracer = step_tracer(backtracing, sde, _method, x0, x1, t0, t1)
     
     SDEStep{d,k,m,sdeT,typeof(_method),typeof(steptracer),typeof(x0),typeof(x1),typeof(t0), Nothing, Nothing, Nothing}(sde, _method, x0, x1, t0, t1, steptracer, nothing, nothing, nothing)
 end

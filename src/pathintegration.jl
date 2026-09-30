@@ -48,6 +48,11 @@ Returns the [`PathIntegration`](@ref) object `PI`: `PI.pdf` is the response PDF 
     - `BatchRowComputation(N_threads = Threads.nthreads(); single_threaded_blas = false)`: `N_threads` blocks of rows in parallel using `Polyester.@batch`
     - `single_threaded_blas = true`: use a single BLAS thread during the parallel computation (faster with dense interpolations, see `ThreadedRowComputation`)
     The result does not depend on the row computation or on the number of threads. (`multithreaded_sparse` controls the multithreading of `advance!`.)
+- `backtracing = NewtonBacktracing()`: how the start points of the time steps are traced back from the grid points
+  (with an `sdestep`, set it in [`SDEStep`](@ref)`(sde, method, ts; backtracing)`)
+    - [`NewtonBacktracing`](@ref)`()`: Newton iteration, compiled from symbolic derivatives
+    - [`ExplicitBacktracing`](@ref)`()`: one explicit drift step backward in time, the same transitional PDF (with `RK2()`, `RK4()`), 2–3.5× faster
+    - [`StrangSplitting`](@ref)`()`: Strang splitting of the drift and the diffusion with explicit backward drift steps, second order in `Δt` (with `RK2()`, `RK4()` and additive noise)
 - `mPDF_IDs = nothing`: marginal PDFs (mPDFs) of the coordinates specified by `mPDF_IDs` (computed by [`update_mPDFs!`](@ref))
     - `Nothing`: no mPDF is initialised
     - `Integer`, e.g. `2`: 1-dimensional mPDF of the coordinate `mPDF_IDs`
@@ -72,6 +77,10 @@ function PathIntegration(sdestep::AbstractSDEStep{d,k,m}, _ts, axes::Vararg{Any,
     di_N = 31, discreteintegrator = defaultdiscreteintegrator(sdestep.sde, di_N),
     initialise_pdf = true, f_init = nothing, pre_compute = true, stepMXtype = nothing, sparse_tol = 1e-6, sparse_rtol = 0.0,
     mPDF_IDs = nothing, extract_IK = Val{false}(), rowcomputation = default_rowcomputation(), generic_row_kernel = false, kwargs...) where {d,k,m}
+    # (the back-tracing is set by the SDE step)
+    if haskey(kwargs, :backtracing) && kwargs[:backtracing] != backtracing(sdestep)
+        throw(ArgumentError("backtracing = $(kwargs[:backtracing]), but the SDE step uses $(backtracing(sdestep)): set it in SDEStep(sde, method, ts; backtracing)"))
+    end
     if stepMXtype isa StepMatrixRepresentation
         _stepMXtype = stepMXtype
     else
@@ -99,16 +108,8 @@ function PathIntegration(sdestep::AbstractSDEStep{d,k,m}, _ts, axes::Vararg{Any,
     step_idx = 0
     t = 0.
     if pre_compute
-        # * for CPU parallelisation extend this
-        itpVs = Tuple(zero(axis.temp) for axis in axes); # = itpVs;
-        Q_generic = generic_row_kernel || Q_generic_row_kernel(discreteintegrator)
-        # only the generic row kernel needs full-size buffers in the discrete integrator
-        res_prototype = Q_generic ? pdf.p : similar(pdf.p, ntuple(_ -> 0, d))
-        di = DiscreteIntegrator(discreteintegrator, sdestep, res_prototype, axes[k:end]...; kwargs...)
-        kernel = Q_generic ? GenericRowKernel() : row_kernel(pdf, length(di.x))
-        ikt = IK_temp(itpVs, zero(pdf.p), kernel)
-
-        IK = IntegrationKernel(sdestep, nothing, di, ts, pdf, ikt, (;sparse_tol = get_tol(_stepMXtype), sparse_rtol = get_rtol(_stepMXtype), rowcomputation = rowcomputation, kwargs...))
+        IK = integration_kernel(sdestep, discreteintegrator, pdf, ts, generic_row_kernel,
+            (;sparse_tol = get_tol(_stepMXtype), sparse_rtol = get_rtol(_stepMXtype), rowcomputation = rowcomputation, kwargs...); kwargs...)
         
         if extract_IK isa Val{true}
             return IK

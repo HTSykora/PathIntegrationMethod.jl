@@ -9,6 +9,7 @@ using FastGaussQuadrature
 using SparseArrays, ThreadedSparseArrays, StaticArrays
 using ArnoldiMethod: partialschur, partialeigen
 using Polyester: @batch
+import ForwardDiff
 
 export SDE, DriftTerm, DiffusionTerm,
     Euler, RungeKutta, RK2, RK4, Maruyama,
@@ -22,6 +23,7 @@ export SDE, DriftTerm, DiffusionTerm,
     DiscreteIntegrator, QuadGKIntegrator, ClenshawCurtisIntegrator, GaussLegendreIntegrator, GaussRadauIntegrator, GaussLobattoIntegrator, TrapezoidalIntegrator, NewtonCotesIntegrator,
     DenseMX, SparseMX,
     SerialRowComputation, ThreadedRowComputation, BatchRowComputation,
+    NewtonBacktracing, ExplicitBacktracing, StrangSplitting,
     SDE_VIO, Wall
 
 include("types.jl")
@@ -48,6 +50,7 @@ include("integration/integrationkernel.jl")
 include("integration/compute_stepMX.jl")
 include("integration/rowcomputation.jl")
 include("integration/discreteintegrator.jl")
+include("integration/backtracing.jl")
 include("utils.jl")
 include("steadystate.jl")
 

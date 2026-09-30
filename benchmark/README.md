@@ -18,6 +18,8 @@ Scripts for measuring the performance of the step matrix computation. Run them f
   Run with `julia --project -t auto benchmark/duffing_2d_profile.jl bench|save|compare`.
 - `duffing_2d_ab.jl`: the same Duffing oscillator, also with mixed sparse-sparse and dense-dense axes, to compare two versions of the package (run alternately with each version, see the script).
   Run with `julia --project -t auto benchmark/duffing_2d_ab.jl`.
+- `backtracing_benchmark.jl`: `NewtonBacktracing`, `ExplicitBacktracing` and `StrangSplitting` on the Duffing oscillator: the time to the first step matrix of a new SDE, the step matrix computation (serial and threaded), and the error of the stationary PDF (exact solution) for several time steps.
+  Run with `julia --project -t auto benchmark/backtracing_benchmark.jl`.
 
 `results/` holds the outputs (AMD Ryzen 7 PRO 7840U, 8 cores / 16 threads):
 
@@ -30,5 +32,6 @@ Scripts for measuring the performance of the step matrix computation. Run them f
 - `regression_after_partA.txt`: comparison with the step matrices of d5c342b
 - `duffing_2d_profile_before.txt`, `duffing_2d_profile_after.txt`: `duffing_2d_profile.jl bench` before (commit 381602e) and after the type stability fixes (loops over axes of different types, `integrate`, the evaluation `PI(x, v)`)
 - `duffing_2d_ab.txt`: `duffing_2d_ab.jl` with commit 381602e (old) and after the type stability fixes (new), two alternating runs each
+- `backtracing_benchmark.txt`: `backtracing_benchmark.jl`
 
 The `.jls` snapshot files are not committed.

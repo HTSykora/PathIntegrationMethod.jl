@@ -32,8 +32,8 @@ get_wall(sde::SDE_VIO) = sde.wall[sde.ID[]]
 get_wall(sdestep::SDEStep{d,k,m,sdeT}) where {d,k,m,sdeT<:SDE_VIO} = get_wall(sdestep.sde)
 get_wall(sdestep::NonSmoothSDEStep{d,k,m,sdeT}) where {d,k,m,sdeT<:SDE_VIO} = get_wall(sdestep[2])
 
-function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pclT = PreComputeNewtonStep(), kwargs...) where {sdeT<:SDE_VIO, methodT <: DiscreteTimeSteppingMethod, pclT <: PreComputeLevel} where {d,k,m}
-    
+function SDEStep(sde::sdeT, method::methodT, x0,x1, t0, t1; precomputelevel::pclT = PreComputeNewtonStep(), backtracing::BacktracingMethod = NewtonBacktracing(), kwargs...) where {sdeT<:SDE_VIO, methodT <: DiscreteTimeSteppingMethod, pclT <: PreComputeLevel} where {d,k,m}
+    backtracing isa NewtonBacktracing || throw(ArgumentError("$(nameof(typeof(backtracing)))() is not available for SDE_VIO, use NewtonBacktracing()"))
     _method = DiscreteTimeStepping(sde, method)
     steptracers = precomputelevel(sde,_method, x0,x1, t0, t1)
     ti = init_ti(t0,t1)

@@ -1,3 +1,6 @@
+# Product of the quadrature weights of a grid node, w₁⋯w_d (`prod(w)` inside `sum` is not inferred: nested reductions)
+node_weight(w::Tuple) = *(w...)
+
 """
     integrate(F)
     integrate(f, F)
@@ -11,9 +14,6 @@ integrate(PI.pdf)                  # ≈ 1
 integrate((x, v) -> x^2, PI.pdf)   # E[x²]
 ```
 """
-# Product of the quadrature weights of a grid node, w₁⋯w_d (`prod(w)` inside `sum` is not inferred: nested reductions)
-node_weight(w::Tuple) = *(w...)
-
 function integrate(f::InterpolatedFunction)
     _integrate(f.p, f.axes...)
 end

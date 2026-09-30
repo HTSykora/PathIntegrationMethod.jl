@@ -89,6 +89,15 @@ Due to this the error of the computed PDF converges only with first order, $O(\D
 However, in the case of higher $d$ dimensions using a higher order method can reduce the error significantly (by a constant multiplier), as it can capture better the interactions between the state variables.
 A general recommendation is to use a time stepping method with the same order as the dimension $d$ of the system (`Euler()` for $d = 1$, `RK2()` for $d = 2$ and `RK4()` for $d\geq 3$).
 
+For each grid point, the start points of the time steps are found by a Newton iteration compiled from symbolic derivatives (the default, `backtracing = NewtonBacktracing()`). Two alternatives compute them explicitly, with a drift step backward in time (without symbolic computation, so the drift may also branch on the state):
+
+- `backtracing = ExplicitBacktracing()`: the same results with `RK2()` and `RK4()`, and a 2–3.5× faster computation of the step matrix
+- `backtracing = StrangSplitting()`: Strang splitting of the time step into the transport by the drift and the diffusion. With `RK2()` or `RK4()` and additive noise the error converges with $O(\Delta t^2)$, so much larger time steps give the same accuracy.
+
+```julia
+PI = PathIntegration(sde, RK4(), Δt, region...; backtracing = StrangSplitting());
+```
+
 Finally, we can define the `PathIntegration` object that we will use to compute the time evolution of the response PDF of our problem:
 
 ```julia
