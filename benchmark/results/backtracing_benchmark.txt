@@ -1,19 +1,18 @@
-
 Julia threads: 16
-NewtonBacktracing()    first step matrix of a new SDE (quintic 41 × 41, RK4): 1.61 s
-ExplicitBacktracing()  first step matrix of a new SDE (quintic 41 × 41, RK4): 0.47 s
-StrangSplitting()      first step matrix of a new SDE (quintic 41 × 41, RK4): 0.90 s
+NewtonBacktracing()    first step matrix of a new SDE (quintic 41 × 41, RK4): 1.54 s
+ExplicitBacktracing()  first step matrix of a new SDE (quintic 41 × 41, RK4): 0.45 s
+StrangSplitting()      first step matrix of a new SDE (quintic 41 × 41, RK4): 0.84 s
 
 Step matrix computation (RK4, Δt = 0.05)
-  quintic 41 × 41    NewtonBacktracing()    serial    40.5 ms | 16 threads    6.1 ms | nnz(S)  100987 | advance!   13.1 μs
-  quintic 41 × 41    ExplicitBacktracing()  serial    12.7 ms | 16 threads    2.5 ms | nnz(S)  100677 | advance!   14.5 μs
-  quintic 41 × 41    StrangSplitting()      serial    19.2 ms | 16 threads    9.2 ms | nnz(S)  106279 | advance!   14.2 μs
-  quintic 81 × 81    NewtonBacktracing()    serial   166.1 ms | 16 threads   29.2 ms | nnz(S)  686187 | advance!   49.3 μs
-  quintic 81 × 81    ExplicitBacktracing()  serial    62.9 ms | 16 threads   10.1 ms | nnz(S)  688627 | advance!   49.7 μs
-  quintic 81 × 81    StrangSplitting()      serial   147.7 ms | 16 threads  104.2 ms | nnz(S)  687367 | advance!   45.6 μs
-  Chebyshev 25 × 25  NewtonBacktracing()    serial    13.9 ms | 16 threads    2.2 ms | nnz(S)  390625 | advance!   27.6 μs
-  Chebyshev 25 × 25  ExplicitBacktracing()  serial     4.0 ms | 16 threads    1.0 ms | nnz(S)  390625 | advance!   28.0 μs
-  Chebyshev 25 × 25  StrangSplitting()      serial    11.1 ms | 16 threads    7.9 ms | nnz(S)  390625 | advance!   28.8 μs
+  quintic 41 × 41    NewtonBacktracing()    serial    39.4 ms | 16 threads    6.3 ms | nnz(S)  100987 | advance!   13.7 μs
+  quintic 41 × 41    ExplicitBacktracing()  serial    12.6 ms | 16 threads    1.7 ms | nnz(S)  100677 | advance!   13.9 μs
+  quintic 41 × 41    StrangSplitting()      serial    21.1 ms | 16 threads    9.5 ms | nnz(S)  106279 | advance!   13.9 μs
+  quintic 81 × 81    NewtonBacktracing()    serial   169.7 ms | 16 threads   28.5 ms | nnz(S)  686187 | advance!   47.7 μs
+  quintic 81 × 81    ExplicitBacktracing()  serial    63.7 ms | 16 threads   10.1 ms | nnz(S)  688627 | advance!   53.9 μs
+  quintic 81 × 81    StrangSplitting()      serial   144.7 ms | 16 threads   99.3 ms | nnz(S)  687367 | advance!   49.8 μs
+  Chebyshev 25 × 25  NewtonBacktracing()    serial    13.9 ms | 16 threads    2.5 ms | nnz(S)  390625 | advance!   27.8 μs
+  Chebyshev 25 × 25  ExplicitBacktracing()  serial     4.0 ms | 16 threads    0.7 ms | nnz(S)  390625 | advance!   27.4 μs
+  Chebyshev 25 × 25  StrangSplitting()      serial    14.0 ms | 16 threads    8.3 ms | nnz(S)  390625 | advance!   27.5 μs
 
 L¹ error of the stationary PDF (RK4, quintic 81 × 81)
   Δt                           0.1      0.05     0.025    0.0125   orders
@@ -25,3 +24,10 @@ L¹ error of the stationary PDF (RK4, quintic 121 × 121)
   Δt                           0.1      0.05     0.025    0.0125   orders
   StrangSplitting()       2.06e-03  5.02e-04  1.21e-04  3.62e-05   2.04, 2.05, 1.74
 (at small Δt the error of StrangSplitting is limited by the interpolation error of the grid, which grows like h⁶/Δt)
+
+Noise on two coordinates (d = 3, k = 2, RK4, quintic 31³): L¹ error of the stationary PDF and the time of the step matrix computation
+  Δt                                       0.1                  0.05                 0.025
+  NewtonBacktracing()     7.57e-02 ( 0.46 s)  3.75e-02 ( 0.45 s)  1.86e-02 ( 0.38 s)
+  ExplicitBacktracing()   7.56e-02 ( 0.43 s)  3.75e-02 ( 0.32 s)  1.85e-02 ( 0.31 s)
+  StrangSplitting()       3.54e-03 ( 5.85 s)  2.02e-03 ( 4.41 s)  2.96e-03 ( 3.60 s)
+(StrangSplitting is limited by the interpolation error of the grid here: 3.0e-3 on 31³, 1.3e-3 on 41³ at Δt = 0.025)

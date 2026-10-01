@@ -8,6 +8,9 @@ default_di_N(::AbstractSDE{d,k,m}) where {d,k,m} = d - k + 1 == 1 ? 31 : 7
 function defaultdiscreteintegrator(sde::AbstractSDE{d,k,m}, di_N = default_di_N(sde)) where {d,k,m}
     d - k + 1 == 1 ? GaussLegendreIntegrator(di_N) : GaussHermiteIntegrator(di_N, dim = d - k + 1)
 end
+# (the default of an SDE step depends on the back-tracing: see StrangSplitting in backtracing.jl)
+default_di_N(sdestep::AbstractSDEStep) = default_di_N(sdestep.sde)
+defaultdiscreteintegrator(sdestep::AbstractSDEStep, di_N = default_di_N(sdestep)) = defaultdiscreteintegrator(sdestep.sde, di_N)
 
 getintegration_dimensions(::AbstractDiscreteIntegratorType{n}) where n = n
 function DiscreteIntegrator(discreteintegrator, sdestep::AbstractSDEStep, res_prototype, axes::Vararg{Any,n}; kwargs...) where n

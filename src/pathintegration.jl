@@ -19,9 +19,10 @@ Returns the [`PathIntegration`](@ref) object `PI`: `PI.pdf` is the response PDF 
 - `discreteintegrator = defaultdiscreteintegrator(sde, di_N)`: Discrete integrator to evaluate the Chapman-Kolmogorov equation over the noisy coordinates
     - The default discrete integrator algorithms are
         - noise on the last coordinate: [`GaussLegendreIntegrator`](@ref)`(di_N)`
-        - noise on several coordinates: [`GaussHermiteIntegrator`](@ref)`(di_N; dim = d-k+1)` (tensor product)
+        - noise on several coordinates: [`GaussHermiteIntegrator`](@ref)`(di_N; dim = d-k+1)` (tensor product), except with
+          [`StrangSplitting`](@ref): `GaussLegendreIntegrator(di_N)` (one-dimensional integrals)
         - `SDE_VIO`: `Tuple(GaussLegendreIntegrator(di_N) for _ in 1:2)`
-    - `di_N = 31` (noise on the last coordinate), `di_N = 7` (noise on several coordinates): Resolution of the discrete integrator. Can be a `Integer` or `NTuple{d-k+1,<:Integer}` that defines the discrete integration resolution in each `d-k+1` integration direction.
+    - `di_N = 31` (noise on the last coordinate, or `StrangSplitting`), `di_N = 7` (noise on several coordinates): Resolution of the discrete integrator. Can be a `Integer` or `NTuple{d-k+1,<:Integer}` that defines the discrete integration resolution in each `d-k+1` integration direction.
 - `smart_integration = true`: Only integrate where the transitional PDF has nonzero elements. It is approximated with the step function. Use `false` if (time step * diffusion) results in a wide TPDF. Usually `true` is the better choice.
 - `int_limit_thickness_multiplier = 6`: The "thickness" scaling of the TPDF during smart integration.
 - `initialise_pdf = true`: Initialise the response probability density function (RPDF). If false, then the RPDF is initialised as p(x) ≡ 0.
@@ -53,7 +54,8 @@ Returns the [`PathIntegration`](@ref) object `PI`: `PI.pdf` is the response PDF 
   (with an `sdestep`, set it in [`SDEStep`](@ref)`(sde, method, ts; backtracing)`)
     - [`NewtonBacktracing`](@ref)`()`: Newton iteration, compiled from symbolic derivatives
     - [`ExplicitBacktracing`](@ref)`()`: one explicit drift step backward in time, the same transitional PDF (with `RK2()`, `RK4()`), 2–3.5× faster
-    - [`StrangSplitting`](@ref)`()`: Strang splitting of the drift and the diffusion with explicit backward drift steps, second order in `Δt` (with `RK2()`, `RK4()` and additive noise)
+    - [`StrangSplitting`](@ref)`()`: Strang splitting of the drift and the diffusion with explicit backward drift steps, second order in `Δt` (with `RK2()`, `RK4()` and additive noise),
+      also with noise on several coordinates (one-dimensional diffusion integrals)
 - `mPDF_IDs = nothing`: marginal PDFs (mPDFs) of the coordinates specified by `mPDF_IDs` (computed by [`update_mPDFs!`](@ref))
     - `Nothing`: no mPDF is initialised
     - `Integer`, e.g. `2`: 1-dimensional mPDF of the coordinate `mPDF_IDs`
@@ -75,7 +77,7 @@ PI(0.5, 0.0)        # the PDF at x = 0.5, v = 0
 ```
 """
 function PathIntegration(sdestep::AbstractSDEStep{d,k,m}, _ts, axes::Vararg{Any,d}; 
-    di_N = default_di_N(sdestep.sde), discreteintegrator = defaultdiscreteintegrator(sdestep.sde, di_N),
+    di_N = default_di_N(sdestep), discreteintegrator = defaultdiscreteintegrator(sdestep, di_N),
     initialise_pdf = true, f_init = nothing, pre_compute = true, stepMXtype = nothing, sparse_tol = 1e-6, sparse_rtol = 0.0,
     mPDF_IDs = nothing, extract_IK = Val{false}(), rowcomputation = default_rowcomputation(), generic_row_kernel = false, kwargs...) where {d,k,m}
     if discreteintegrator isa GaussHermiteIntegrator && !get(kwargs, :smart_integration, true)

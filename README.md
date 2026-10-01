@@ -47,7 +47,7 @@ sde = SDE((f1,f2),g2,p)
 
 ```
 
-Here the noise affects the dynamics of the last (in this case the 2nd) coordinate. Independent noise sources on several of the last coordinates (diagonal noise) are given as a tuple of noise intensities, e.g. `SDE((f1, f2, f3), (g2, g3), p)` for noise on the 2nd and 3rd coordinates. The transitional PDF is then integrated over the noisy coordinates, by default with a tensor product Gauss–Hermite rule (`GaussHermiteIntegrator`) with 7 nodes in each noisy coordinate.
+Here the noise affects the dynamics of the last (in this case the 2nd) coordinate. Independent noise sources on several of the last coordinates (diagonal noise) are given as a tuple of noise intensities, e.g. `SDE((f1, f2, f3), (g2, g3), p)` for noise on the 2nd and 3rd coordinates. The transitional PDF is then integrated over the noisy coordinates, by default with a tensor product Gauss–Hermite rule (`GaussHermiteIntegrator`) with 7 nodes in each noisy coordinate (with `backtracing = StrangSplitting()`, see below, the integrals are one-dimensional).
 
 Next, define the region of interest and the interpolation with resolutions `Nx` and `Nv`: 
 
@@ -92,7 +92,7 @@ A general recommendation is to use a time stepping method with the same order as
 For each grid point, the start points of the time steps are found by a Newton iteration compiled from symbolic derivatives (the default, `backtracing = NewtonBacktracing()`). Two alternatives compute them explicitly, with a drift step backward in time (without symbolic computation, so the drift may also branch on the state):
 
 - `backtracing = ExplicitBacktracing()`: the same results with `RK2()` and `RK4()`, and a 2–3.5× faster computation of the step matrix
-- `backtracing = StrangSplitting()`: Strang splitting of the time step into the transport by the drift and the diffusion. With `RK2()` or `RK4()` and additive noise the error converges with $O(\Delta t^2)$, so much larger time steps give the same accuracy.
+- `backtracing = StrangSplitting()`: Strang splitting of the time step into the transport by the drift and the diffusion (with noise on several coordinates: the one-dimensional diffusion of each noisy coordinate). With `RK2()` or `RK4()` and additive noise the error converges with $O(\Delta t^2)$, so much larger time steps give the same accuracy.
 
 ```julia
 PI = PathIntegration(sde, RK4(), Δt, region...; backtracing = StrangSplitting());

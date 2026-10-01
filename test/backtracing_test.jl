@@ -134,7 +134,7 @@ end
         @test row_allocations(IK, 150) == 0
         K = PathIntegration(duffing(), RK4(), 0.05, axes...; backtracing = StrangSplitting(), extract_IK = Val(true))
         @test row_allocations(K.transport, 150) == 0
-        @test row_allocations(K.diffusion, 150) == 0
+        @test all(IK -> row_allocations(IK, 150) == 0, K.diffusion)
     end
 end
 

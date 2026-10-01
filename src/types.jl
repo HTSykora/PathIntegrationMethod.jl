@@ -373,7 +373,8 @@ end
 Gauss–Hermite quadrature with `N` nodes in each noisy coordinate. For every row of the step matrix the nodes are placed around the mean of the
 transitional PDF and scaled by its standard deviation (instead of on an interval): the rule is exact for a Gaussian times a polynomial of degree
 `2N - 1`, so a few nodes are enough. With noise on several coordinates the tensor product of the rules is used (`N` can be a tuple of the numbers
-of nodes in each noisy coordinate). It is the default `discreteintegrator` of [`PathIntegration`](@ref) for noise on several coordinates, with `N = 7`:
+of nodes in each noisy coordinate). It is the default `discreteintegrator` of [`PathIntegration`](@ref) for noise on several coordinates
+(except with [`StrangSplitting`](@ref), where the integrals are one-dimensional), with `N = 7`:
 for two noisy coordinates `7² = 49` nodes are about as accurate as `15² = 225` Gauss–Legendre nodes (and Gauss–Legendre rules with fewer nodes
 can fail completely).
 
@@ -531,7 +532,7 @@ method (another first order approximation of the time step), so use it with `RK2
 The Jacobian determinant is computed with dual numbers (ForwardDiff.jl), so the drift has to be generic Julia code (e.g. without `Float64` type annotations
 of the state), but unlike with `NewtonBacktracing` it may branch on the state.
 
-Only for an [`SDE`](@ref) with noise on the last coordinate. Pass it as the `backtracing` of [`PathIntegration`](@ref). See also [`StrangSplitting`](@ref).
+Only for an [`SDE`](@ref) (also with noise on several coordinates). Pass it as the `backtracing` of [`PathIntegration`](@ref). See also [`StrangSplitting`](@ref).
 """
 struct ExplicitBacktracing <: BacktracingMethod end
 """
@@ -547,25 +548,31 @@ Second order (in the time step) step matrices from the Strang splitting of the t
 - ``D`` is the Maruyama step of the diffusion alone over half a time step, a Gaussian convolution along the last coordinate:
   ``(D p)(x, v) = ∫ N(v; z, g(x, z)² Δt/2) p(x, z) dz``, where ``x`` denotes the other coordinates.
 
+With noise on several coordinates ``k, …, d`` (diagonal noise, see [`SDE`](@ref)) ``D`` is replaced by the one-dimensional Gaussian convolutions ``Dᵢ``
+along the noisy coordinates, in the symmetric order ``S = Dₖ ⋯ D_d T D_d ⋯ Dₖ``: for additive noise the ``Dᵢ`` commute, and their product is the
+diffusion of all noisy coordinates. So the integrals stay one-dimensional, and the default `discreteintegrator` is `GaussLegendreIntegrator(31)`
+in each noisy coordinate (a rule with `dim = d - k + 1` gives the rule of each coordinate).
+
 With additive noise and [`RK2`](@ref) or [`RK4`](@ref) the error of the PDF is ``O(Δt²)``, instead of the ``O(Δt)`` of the Maruyama approximation of the
 whole time step ([`NewtonBacktracing`](@ref), [`ExplicitBacktracing`](@ref)), so much larger time steps give the same accuracy.
 With [`Euler`](@ref) (a first order transport step) or with multiplicative noise (the diffusion steps are Maruyama steps) the error is ``O(Δt)``.
-The drift steps are only traced back from the grid points (not from every quadrature node), and ``S`` is the product of the three matrices,
+The drift steps are only traced back from the grid points (not from every quadrature node), and ``S`` is the product of the matrices,
 which has somewhat more nonzero elements than the step matrices of the other methods. The product is computed serially, so with many threads
-the computation of ``S`` is slower than with `ExplicitBacktracing` (and with `NewtonBacktracing` for large grids).
+the computation of ``S`` is slower than with `ExplicitBacktracing` (and with `NewtonBacktracing` for large grids). With noise on several coordinates
+the product dominates: e.g. for `d = 3` with two noisy coordinates on a `31³` grid it takes about 4 s (about 10× the time of the other methods).
 The requirements on the drift are the same as with `ExplicitBacktracing`.
 
-Only for an [`SDE`](@ref) with noise on the last coordinate. Pass it as the `backtracing` of [`PathIntegration`](@ref).
+Only for an [`SDE`](@ref). Pass it as the `backtracing` of [`PathIntegration`](@ref).
 """
 struct StrangSplitting <: BacktracingMethod end
 
 # Step tracers of the explicit back-tracing: ExplicitBacktracing, and the transport and the diffusion steps of StrangSplitting
 struct ExplicitStepTracer end
 struct TransportStepTracer end
-struct DiffusionStepTracer end
+struct DiffusionStepTracer{i} end # (i: the noisy coordinate of the diffusion step)
 
-# StrangSplitting: the integration kernels of the transport (T) and of the diffusion (D) steps, S = D T D.
-# The transport kernel, the diffusion kernel and the fields sdestep (the SDE step of the transport), t and pdf share their objects.
+# StrangSplitting: the integration kernels of the transport (T) and of the diffusion steps of the noisy coordinates (Dₖ, …, D_d, a tuple),
+# S = Dₖ ⋯ D_d T D_d ⋯ Dₖ. The kernels and the fields sdestep (the SDE step of the transport), t and pdf share their objects.
 struct StrangKernel{tIKT,dIKT,sT,tT,pdfT,kwargT}
     transport::tIKT
     diffusion::dIKT

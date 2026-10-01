@@ -119,10 +119,47 @@ end
     @test integrate_diff(PI_GH.pdf, PI_GL.pdf.p) < 1e-3
 end
 
+@testset "StrangSplitting" begin
+    # the diffusion of each noisy coordinate, one-dimensional integrals (Gauss–Legendre by default)
+    K = PathIntegration(sde3(), RK4(), 0.05, axes3(9)...; backtracing = StrangSplitting(), extract_IK = Val(true))
+    @test length(K.diffusion) == 2
+    @test all(IK -> IK.discreteintegrator isa PIM.IntervalDiscreteIntegrator{1} && length(IK.discreteintegrator.x) == 31, K.diffusion)
+    # a rule for two noisy coordinates gives the rule of each coordinate
+    K = PathIntegration(sde3(), RK4(), 0.05, axes3(9)...; backtracing = StrangSplitting(), discreteintegrator = GaussLegendreIntegrator((15, 21)), extract_IK = Val(true))
+    @test map(IK -> length(IK.discreteintegrator.x), K.diffusion) == (15, 21)
+
+    # second order for additive noise (d = 2, noise on both coordinates)
+    new_PI(Δt) = PathIntegration(sde2, RK4(), Δt, axes2(41)...; backtracing = StrangSplitting())
+    e1, residual = stationary_error(new_PI(0.1), P2)
+    e2, _ = stationary_error(new_PI(0.05), P2)
+    @test residual < 1e-10
+    @test e1 / e2 > 3
+    @test e2 < 1e-3
+    # d = 3: much more accurate than the Maruyama approximation of the whole time step (limited by the interpolation on this coarse grid)
+    e_strang, _ = stationary_error(PathIntegration(sde3(), RK4(), 0.1, axes3(21)...; backtracing = StrangSplitting()), P3)
+    e_explicit, _ = stationary_error(PathIntegration(sde3(), RK4(), 0.1, axes3(21)...; backtracing = ExplicitBacktracing()), P3)
+    @test e_strang < e_explicit / 5
+
+    # row computations and recomputation
+    new_PI3(par, rc) = PathIntegration(sde3(par), RK4(), 0.05, CubicAxis(-2., 2., 9), CubicAxis(-2., 2., 9), CubicAxis(-2., 2., 9); backtracing = StrangSplitting(), rowcomputation = rc)
+    par = [ζ, α, σ₁, σ₂]
+    S = stepmatrices(new_PI3(copy(par), SerialRowComputation()))
+    @test stepmatrices(new_PI3(copy(par), ThreadedRowComputation(3))) == S
+    @test stepmatrices(new_PI3(copy(par), BatchRowComputation(3))) == S
+    PI = new_PI3(copy(par), ThreadedRowComputation(3))
+    recompute_PI!(PI; par = 0.9 .* par)
+    @test stepmatrices(PI) == stepmatrices(new_PI3(0.9 .* par, SerialRowComputation()))
+    # the rows of the transport and of the diffusion steps are computed without allocations
+    K = PathIntegration(sde3(), RK4(), 0.05, CubicAxis(-2., 2., 11), CubicAxis(-2., 2., 11), CubicAxis(-2., 2., 11); backtracing = StrangSplitting(), extract_IK = Val(true))
+    @test row_allocations(K.transport, 600) == 0
+    @test all(IK -> row_allocations(IK, 600) == 0, K.diffusion)
+end
+
 @testset "Not available with noise on several coordinates" begin
     @test_throws ArgumentError PathIntegration(sde3(), RK4(), 0.05, axes3(9)...; discreteintegrator = QuadGKIntegrator())
-    @test_throws ArgumentError PathIntegration(sde3(), RK4(), 0.05, axes3(9)...; backtracing = StrangSplitting())
+    @test_throws ArgumentError PathIntegration(sde3(), RK4(), 0.05, axes3(9)...; discreteintegrator = QuadGKIntegrator(), backtracing = StrangSplitting())
     @test_throws ArgumentError PathIntegration(sde3(), RK4(), 0.05, axes3(9)...; discreteintegrator = GaussLegendreIntegrator((5, 5, 5)))
+    @test_throws ArgumentError PathIntegration(sde3(), RK4(), 0.05, axes3(9)...; discreteintegrator = GaussLegendreIntegrator((5, 5, 5)), backtracing = StrangSplitting())
     @test_throws ArgumentError PathIntegration(sde3(), RK4(), 0.05, axes3(9)...; smart_integration = false)
 end
 

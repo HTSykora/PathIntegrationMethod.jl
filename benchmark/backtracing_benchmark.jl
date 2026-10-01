@@ -2,7 +2,7 @@
 # dx = v dt, dv = (-2ζv + x - λx³) dt + σ dW, which has the exact stationary PDF ∝ exp(-(4ζ/σ²)(v²/2 - x²/2 + λx⁴/4)):
 # time to the first step matrix of a new SDE, step matrix computation, and the error of the stationary PDF.
 # Run from the package folder with: julia --project -t auto benchmark/backtracing_benchmark.jl
-using PathIntegrationMethod, Printf, Logging
+using PathIntegrationMethod, Printf, Logging, LinearAlgebra
 const PIM = PathIntegrationMethod
 
 const ζ, λ, σ = 0.5, 0.25, 1.0
@@ -64,3 +64,30 @@ for (N, grid_bts) in ((81, bts), (121, (StrangSplitting(),)))
     end
 end
 println("(at small Δt the error of StrangSplitting is limited by the interpolation error of the grid, which grows like h⁶/Δt)")
+
+# Noise on two coordinates: dx = v dt, dv = (-x - 2ζv + y) dt + σ₁ dW₁, dy = -αy dt + σ₂ dW₂ (stationary PDF N(0, P), A P + P Aᵀ + B Bᵀ = 0)
+α, σ₁, σ₂ = 1.0, 0.5, 0.7
+h1(x,p,t) = x[2]
+h2(x,p,t) = -x[1] - 2p[1]*x[2] + x[3]
+h3(x,p,t) = -p[2]*x[3]
+s2(x,p,t) = p[3]
+s3(x,p,t) = p[4]
+P3 = lyap([0 1 0; -1 -2ζ 1; 0 0 -α], Diagonal([0, σ₁^2, σ₂^2]))
+axes3(N) = Tuple(QuinticAxis(-L, L, N) for L in 4.5 .* sqrt.(diag(P3)))
+println("\nNoise on two coordinates (d = 3, k = 2, RK4, quintic 31³): L¹ error of the stationary PDF and the time of the step matrix computation")
+@printf("  %-22s", "Δt"); foreach(Δt -> @printf("%22s", Δt), (0.1, 0.05, 0.025)); println()
+for bt in bts
+    @printf("  %-22s", bt)
+    for Δt in (0.1, 0.05, 0.025)
+        PI = PathIntegration(SDE((h1, h2, h3), (s2, s3), [ζ, α, σ₁, σ₂]), RK4(), Δt, axes3(31)...; backtracing = bt)
+        t = besttime(() -> recompute_stepMX!(PI), 2)
+        with_logger(NullLogger()) do
+            steady_state!(PI)
+        end
+        PIe = PathIntegration(PI.step_dynamics, PI.ts, PI.pdf.axes...; f_init = (x...) -> exp(-0.5*dot(collect(x), P3 \ collect(x))), pre_compute = false)
+        PIe.pdf.p ./= integrate(PIe.pdf)
+        @printf("  %.2e (%5.2f s)", integrate_diff(PI.pdf, PIe.pdf), t)
+    end
+    println()
+end
+println("(StrangSplitting is limited by the interpolation error of the grid here: 3.0e-3 on 31³, 1.3e-3 on 41³ at Δt = 0.025)")
