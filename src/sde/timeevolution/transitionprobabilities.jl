@@ -39,14 +39,14 @@ function milstein_dist(μₓ, σₓ, R, y)#, atol = sqrt(eps(R)))
 end
 
 # Transitionprobability of a step
-# function transitionprobability(step::SDEStep{d,k,m,sdeT,method}, x::Vararg{Any,N}) where{d, m, sdeT, method<:DiscreteTimeStepping{TDrift, TDiff}, N} where {TDrift, TDiff<:Maruyama}
-#     # TODO: case with diagonal noise
-#     # N == d-k+1
-#     # σ2 = ...
-#     # prod(normal1D_σ2(step.x1[k+i-1],σ2[i,i],x[i]) for i in 1:N)
-
-#     # TODO: case with general noise
-# end
+# Diagonal noise on the coordinates k, …, d: the product of the Gaussian PDFs of the noisy coordinates
+function transitionprobability(step::SDEStep{d,k,m,sdeT,method},x) where {d,k,m,sdeT, method<:DiscreteTimeStepping{TDrift, TDiff}} where {TDrift, TDiff<:Maruyama}
+    diagonal_gaussian(step, x, ntuple(j -> step.x1[k+j-1], Val(d-k+1)))
+end
+# ∏ᵢ N(x[i]; μ[i - k + 1], gᵢ(x₀)² Δt) over the noisy coordinates i = k, …, d
+function diagonal_gaussian(step::SDEStep{d,k,m}, x, μ::NTuple{n,Any}) where {d,k,m,n}
+    prod(ntuple(j -> normal1D_σ2(μ[j], _Δt(step) * (get_g(step.sde)(k+j-1, step.x0,_par(step),_t0(step))^ 2), x[k+j-1]), Val(n)))
+end
 
 # Single noise source only on the last coordinate
 function transitionprobability(step::SDEStep{d,d,m,sdeT,method},x) where {d,m,sdeT, method<:DiscreteTimeStepping{TDrift, TDiff}} where {TDrift, TDiff<:Maruyama}

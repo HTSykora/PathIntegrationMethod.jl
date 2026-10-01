@@ -47,7 +47,7 @@ sde = SDE((f1,f2),g2,p)
 
 ```
 
-*Currently the package assumes that the noise only affects the dynamics of the last (in this case the 2nd) coordinate. In case you need multiple noise sources please open an issue and we will implement it.*
+Here the noise affects the dynamics of the last (in this case the 2nd) coordinate. Independent noise sources on several of the last coordinates (diagonal noise) are given as a tuple of noise intensities, e.g. `SDE((f1, f2, f3), (g2, g3), p)` for noise on the 2nd and 3rd coordinates. The transitional PDF is then integrated over the noisy coordinates, by default with a tensor product Gauss–Hermite rule (`GaussHermiteIntegrator`) with 7 nodes in each noisy coordinate.
 
 Next, define the region of interest and the interpolation with resolutions `Nx` and `Nv`: 
 

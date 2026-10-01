@@ -203,7 +203,7 @@ end
 make_sparse(stepMX::AbstractVector{T}) where T<:Number = sparse(stepMX)
 make_sparse(stepMX::AbstractVector{T}) where T<:AbstractArray = sparse.(stepMX)
 
-function rescale_discreteintegrator!(IK::IntegrationKernel{1,dyn}; kwargs...) where dyn <:SDEStep{d,k,m} where {d,k,m}
+function rescale_discreteintegrator!(IK::IntegrationKernel{kd,dyn}; kwargs...) where {kd, dyn <:SDEStep{d,k,m}} where {d,k,m}
     compute_initial_states_driftstep!(IK.sdestep; IK.kwargs...)
     rescale_discreteintegrator!(IK.discreteintegrator, IK.sdestep, IK.pdf; kwargs...)
 end

@@ -5,7 +5,7 @@
 step_tracer(::NewtonBacktracing, sde, method, x0, x1, t0, t1) = PreComputeNewtonStep()(sde, method, x0, x1, t0, t1)
 function step_tracer(bt::Union{ExplicitBacktracing,StrangSplitting}, sde::AbstractSDE{d,k,m}, method, x0, x1, t0, t1) where {d,k,m}
     sde isa SDE || throw(ArgumentError("$(nameof(typeof(bt)))() is not available for $(nameof(typeof(sde))), use NewtonBacktracing()"))
-    k == d || throw(ArgumentError("$(nameof(typeof(bt)))() needs the noise on the last coordinate only"))
+    (k == d || bt isa ExplicitBacktracing) || throw(ArgumentError("$(nameof(typeof(bt)))() needs the noise on the last coordinate only"))
     explicit_step_tracer(bt)
 end
 explicit_step_tracer(::ExplicitBacktracing) = ExplicitStepTracer()
@@ -58,6 +58,8 @@ end
 
 # The grid point x₁ with z in the noisy (last) coordinate
 with_last(x1, z, ::Val{d}) where d = SVector(ntuple(i -> i < d ? x1[i] : z, Val(d)))
+# The grid point x₁ with z (a number or an SVector) in the noisy coordinates k, …, d
+with_noisy(x1, z, ::Val{d}, ::Val{k}) where {d,k} = SVector(ntuple(i -> i < k ? x1[i] : z[i-k+1], Val(d)))
 
 ## Kernel values: the transitional PDF (with the Jacobian determinant) at the integration variable z; the start of the step is written into sdestep.x0
 
@@ -67,6 +69,14 @@ function kernel_value!(IK::IntegrationKernel{kd,<:SDEStep{d,d,m,sdeT,methodT,Exp
     x0, detJ = backward_driftstep(step, with_last(IK.x1, z, Val(d)))
     step.x0 .= x0
     fx = normal1D_σ2(z, _Δt(step) * get_g(step.sde)(d, step.x0, _par(step), _t0(step))^2, IK.x1[d])
+    isapprox(fx, zero(fx), atol = 1e-8) ? zero(fx) : fx * detJ
+end
+# Noise on the coordinates k, …, d: z (an SVector) are the noisy coordinates after the drift step
+function kernel_value!(IK::IntegrationKernel{kd,<:SDEStep{d,k,m,sdeT,methodT,ExplicitStepTracer}}, z) where {kd,d,k,m,sdeT,methodT}
+    step = IK.sdestep
+    x0, detJ = backward_driftstep(step, with_noisy(IK.x1, z, Val(d), Val(k)))
+    step.x0 .= x0
+    fx = diagonal_gaussian(step, IK.x1, Tuple(z))
     isapprox(fx, zero(fx), atol = 1e-8) ? zero(fx) : fx * detJ
 end
 # StrangSplitting, transport: the transitional PDF is a Dirac delta at x₀ = Φ⁻¹(x₁) (integrated with a single node of weight 1)
@@ -84,10 +94,10 @@ function kernel_value!(IK::IntegrationKernel{kd,<:SDEStep{d,d,m,sdeT,methodT,Dif
 end
 
 # Integration window: centred at the grid point (sdestep.x0 = x₁ here), without the backward Newton step
-function rescale_discreteintegrator!(IK::IntegrationKernel{1,<:SDEStep{d,k,m,sdeT,methodT,<:Union{ExplicitStepTracer,DiffusionStepTracer}}}; kwargs...) where {d,k,m,sdeT,methodT}
+function rescale_discreteintegrator!(IK::IntegrationKernel{kd,<:SDEStep{d,k,m,sdeT,methodT,<:Union{ExplicitStepTracer,DiffusionStepTracer}}}; kwargs...) where {kd,d,k,m,sdeT,methodT}
     rescale_discreteintegrator!(IK.discreteintegrator, IK.sdestep, IK.pdf; kwargs...)
 end
-rescale_discreteintegrator!(::IntegrationKernel{1,<:SDEStep{d,k,m,sdeT,methodT,TransportStepTracer}}; kwargs...) where {d,k,m,sdeT,methodT} = nothing
+rescale_discreteintegrator!(::IntegrationKernel{kd,<:SDEStep{d,k,m,sdeT,methodT,TransportStepTracer}}; kwargs...) where {kd,d,k,m,sdeT,methodT} = nothing
 
 ## Integration kernels of the step matrix computation
 
@@ -112,7 +122,7 @@ end
 # A discrete integrator with a single node of weight 1
 function single_node_integrator(res_prototype)
     x, w = [0.0], [1.0]
-    DiscreteIntegrator{1,typeof(x),typeof(w),typeof(res_prototype),typeof(res_prototype),Base.RefValue{Bool}}(x, w, zero(res_prototype), zero(res_prototype), Ref(true), copy(x), copy(w))
+    DiscreteIntegrator{1}(x, w, zero(res_prototype), zero(res_prototype), Ref(true), copy(x), copy(w), IntervalRule())
 end
 # The diffusion step of the same SDE (with its own states and time interval)
 function diffusion_step(s::SDEStep{d,k,m}) where {d,k,m}

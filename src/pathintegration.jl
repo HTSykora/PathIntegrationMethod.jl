@@ -16,11 +16,12 @@ Returns the [`PathIntegration`](@ref) object `PI`: `PI.pdf` is the response PDF 
 - `sdestep`: an [`SDEStep`](@ref) (the time stepping of an SDE) instead of `sde` and `method`.
 
 # Keyword Arguments
-- `discreteintegrator = defaultdiscreteintegrator(sde, di_N = 31)`: Discrete integrator to evaluate the Chapman-Kolmogorov equation
+- `discreteintegrator = defaultdiscreteintegrator(sde, di_N)`: Discrete integrator to evaluate the Chapman-Kolmogorov equation over the noisy coordinates
     - The default discrete integrator algorithms are
-        - `defaultdiscreteintegrator(sde::AbstractSDE{d,k,m}, di_N = 31) = GaussLegendreIntegrator(di_N)`
-        - `defaultdiscreteintegrator(sde::SDE_VIO, di_N = 31) = Tuple(GaussLegendreIntegrator(di_N) for _ in 1:2)`
-    - `di_N = 31`: Resolution of the discrete integrator. Can be a `Integer` or `NTuple{d-k+1,<:Integer}` that defines the discrete integration resolution in each `d-k+1` integration direction.
+        - noise on the last coordinate: [`GaussLegendreIntegrator`](@ref)`(di_N)`
+        - noise on several coordinates: [`GaussHermiteIntegrator`](@ref)`(di_N; dim = d-k+1)` (tensor product)
+        - `SDE_VIO`: `Tuple(GaussLegendreIntegrator(di_N) for _ in 1:2)`
+    - `di_N = 31` (noise on the last coordinate), `di_N = 7` (noise on several coordinates): Resolution of the discrete integrator. Can be a `Integer` or `NTuple{d-k+1,<:Integer}` that defines the discrete integration resolution in each `d-k+1` integration direction.
 - `smart_integration = true`: Only integrate where the transitional PDF has nonzero elements. It is approximated with the step function. Use `false` if (time step * diffusion) results in a wide TPDF. Usually `true` is the better choice.
 - `int_limit_thickness_multiplier = 6`: The "thickness" scaling of the TPDF during smart integration.
 - `initialise_pdf = true`: Initialise the response probability density function (RPDF). If false, then the RPDF is initialised as p(x) ≡ 0.
@@ -74,9 +75,12 @@ PI(0.5, 0.0)        # the PDF at x = 0.5, v = 0
 ```
 """
 function PathIntegration(sdestep::AbstractSDEStep{d,k,m}, _ts, axes::Vararg{Any,d}; 
-    di_N = 31, discreteintegrator = defaultdiscreteintegrator(sdestep.sde, di_N),
+    di_N = default_di_N(sdestep.sde), discreteintegrator = defaultdiscreteintegrator(sdestep.sde, di_N),
     initialise_pdf = true, f_init = nothing, pre_compute = true, stepMXtype = nothing, sparse_tol = 1e-6, sparse_rtol = 0.0,
     mPDF_IDs = nothing, extract_IK = Val{false}(), rowcomputation = default_rowcomputation(), generic_row_kernel = false, kwargs...) where {d,k,m}
+    if discreteintegrator isa GaussHermiteIntegrator && !get(kwargs, :smart_integration, true)
+        throw(ArgumentError("GaussHermiteIntegrator needs smart_integration = true"))
+    end
     # (the back-tracing is set by the SDE step)
     if haskey(kwargs, :backtracing) && kwargs[:backtracing] != backtracing(sdestep)
         throw(ArgumentError("backtracing = $(kwargs[:backtracing]), but the SDE step uses $(backtracing(sdestep)): set it in SDEStep(sde, method, ts; backtracing)"))

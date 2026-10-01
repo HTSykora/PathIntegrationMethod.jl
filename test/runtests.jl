@@ -19,6 +19,7 @@ using Test
     @time @testset "Vibro-impact oscillator" begin include("vio_test.jl") end
     @time @testset "Type stability" begin include("type_stability_test.jl") end
     @time @testset "Back-tracing methods" begin include("backtracing_test.jl") end
+    @time @testset "Noise on several coordinates" begin include("multinoise_test.jl") end
 
 
     # Write your tests here.

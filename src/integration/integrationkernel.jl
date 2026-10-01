@@ -8,7 +8,7 @@ end
 IK_temp(itpVs, itpM, kernel = GenericRowKernel()) = IK_temp(BI_product(_eachindex.(itpVs)...), BI_product(_val.(itpVs)...), itpVs, itpM, kernel)
 
 # Row kernel used with the discrete integrator `di`
-Q_generic_row_kernel(di) = !(di isa AbstractDiscreteIntegratorMethod{1})
+Q_generic_row_kernel(di) = !(di isa AbstractDiscreteIntegratorMethod)
 row_kernel(pdf::InterpolatedFunction{T,N,<:SparseInterpolationType}, n_q) where {T,N} = SparseAccumulator(zeros(Bool, length(pdf.p)), Int[])
 function row_kernel(pdf::InterpolatedFunction{T,N,<:DenseInterpolationType}, n_q) where {T,N}
     Ns = size(pdf.p)
@@ -19,15 +19,15 @@ end
 
 # Evaluating the integrals
 
-get_IK_weights!(IK::IntegrationKernel{1}; kwargs...) = get_IK_weights!(IK.temp.kernel, IK; kwargs...)
-function get_IK_weights!(::GenericRowKernel, IK::IntegrationKernel{1}; kwargs...)
+get_IK_weights!(IK::IntegrationKernel; kwargs...) = get_IK_weights!(IK.temp.kernel, IK; kwargs...)
+function get_IK_weights!(::GenericRowKernel, IK::IntegrationKernel; kwargs...)
 # function get_IK_weights!(IK::IntegrationKernel{1}; integ_limits = first(IK.int_axes), kwargs...)
     IK.discreteintegrator(IK, IK.temp.itpM; kwargs...)
     # quadgk!(IK, IK.temp.itpM, integ_limits...; cleanup_quadgk_keywords(;kwargs...)...)
 end
 
 # Sparse interpolations: accumulate w * fx * (interpolation weights) only on the stencil of each quadrature node
-function get_IK_weights!(spa::SparseAccumulator, IK::IntegrationKernel{1}; kwargs...)
+function get_IK_weights!(spa::SparseAccumulator, IK::IntegrationKernel; kwargs...)
     itpM = IK.temp.itpM
     reset_row!(spa, itpM)
     di = IK.discreteintegrator
@@ -67,7 +67,7 @@ function accumulate_vals!(spa::SparseAccumulator, itpM, LI, fx, w, idx_it, val_i
 end
 
 # Dense interpolations: Φ = Σ_q c_q ⊗_j Bs[j][:,q], evaluated as a matrix product
-function get_IK_weights!(dk::DenseTensorKernel, IK::IntegrationKernel{1}; kwargs...)
+function get_IK_weights!(dk::DenseTensorKernel, IK::IntegrationKernel; kwargs...)
     itpM = IK.temp.itpM
     di = IK.discreteintegrator
     if !di.Q_integrate[]
@@ -155,6 +155,12 @@ end
 
 function update_relevant_states!(sdestep::sdeT,x::Number) where sdeT<:SDEStep{d,d,m} where {dk,d,m}
     @inbounds sdestep.x0[d] = x
+end
+# the noisy coordinates k:d (several integration variables: an SVector)
+function update_relevant_states!(sdestep::SDEStep{d,k,m}, x::SVector) where {d,k,m}
+    for (i,j) in enumerate(k:d)
+        @inbounds sdestep.x0[j] = x[i]
+    end
 end
 function update_relevant_states!(sdestep::sdeT,x::Vararg{Any,N}) where sdeT<:SDEStep{d,k,m} where {dk,d,k,m,N}
     for (i,j) in enumerate(k:d)

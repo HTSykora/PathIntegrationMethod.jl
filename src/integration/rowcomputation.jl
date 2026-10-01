@@ -95,8 +95,8 @@ function task_copy(s::SDEStep{d,k,m,sdeT,methodT,tracerT,x0T,x1T,tT,tiT,xiT,xi2T
 end
 task_copy(st::SymbolicNewtonStepTracer) = SymbolicNewtonStepTracer(st.xI_0!, st.x_0!, st.detJI_inv, deepcopy(st.tempI), deepcopy(st.temp))
 
-function task_copy(di::DiscreteIntegrator{dim,xT,wT,resT,tempT,qT}) where {dim,xT,wT,resT,tempT,qT}
-    DiscreteIntegrator{dim,xT,wT,resT,tempT,qT}(copy(di.x), copy(di.w), zero(di.res), zero(di.temp), Ref(di.Q_integrate[]), di.x_ref, di.w_ref)
+function task_copy(di::DiscreteIntegrator{dim}) where dim
+    DiscreteIntegrator{dim}(copy(di.x), copy(di.w), zero(di.res), zero(di.temp), Ref(di.Q_integrate[]), di.x_ref, di.w_ref, di.rule)
 end
 task_copy(q::QuadGKIntegrator) = QuadGKIntegrator(copy(q.int_limits), zero(q.res), q.kwargs, Ref(q.Q_integrate[]), zero(q.res0))
 function task_copy(di::NonSmoothDiscreteIntegrator{dim,NoDyn,disT}) where {dim,NoDyn,disT}

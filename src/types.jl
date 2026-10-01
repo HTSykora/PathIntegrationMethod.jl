@@ -296,10 +296,17 @@ struct ClenshawCurtisIntegrator{dim,NT} <: AbstractDiscreteIntegratorMethod{dim}
     end
 end
 """
-    GaussLegendreIntegrator(N = 31)
+    GaussLegendreIntegrator(N = 31; dim = length(N))
 
 Gauss–Legendre quadrature with `N` nodes (the ends of the interval are not nodes).
-It is the default `discreteintegrator` of [`PathIntegration`](@ref) (with `N = di_N`).
+It is the default `discreteintegrator` of [`PathIntegration`](@ref) for noise on a single coordinate (with `N = di_N`).
+
+The quadrature rules on an interval (also [`ClenshawCurtisIntegrator`](@ref), [`GaussRadauIntegrator`](@ref), [`GaussLobattoIntegrator`](@ref),
+[`TrapezoidalIntegrator`](@ref), [`NewtonCotesIntegrator`](@ref)) are rescaled for every row of the step matrix to the window of ±6 standard deviations
+of the transitional PDF in each noisy coordinate. With noise on several coordinates the tensor product of the rules is used:
+`N` can be a number (the same in each of the `dim` noisy coordinates) or a tuple of the numbers of nodes; a rule with `dim = 1` is used in every noisy coordinate.
+These rules need about 15–31 nodes in each noisy coordinate, as most of their nodes are near the ends of the window, where the transitional PDF is negligible:
+with several noisy coordinates [`GaussHermiteIntegrator`](@ref) needs far fewer nodes.
 """
 struct GaussLegendreIntegrator{dim,NT} <: AbstractDiscreteIntegratorMethod{dim}
     N::NT
@@ -360,6 +367,27 @@ struct NewtonCotesIntegrator{dim,ord,NT} <: AbstractDiscreteIntegratorMethod{dim
         new{dim,ord,typeof(_N)}(_N)
     end
 end
+"""
+    GaussHermiteIntegrator(N = 7; dim = length(N))
+
+Gauss–Hermite quadrature with `N` nodes in each noisy coordinate. For every row of the step matrix the nodes are placed around the mean of the
+transitional PDF and scaled by its standard deviation (instead of on an interval): the rule is exact for a Gaussian times a polynomial of degree
+`2N - 1`, so a few nodes are enough. With noise on several coordinates the tensor product of the rules is used (`N` can be a tuple of the numbers
+of nodes in each noisy coordinate). It is the default `discreteintegrator` of [`PathIntegration`](@ref) for noise on several coordinates, with `N = 7`:
+for two noisy coordinates `7² = 49` nodes are about as accurate as `15² = 225` Gauss–Legendre nodes (and Gauss–Legendre rules with fewer nodes
+can fail completely).
+
+The convergence is slow beyond that, as the interpolated PDF is only piecewise smooth: for very accurate integrals a rule on an interval with many nodes
+(e.g. [`GaussLegendreIntegrator`](@ref) with 21–31 nodes) converges faster. This is also the case for strongly nonlinear drifts with large time steps.
+It needs `smart_integration = true`.
+"""
+struct GaussHermiteIntegrator{dim,NT} <: AbstractDiscreteIntegratorMethod{dim}
+    N::NT
+    function GaussHermiteIntegrator(N=7; dim = length(N))
+        _N = get_N(N, dim)
+        new{dim,typeof(_N)}(_N)
+    end
+end
 struct QuadGKIntegrator{iT,rT,kT,qT} <: AbstractDiscreteIntegratorType{1}
     int_limits::iT
     res::rT
@@ -367,16 +395,27 @@ struct QuadGKIntegrator{iT,rT,kT,qT} <: AbstractDiscreteIntegratorType{1}
     Q_integrate::qT
     res0::rT
 end
-struct DiscreteIntegrator{dim,xT,wT,resT,tempT,qT} <: AbstractDiscreteIntegratorType{dim}
+# How the nodes of a discrete integrator are placed for each row: on an interval (the integration window), or around the mean of the
+# Gaussian transitional PDF and scaled by its standard deviation (Gauss–Hermite)
+struct IntervalRule end
+struct GaussianRule end
+# x, w: the nodes (numbers, or SVectors for several integration variables) and the weights of the current row
+struct DiscreteIntegrator{dim,xT,wT,resT,tempT,qT,xrT,wrT,ruleT} <: AbstractDiscreteIntegratorType{dim}
     x::xT
     w::wT
     res::resT
     temp::tempT
     Q_integrate::qT
-    # nodes and weights on the initial interval: rescaling always starts from these
-    x_ref::xT
-    w_ref::wT
+    # the nodes and weights of the reference rule (on the initial interval, or of the standard Gauss–Hermite rule) in each dimension:
+    # rescaling always starts from these
+    x_ref::xrT
+    w_ref::wrT
+    rule::ruleT
 end
+DiscreteIntegrator{dim}(x, w, res, temp, Q_integrate, x_ref, w_ref, rule) where dim =
+    DiscreteIntegrator{dim,typeof(x),typeof(w),typeof(res),typeof(temp),typeof(Q_integrate),typeof(x_ref),typeof(w_ref),typeof(rule)}(x, w, res, temp, Q_integrate, x_ref, w_ref, rule)
+const IntervalDiscreteIntegrator{dim} = DiscreteIntegrator{dim,xT,wT,resT,tempT,qT,xrT,wrT,IntervalRule} where {xT,wT,resT,tempT,qT,xrT,wrT}
+const GaussianDiscreteIntegrator{dim} = DiscreteIntegrator{dim,xT,wT,resT,tempT,qT,xrT,wrT,GaussianRule} where {xT,wT,resT,tempT,qT,xrT,wrT}
 struct NonSmoothDiscreteIntegrator{dim,NoDyn,disT} <: AbstractDiscreteIntegratorType{dim}
     discreteintegrators::disT
 end
